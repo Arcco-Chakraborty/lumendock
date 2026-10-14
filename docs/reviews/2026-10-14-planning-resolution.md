@@ -1,0 +1,17 @@
+# Planning review resolution — 2026-10-14
+
+Status: document amendments passed scoped re-review; approved for user review with no blocking planning issue. This records planned behavior/tests, not implemented software or passing product tests.
+
+| Finding | Decision and affected documents | Planned verification |
+|---|---|---|
+| R1 | Shared window reportedAtEpochMs; expiry-only removal preserves rows/timestamps; first-seen cached report remains stale; private locked genuine-report ordinal picks the public source across sessions; reload retains age. Design Claude/protocol sections, PRD freshness, D1/D2, W2. | One/both windows expire, initially absent window, old-session timer after newer report, hub reload, per-row age |
+| R2 | Exact AppStatus/SetupState/SetupResult and all app args/replies frozen in D1; setup acknowledges immediately; one Activity-owned flow; outcome via status; renderer scope separate. Design protocol, A1/A2/A3, W1/W2. | >30-second code/approval, duplicate/competing flow, cancel/expire, renderer recreation, late completion, no credential reply |
+| R3 | Per-field ordinary merging; separate timer-only barriers; ≤4 unsent units; power-off cancels unsent timers; native owns post-dispatch matching/mismatching reconciliation; no automatic retry; per-kind CommandResult in EspSnapshot; native generation floor survives view recreation. PRD, design, A3/W2. | Cross-field merge, timer/slider ordering, mixed rejection, queued power-off cancellation, old poll, match/mismatch, reconnect/teardown, final release, new view cannot reuse generation |
+| R4 | ageMs belongs to exact native cached payload; UI anchors serverNowEpochMs+ageMs at receipt and advances monotonically; source staleness/notification expiry recomputed; no sample remains unknown. PRD, protocol/dashboard design, A2/W2. | 30-minute cached outage, no rewind, notification expiry, stale threshold, renderer recreation, wall-clock jump |
+| R5 | Explicit declared/verified previous shell; absolute Node exec; prior bytes/output/exit retained; backpressure/EPIPE handled; normal cancellation stops/reaps owned group within 500 ms then escalates; no fictitious SIGKILL handler. PRD, design, D2. | Long child/descendant cancellation, early close, nonzero exit, overflow/capture failure, replacement invocations, shell prerequisite leaves original untouched |
+| C1 | Fine location through API32; nearby Wi-Fi API33+, neverForLocation and older location-services handling. Design/A3. | API29/30/31/32/33 permission matrix, denial/location off |
+| C2 | Reserve two Claude +62 Codex windows; explicit SOURCE_CAPACITY_EXCEEDED keeps last good source stale, never silent truncation. PRD, protocol/D1/D2/W2. | Over-capacity with/without prior good sample and explicit UI capability error |
+
+Additional user steering: root HANDOFF.md/AGENTS.md plus docs/STATUS.json/PROGRESS.md provide a live cross-tool checkpoint. Main plan requires coordinating updates at every task/review/decision boundary; D1 preserves these existing files. Secrets/private captures are excluded, and software/device/final-review gates remain distinct.
+
+Original [review](2026-10-14-planning-review.md) is retained for traceability. Its scoped re-review marks R1–R5/C1–C2 ADDRESSED and covers the generation-floor and live-handoff changes, including P13/A17. User plan approval and all product build/physical/final-project verification remain pending.
