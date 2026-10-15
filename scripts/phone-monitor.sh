@@ -240,6 +240,10 @@ do_logs() {
   tail -n 30 -f "$HUB_LOG" "$CONNECT_LOG"
 }
 
+do_tray() {
+  exec python3 "$SCRIPT_DIR/phone-monitor-tray.py" "$@"
+}
+
 action="${1:-}"
 case "$action" in
   start)
@@ -261,8 +265,12 @@ case "$action" in
   logs)
     do_logs
     ;;
+  tray)
+    shift
+    do_tray "$@"
+    ;;
   *)
-    echo "Usage: $0 {start [SERIAL]|stop|restart [SERIAL]|status|logs}" >&2
+    echo "Usage: $0 {start [SERIAL]|stop|restart [SERIAL]|status|logs|tray}" >&2
     exit 1
     ;;
 esac
