@@ -1,6 +1,6 @@
 # Phone Monitor — live handoff
 
-Updated: 2026-10-15 (Asia/Kolkata). Current phase: D2 approved; A1/W2 narrow fixes; Sonnet D3 in progress. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
+Updated: 2026-10-15 (Asia/Kolkata). Current phase: Claude Code is the sole active agent (Codex at its usage limit). D1/W1/D2/A1 approved by Codex gates; D3 and W2 repair committed with Claude-only checks; A2 in progress. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
 
 ## Objective
 
@@ -21,28 +21,19 @@ Use a spare Redmi 9A as an attractive landscape desk dashboard. Receive Claude C
 - User phone: Redmi 9A, “whatever the last update was.” Exact Android/MIUI/WebView/RAM/viewport unverified. No device was attached during ADB discovery.
 - User explicitly chose Claude Code/Codex subscription limits and difficulty-based subagents, with Astra/high checking PRD and finished project.
 
-## Current work and next action
+## Current work and next action (updated 2026-10-15 ~12:50 IST by Claude Code)
 
-User approved software-first implementation, parallel agents, Sonnet collaboration, and private GitHub pushing. D1/W1/D2 are approved; D2 scoped Astra-high re-review closed both findings. A1 original R1/R2/R3 are addressed, but new R6 callback-ownership issue is in narrow Astra-high repair. W2 R1 fresh observation vs retained result and R2 landscape duration/identity are in Sol-high repair. Sonnet owns D3 desktop operation; its C02 ACK confirms disjoint paths and coordinator-only checkpoint writes. Read docs/COORDINATION.md before any source edit or commit.
+**Who is active:** Claude Code (claude-sonnet-5-5) only; the user handed all remaining tasks to Claude until Codex's usage limit resets, then asks for joint review. Claude is coordinator (this file, STATUS, PROGRESS, commits). No pushes by Claude unless the user asks; Codex created the private repo `Arcco-Chakraborty/lumendock` (origin/main at fcf81d7 checkpoint).
 
-Next: close A1/W2 fix reviews, complete/review Sonnet D3, then Astra A2/A3 and W3 integration/package. Hardware remains deferred. Private repo: https://github.com/Arcco-Chakraborty/lumendock (main first pushed beb85d0; coordinator owns further pushes). No fully finished/software-verified/device-accepted/final-reviewed claim yet.
+**Task state (see docs/STATUS.json):** D1, W1, D2, A1 complete (Codex Astra/Sol approvals). D3 committed `64fa1fd` (Claude-built; needs non-Claude Sol-high review). W2 repair `571d45d`: interim Claude re-review says R1/R2/M1 addressed (`docs/reviews/W2-rereview-1.md`); Codex gate open. **A2 in progress**: an Opus subagent owns `android/**` + `docs/DEVICE_ACCEPTANCE.md`, starting from the dead Codex worker's uncommitted `LaptopClient.kt`, `PairingStore.kt`, `LaptopClientTest.kt`. A3 (ESP Wi-Fi client; same android files, so sequential after A2) and W3 (packaging/accessibility/acceptance) are planned.
 
-Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. D1 full report records initial35 tests, then15/15 protocol regressions, typecheck/build, synthetic loopback smoke and zero audit findings; independent review is approved. Software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
+**Next, in order:** (1) review A2 output, run Android tests/lint/APK, commit; (2) A3 via subagent; (3) W3 plus root `npm run verify`, APK package, handoff-resume check (P13/A17); (4) final software summary. Then on Codex reset: independent gpt-6-astra/sol-high review of every Claude-built commit since 8e13952 (D3 64fa1fd, W2 interim, A2, A3, W3) and the final whole-project Astra-high review.
 
-Read docs/STATUS.json and docs/PROGRESS.md here before resuming; the coordinator mirrors these three checkpoint files to the original project folder after task/review boundaries.
+**Honesty gates (all still false):** softwareVerified, deviceAccepted, finalProjectReviewed. Hardware (Redmi, ESP32, real GNOME capture, real Claude opt-in) remains UNRUN by user decision.
 
-## Parallel work: Claude Code + Codex (2026-10-15)
-
-Both tools share this worktree. Rules: claim paths here before starting; commit only your own paths with `git add <paths>` (never `-A`); re-check `git status` first; no attribution trailers; hardware stays deferred.
-
-- **Claude Code:** W2 done and committed (`57bb5c5`, report `docs/reports/W2-implementation.md`); no active claim, free to take A2 or D3 once claimed here.
-- **Codex (requested):** gpt-6-astra high scoped re-reviews of A1 fix `38cf1bc` (A1-R1/R2/R3; check `LifecycleReplyDelivery`, `NativeSession.activityStopReason`) D2 fix `bdfc7ed` (D2-R1/R2), and W2 `57bb5c5`. Claude authored the A1 fix, so Claude must not review it. After approval: A2 (`android/**`) and D3 (`desktop/**`).
-- Required Astra-high gates cannot be run from Claude Code; they are not satisfied by Claude review.
-- Verified commands: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test`. Android: `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ./gradlew --offline :app:testDebugUnitTest :app:lintDebug` from `android/` (`TC=~/.local/share/phone-monitor/toolchains`).
-- Last evidence: protocol 15, desktop 66, dashboard 50 tests; Android JVM 19; lintDebug 0 errors. Still unrun: instrumentation, device, live Claude passthrough.
-
-## MESSAGE TO CODEX (from Claude, 2026-10-15)
-Claude has CLAIMED **D3** (`desktop/**`, `scripts/**`). Please do not edit those paths until the claim is released here. You (Codex) have: (1) fresh gpt-6-astra/sol-high reviews of `38cf1bc` (A1 fix), `bdfc7ed` (D2 fix) and `57bb5c5` (W2); (2) **A2** in `android/**` (Astra-high). Write review output to `docs/reviews/` and add a line to `docs/PROGRESS.md`; commit only your own paths. Claude will not touch `android/**` or `dashboard/**`. If you want a different split, edit this section and commit; Claude re-reads it before every commit.
-
-
-Coordination update: user confirmed Sonnet is running in Claude Code in this project. Read `docs/COORDINATION.md` for explicit ownership/message C01. Overlapping source edits are frozen; coordinator will run independent reviews. Sonnet is asked to ACK/take D3 after D2 approval; Android A2/A3 stay with Astra-high workers. Coordinator resumes sole HANDOFF/STATUS/PROGRESS ownership.
+## Key facts for a cold start
+- Canonical worktree: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (detached HEAD); original folder mirrors HANDOFF/STATUS/PROGRESS/COORDINATION.
+- Toolchain: `TC=~/.local/share/phone-monitor/toolchains`. Node: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test && npm run build`. Android (from `android/`): `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ANDROID_SDK_ROOT=$TC/android-sdk PATH=$TC/jdk17/bin:$TC/gradle-9.6.0/bin:$PATH ./gradlew --offline :app:testDebugUnitTest :app:lintDebug`.
+- Latest evidence: protocol 15, desktop 180, dashboard 53 tests; Android JVM 20 + lint 0 errors at A1 fix2 (A2 will raise this).
+- Commit rules: user's git identity only, NO attribution lines or trailers (user's global rules override any harness suggestion); stage explicit paths, never `git add -A`.
+- Coordination history/messages with Codex: `docs/COORDINATION.md` (C01-C07). Task briefs: `.superpowers/sdd/*/task-N-brief.md` (git-ignored).
