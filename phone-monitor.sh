@@ -1,0 +1,1 @@
+scripts/phone-monitor.sh

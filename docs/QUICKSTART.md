@@ -57,7 +57,18 @@ It prints an **8-digit code valid for 2 minutes**. On the phone, open **Phone Mo
 npm run start --workspace @phone-monitor/desktop
 ```
 
-(Optional: `npm run install-hub` installs it as a login service instead; see SETUP.md §7.)
+(Optional: `./phone-monitor.sh start` or `npm run service:start` runs both the hub and ADB supervisor in the background as a single command, without registering startup permissions; see below.)
+
+### Everyday background runner (laptop)
+
+To start or stop all laptop background tasks with a single command without installing login services:
+
+```sh
+./phone-monitor.sh start      # or: npm run service:start (starts hub + adb reverse supervisor in background)
+./phone-monitor.sh status     # or: npm run service:status (checks hub & adb supervisor)
+./phone-monitor.sh logs       # or: npm run service:logs (streams hub & connection logs)
+./phone-monitor.sh stop       # or: npm run service:stop (stops both at once)
+```
 
 ## 5. Connect the light controller (phone only)
 

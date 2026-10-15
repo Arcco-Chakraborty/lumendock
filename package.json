@@ -21,8 +21,11 @@
     "install-hub": "node scripts/workspace.mjs install-hub",
     "uninstall-hub": "node scripts/workspace.mjs uninstall-hub",
     "claude-install": "node scripts/workspace.mjs claude-install",
-    "claude-uninstall": "node scripts/workspace.mjs claude-uninstall",
-    "package": "node scripts/workspace.mjs package"
+    "package": "node scripts/workspace.mjs package",
+    "service:start": "./scripts/phone-monitor.sh start",
+    "service:stop": "./scripts/phone-monitor.sh stop",
+    "service:status": "./scripts/phone-monitor.sh status",
+    "service:logs": "./scripts/phone-monitor.sh logs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
