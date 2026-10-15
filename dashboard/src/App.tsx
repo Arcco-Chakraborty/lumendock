@@ -217,8 +217,10 @@ export function App({
         className="sheet"
         onCancel={() => setSheet(null)}
         onClose={() => {
-          setSheet(null);
-          opener.current?.focus();
+          // The close event is queued and can arrive after the user already moved
+          // focus or opened another sheet; it must neither undo that sheet nor pull
+          // focus back. The effect above restores focus when a sheet closes.
+          if (!dialog.current?.open) setSheet(null);
         }}
       >
         <div className="sheet-header">

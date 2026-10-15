@@ -52,3 +52,18 @@ Independent review and the final Astra-high project review are separate gates tr
 
 `desktop/test/claude-cli.test.ts` (8 tests) covers: dry run writes nothing and never prints the existing command; install/idempotent reinstall/uninstall preserving unrelated edits; refusal of an existing command without the declared shell, exact `2.1.N` version, shell attestation and cancellation attestation (four separate refusals, settings unchanged); acceptance only with all of them and exact restore on uninstall; uninstall refusing after a user edit; unknown/duplicate/relative arguments rejected. The D2 installer gates are unchanged. UNRUN: opt-in on a real Claude settings file with a real Claude session.
 
+
+## Packaging and e2e (W3a, software-verified; no device)
+
+Commands (Node 24 toolchain first on `PATH`):
+
+| Command | What it does |
+|---|---|
+| `npm run test:e2e` (or `npm run test:e2e --workspace @phone-monitor/dashboard`) | Runs `vite build`, serves the **production** bundle with `vite preview`, and drives it in the installed Google Chrome (`channel: "chrome"`, headless; no browser download). A fake native bridge exists only in `dashboard/e2e/bridge.ts` via `page.addInitScript`; fixtures come from `packages/protocol/fixtures` and are schema-validated. Not part of `npm test`/`npm run verify` because it needs a local Chrome. |
+| `npm run package` | Packages existing build output without building (add `-- --build` to run `npm run build` first). Writes ignored `artifacts/phone-monitor-desktop-<version>.tar.gz`, `phone-monitor-manifest.json` and `SHA256SUMS`; includes `artifacts/phone-monitor-*.apk` in the checksums when present. Check with `(cd artifacts && sha256sum -c SHA256SUMS)`. |
+
+`npm run package` refuses (nonzero exit, nothing written) when the dashboard bundle is absent, contains mock/demo/synthetic/diagnostic markers, source maps, symlinks or remote URLs, when JS+CSS exceeds 750 KiB, when an APK exceeds 20 MiB or is a diagnostic APK, when any input path looks like a secret/private config/Node binary/`.config` content, or when shipped files embed an absolute home path. The tarball is deterministic (sorted, zeroed metadata, no timestamps). Clean install from the tarball: `npm ci --omit=dev --workspace @phone-monitor/desktop` (also written to `INSTALL.txt`).
+
+Software-verified: e2e suite (layout at 800x360 and 740x320 including bounding boxes and 44 px tap targets, control/text overlap, 360x800 portrait, 130% text emulation, reduced motion, keyboard order and focus restoration, offline shell, independent USB/ESP loss, plain-text notifications, usage above 100% and odd Codex bucket durations, one `esp.set` in flight via the bridge log); packaging unit tests in `dashboard/test/packaging.test.mjs`; one real `npm run package` plus `npm ci --omit=dev` from the extracted tarball.
+
+UNRUN: real Redmi WebView (text zoom is emulated by scaling CSS font sizes, not Android `textZoom`), the physical APK and its 20 MiB/3 s startup measurements, anything involving the bridge implementation on Android, and the sixty-minute/two-hour soaks. Android asset wiring to `dashboard/dist` belongs to the Android tasks.

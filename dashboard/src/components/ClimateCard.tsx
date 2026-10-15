@@ -81,7 +81,9 @@ export function ClimateCard({
             <path d={chartPath} fill="none" stroke="#78d3d8" strokeWidth="1" />
           </svg>
           <p className="history-offsets muted">
-            <span>{spanMinutes} minutes ago</span>
+            <span>
+              {spanMinutes} {spanMinutes === 1 ? "minute" : "minutes"} ago
+            </span>
             <span>Latest sample</span>
           </p>
         </>

@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p e2e/tsconfig.json",
     "build": "tsc --noEmit && vite build",
-    "dev": "vite --host 127.0.0.1"
+    "dev": "vite --host 127.0.0.1",
+    "test:e2e": "vite build && playwright test"
   },
   "dependencies": {
     "@phone-monitor/protocol": "0.1.0",
@@ -15,6 +16,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "vite": "7.3.7",

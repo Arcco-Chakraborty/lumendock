@@ -766,3 +766,15 @@ select:focus-visible {
     margin-top: 3px;
   }
 }
+
+/* W3a: keep the 44px details button from covering the bucket label/duration row. */
+@media (min-width: 650px) {
+  .usage-card:not(.usage-expanded) .quota-label {
+    padding-right: 44px;
+  }
+}
+/* W3a: larger text must wrap the two link-status chips instead of leaving the viewport. */
+.connections {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}

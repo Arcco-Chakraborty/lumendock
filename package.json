@@ -12,6 +12,7 @@
   },
   "scripts": {
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace @phone-monitor/dashboard",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "verify": "node scripts/workspace.mjs verify",

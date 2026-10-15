@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [
     {
@@ -11,6 +11,8 @@ export default defineConfig({
         ),
     },
   ],
+  // Playwright specs (e2e/) run through `npm run test:e2e`, never through vitest.
+  test: { exclude: ["e2e/**", "node_modules/**", "dist/**", "test-results/**"] },
   base: "./",
   build: { target: "es2018", outDir: "dist" },
   resolve: {
