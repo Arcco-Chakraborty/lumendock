@@ -5,10 +5,15 @@ Status legend used throughout: **VERIFIED (software)** means an automated test o
 All commands run from the repository root with the project Node 24 toolchain first on `PATH` (the system Node 20 / Java 8 defaults are never changed):
 
 ```sh
-export PATH=$HOME/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin:$PATH
-npm run build --workspace @phone-monitor/desktop
+export TC=$HOME/.local/share/phone-monitor/toolchains
+export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH
+npm ci                    # first time on a fresh clone
+npm run build             # protocol + desktop hub + dashboard
+JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk node scripts/build.mjs   # Android tests/lint + APK -> artifacts/phone-monitor-debug.apk
 npm run doctor            # add -- --json for machine output
 ```
+
+**Short path:** [QUICKSTART.md](QUICKSTART.md) has the exact order from cable to running dashboard. The order matters: install the APK and start `npm run connect` (USB link) **before** starting the hub with `--pair`, because the 2-minute pairing code must reach the phone over that link. `connect` and the hub both run in the foreground, so use two terminals. If you installed the optional service (§7), stop it first (`systemctl --user stop phone-monitor-hub.service`) so `--pair` can bind port 8765.
 
 No placeholder below is a real serial, token or password. Replace `SERIAL` with the value you read yourself from `adb devices -l`; never paste it into tracked files or shared reports.
 
@@ -18,15 +23,21 @@ No placeholder below is a real serial, token or password. Replace `SERIAL` with 
 
 VERIFIED (software): doctor against fake runners and a read-only smoke run with no phone attached. UNRUN: doctor with an attached Redmi.
 
-## 2. Start the hub and pair the phone
+## 2. Install the app, then pair the phone (after §3 is running)
 
-The hub binds only `127.0.0.1:8765`. Pairing is closed unless you ask for it:
+Install the APK once the phone is authorized (see §3 for USB debugging). On a Xiaomi/Redmi phone also enable **Developer options → Install via USB** (it may ask you to sign in to a Mi account once); without it `adb install` fails with `INSTALL_FAILED_USER_RESTRICTED`:
+
+```sh
+adb -s SERIAL install -r artifacts/phone-monitor-debug.apk
+```
+
+With `npm run connect -- --serial SERIAL` running in another terminal, start the hub in pairing mode. It binds only `127.0.0.1:8765`, and pairing is closed unless you ask for it:
 
 ```sh
 npm run start --workspace @phone-monitor/desktop -- --pair
 ```
 
-The terminal prints an eight-digit code valid for 120 seconds, five wrong attempts, one use. **Type the code on the phone, in the app's native pairing screen** (not on a web page, and never as a command-line argument). The token is stored privately on both sides (`~/.config/phone-monitor/phone-token`, mode 0600, directory 0700). Restart the hub without `--pair` afterwards: pairing then stays closed.
+The terminal prints an eight-digit code valid for 120 seconds, five wrong attempts, one use. **Type the code on the phone:** open Phone Monitor; an unpaired phone shows a **Pair laptop** card on the main screen (also under the settings icon → **Pair laptop**). Enter it in the native **Pair with laptop** dialog only (not on a web page, never as a command-line argument). The token is stored privately on both sides (`~/.config/phone-monitor/phone-token`, mode 0600, directory 0700). Restart the hub without `--pair` afterwards: pairing then stays closed.
 
 UNVERIFIED: the phone-side pairing screen on a real device.
 
@@ -64,6 +75,10 @@ The ESP32 keeps its own access point (SSID `Rgb_Controller`, address `192.168.4.
 
 UNVERIFIED: simultaneous USB + ESP Wi-Fi on the Redmi, MIUI approval/retention behaviour (PRD A02).
 
+## 4b. Codex usage
+
+The hub reads Codex limits from the Codex CLI's read-only app-server. It finds the CLI on `PATH`, or inside the VS Code/Cursor ChatGPT extension (`~/.vscode/extensions/openai.chatgpt-*/bin/linux-x86_64/codex`), or at an absolute path you set with `PHONE_MONITOR_CODEX=/path/to/codex` or `"codexPath"` in `~/.config/phone-monitor/config.json`. `npm run doctor` shows which version it found. Only the verified version (`codex-cli 0.162.0-alpha.17.2`) is used; after a Codex update the card shows "unsupported" until compatibility is re-verified, rather than guessing at a changed protocol.
+
 ## 5. Claude Code status line (opt-in, not enabled by default)
 
 Claude quota data comes from a status-line wrapper that you opt into; the hub never launches Claude and makes no inference calls. The installer (`desktop/src/claude/install.ts`) backs up your settings, preserves unrelated edits, and uninstall restores only the field it owns. If you already have a status-line command, **existing-command passthrough remains disabled**: the installer refuses unless the previous command's shell and cancellation behaviour have been verified for your Claude Code version. Until that is verified, an existing status-line command is left untouched and Claude shows "awaiting data".
@@ -89,7 +104,7 @@ npm run start --workspace @phone-monitor/desktop -- notifications remove "APP_LA
 npm run start --workspace @phone-monitor/desktop -- notifications list
 ```
 
-A running hub applies changes without restarting other collectors. Only allowlisted notifications are kept (max 100 records, 30 minutes, memory only). If GNOME refuses D-Bus monitoring, the notification card shows "unavailable" and quotas keep working; no elevation is requested. The command syntax above is implemented by the notifications task (D3-A); see [TESTING.md](TESTING.md) for its status. UNRUN: live GNOME capture; a synthetic `notify-send` check is a manual opt-in step.
+A running hub applies changes without restarting other collectors. Only allowlisted notifications are kept (max 100 records, 30 minutes, memory only). If GNOME refuses D-Bus monitoring, the notification card shows "unavailable" and quotas keep working; no elevation is requested. App labels are the names apps send with their notifications (the bold name on GNOME's banner); apps that use GNOME's own `org.gtk.Notifications` or the desktop portal instead of the freedesktop `Notify` call are not captured, and very large notifications (over 256 KiB, e.g. embedded images) are dropped. UNRUN: live GNOME capture; a synthetic `notify-send` check is a manual opt-in step.
 
 ## 7. Optional login service (foreground is the default)
 
@@ -124,8 +139,8 @@ The phone reaches the controller at `192.168.4.1` over Wi-Fi while the laptop li
 **Native (preferred).**
 
 1. Power the controller and open the app in the foreground.
-2. Tap the controller setup action (dashboard) or **Connect controller** (diagnostic APK). One native "Controller Wi-Fi" dialog opens. Screenshots of it are blocked.
-3. Type the controller's network name and password into that dialog only, then tap **Connect**. They are stored in app-private storage (backup disabled) and never shown to the dashboard, logs or diagnostics. The password is never prefilled.
+2. Tap the settings icon → **Connect controller**. One native "Controller Wi-Fi" dialog opens. Screenshots of it are blocked.
+3. Type the controller's network name (`Rgb_Controller`) and its Wi-Fi password (the AP password configured in your RGB_Controller firmware; it is deliberately not copied into this repository) into that dialog only, then tap **Connect**. They are stored in app-private storage (backup disabled) and never shown to the dashboard, logs or diagnostics. The password is never prefilled.
 4. Grant the one permission Android asks for: precise location on Android 10–12L (API 29–32; Location must also be switched on), or "Nearby devices" on Android 13+ (declared as not used for location).
 5. Approve Android's prompt to join the controller network. It has no internet, which is expected.
 6. Setup succeeds only once the controller itself answers over HTTP on that network. Internet validation is never used as readiness.

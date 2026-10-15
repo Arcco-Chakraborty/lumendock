@@ -79,8 +79,15 @@ Preconditions (in addition to the A2 preconditions for any row that uses the lap
 
 ## W3 — Dashboard on device
 
-Rows to be added by W3 (800×360 / 740×320 fit, portrait readability, font scaling, soak/startup).
+| ID | Row | Steps | Expected result | Status |
+|---|---|---|---|---|
+| W3-D1 (A13) | Real viewport and text size | Record the Redmi's Android/MIUI/WebView versions (`npm run doctor -- --serial SERIAL`). View the dashboard in landscape and portrait, then set Settings → Display → Font size to the largest step. | No primary control or value is clipped or overlapping; every control stays tappable; portrait is readable. Screenshot both orientations. | UNRUN |
+| W3-D2 (A14) | Startup time | Force-stop the app, then time from launcher tap to the dashboard shell appearing (screen recording or stopwatch, 3 runs). | Useful shell within 3 s each run. | UNRUN |
+| W3-D3 (A15) | Soak and memory | Keep the dashboard in the foreground for 60 min, then a 2 h release soak. Every 10 min record `adb -s SERIAL shell dumpsys meminfo com.phonemonitor` (TOTAL PSS) and the WebView renderer process PSS. | No crash, no missed updates; app+renderer PSS ≤ 180 MiB and not monotonically growing. Record sampled numbers only. | UNRUN |
+| W3-D4 (P10) | Screen-on and brightness | In settings toggle **Keep screen on while open** and drag **Display brightness** from 10 % to 100 %. | Screen stays on only while the app is foreground; brightness follows the drag smoothly and stays at the released value. | UNRUN |
+| W3-D5 (A03) | Quotas match the providers | With real data on the cards, compare each Claude/Codex window and reset time with the provider's own usage/status view at the same moment. No prompt is sent solely for this check. | Percentages and reset times match (allowing for the documented staleness); every available window appears. Record a sanitized, time-stamped comparison. | UNRUN |
+| W3-D6 (A10) | Live notifications | `npm run start --workspace @phone-monitor/desktop -- notifications allow "SyntheticApp"`, then `notify-send -a SyntheticApp "Synthetic title" "synthetic body"`. Then remove the app. | The synthetic notification appears on the phone within 3 s, as plain text; after `remove` it disappears and no other app's notifications ever appear. | UNRUN |
 
 ## Final dual-link acceptance
 
-A3-D1 is the component-level dual-link row. Rows to be added at integration (simultaneous USB laptop link and controller Wi-Fi, final Astra-high review gate).
+A3-D1 is the dual-link row (simultaneous USB laptop link and controller Wi-Fi). The project is "device accepted" only when A2-D1..D6, A3-D1..D14 and W3-D1..D6 are PASS (or explicitly waived with a reason), and "fully finished" additionally requires the gpt-6-astra high final review (A16).

@@ -31,7 +31,7 @@ Record a dated, sanitized result (no serial, token, SSID password or notificatio
 | A02 | `npm run connect -- --serial SERIAL` shows Connected; phone reaches the hub over USB while joined to the ESP AP; laptop keeps internet | UNRUN |
 | A05 | Unplug and replug the cable with `connect` running: "Waiting" then "Connected" again; laptop cards recover within 20 s of authorization; room controls unaffected | UNRUN |
 | A10 | Empty allowlist shows capture off; after `notifications allow`, a synthetic `notify-send` event appears within 3 s; denied D-Bus monitoring shows "unavailable" while quotas work | UNRUN |
-| A09 | Live opt-in of the Claude status-line wrapper keeps the previous output and restores on uninstall (no CLI entry point exists yet) | UNRUN |
+`npm run claude-install` / `claude-uninstall` exist and are covered by `desktop/test/claude-cli.test.ts` (temp settings only); a live opt-in on a real Claude settings file is UNRUN.
 | Service | `install-hub --enable`, log out/in, hub is listening on 127.0.0.1:8765; `uninstall-hub` removes only the unit; edit the unit then confirm uninstall refuses | UNRUN |
 | Port conflict | Occupy tcp:8765 on the phone side and confirm the fixed PORT_CONFLICT message with nothing killed | UNRUN |
 | Multiple devices | Attach two phones; confirm `connect` without `--serial` refuses and each `--serial` affects only its phone | UNRUN |
