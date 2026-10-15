@@ -375,8 +375,10 @@ test.describe("independent link loss", () => {
     await page.getByRole("tab", { name: /monitor/i }).click();
     await expect(page.getByText("24.5").first()).toBeVisible();
     await page.screenshot({animations:"disabled", path: evidence("740x320-usb-down") });
-    // The light really works while the laptop path is down.
+    // The light really works while the laptop path is down. The open control bar
+    // overlays the bottom key row, so hide it first as a user would.
     await page.getByRole("tab", { name: /deck/i }).click();
+    await page.getByRole("button", { name: "Hide bar" }).click();
     await power(page).click();
     await expect(page.getByRole("button", { name: "Power on" })).toBeVisible();
     expect(writes(await bridgeLog(page))).toHaveLength(1);

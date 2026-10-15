@@ -79,7 +79,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .text-button { padding: 6px 8px; text-decoration: underline; text-decoration-color: #8b98a066; text-underline-offset: 4px; }
 
 /* Housing */
-.dashboard { height: 100svh; min-height: 0; padding: 14px 18px 72px; display: flex; flex-direction: column; }
+/* Content fills the screen down to a thin edge strip; the control bar slides
+   up over it on demand, like an auto-hiding taskbar. */
+.dashboard { height: 100svh; min-height: 0; padding: 14px 18px 28px; display: flex; flex-direction: column; }
 .main-grid { flex: 1; display: grid; grid-template-columns: minmax(0, 37fr) minmax(0, 63fr); gap: 22px; min-width: 0; min-height: 0; overflow-y: auto; }
 .clock-room { display: flex; flex-direction: column; justify-content: space-between; gap: 12px; min-width: 0; padding-top: 2px; }
 
@@ -165,7 +167,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   position: fixed; bottom: 8px; left: 18px; right: 18px; z-index: 50;
   display: flex; align-items: center; gap: 14px; padding: 5px 6px 5px 14px;
   background: var(--body-raised); border-radius: 14px;
-  box-shadow: inset 0 1px 0 #ffffff14, 0 0 0 1px #00000066, 0 6px 16px #00000080;
+  box-shadow: inset 0 1px 0 #ffffff14, 0 0 0 1px #00000099, 0 -10px 28px #000000d9;
   transition: transform 180ms ease, opacity 180ms ease, visibility 180ms;
 }
 .bottom-dock.is-open { transform: translateY(0); opacity: 1; visibility: visible; }
@@ -182,9 +184,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .view-tab.is-active:hover:enabled { background: var(--cap-hover); }
 .dock-actions { display: flex; flex-shrink: 0; gap: 2px; }
 .settings-button, .dock-collapse-button { display: grid; place-items: center; padding: 8px; }
-.dock-trigger-pill { position: fixed; bottom: 4px; left: 50%; transform: translateX(-50%); z-index: 45; width: 80px; height: 44px; display: grid; place-items: center; padding: 0; background: transparent; box-shadow: none; }
-.dock-trigger-pill:active:enabled { transform: translateX(-50%); box-shadow: none; }
-.dock-trigger-handle { width: 40px; height: 5px; border-radius: 3px; background: #2c353b; }
+/* Collapsed: the whole bottom edge is the tap target, with a small handle. */
+.dock-trigger-pill { position: fixed; bottom: 0; left: 0; right: 0; z-index: 45; width: 100%; height: 28px; min-height: 28px; display: grid; place-items: center; padding: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.dock-trigger-pill:hover:enabled { background: #ffffff08; }
+.dock-trigger-pill:active:enabled { transform: none; box-shadow: none; }
+.dock-trigger-handle { width: 56px; height: 5px; border-radius: 3px; background: #3a454c; }
 .dock-trigger-pill:hover .dock-trigger-handle { background: var(--ink-2); }
 .deck-feedback { flex-basis: 100%; font-size: 14px; color: var(--ink); line-height: 1.25; overflow-wrap: anywhere; }
 .deck-feedback-dot { display: none; }
@@ -268,7 +272,7 @@ select { margin-left: auto; }
 
 /* Short landscape screens (740x320 and similar). */
 @media (min-width: 650px) and (max-height: 340px) {
-  .dashboard { padding: 10px 14px 66px; }
+  .dashboard { padding: 10px 14px 28px; }
   .main-grid { gap: 16px; }
   .clock { font-size: 104px; }
   .local-date { margin-top: 8px; font-size: 16px; }
@@ -291,7 +295,7 @@ select { margin-left: auto; }
 
 /* Portrait: the same device stood on end. */
 @media (max-width: 649px) {
-  .dashboard { padding: 18px 16px 132px; }
+  .dashboard { padding: 18px 16px 28px; }
   .main-grid { display: flex; flex-direction: column; gap: 16px; }
   .clock-room { gap: 16px; }
   .clock { font-size: 116px; }

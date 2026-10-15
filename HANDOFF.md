@@ -2,7 +2,7 @@
 
 Current revision, 2026-10-15 (Claude Code, Opus 5.5, acting as sole coordinator at the user's instruction: "its just you, do it all please commit push, put it on the phone too").
 
-Latest: near-black + electric cyan palette and aligned room panel (supersedes sage); hours/days durations, compact usage and larger alerts (see PROGRESS tail). Earlier: user disliked the Astra/Antigravity UI (function fine) and asked for a full UI redesign plus swapping the Deck's Spotify key for a terminal. User chose the "desk appliance" direction: warm charcoal housing (#2a2823), one recessed display well for quotas/alerts, big condensed Archivo clock (font bundled, OFL), light pressable Deck keys, signal orange only on play/pause and quotas >= 90%. Details/tokens: docs/reports/R-CLAUDE-desk-appliance.md.
+Latest: control bar overlays content like an auto-hide taskbar (28px edge strip opener); near-black + electric cyan palette and aligned room panel (supersedes sage); hours/days durations, compact usage and larger alerts (see PROGRESS tail). Earlier: user disliked the Astra/Antigravity UI (function fine) and asked for a full UI redesign plus swapping the Deck's Spotify key for a terminal. User chose the "desk appliance" direction: warm charcoal housing (#2a2823), one recessed display well for quotas/alerts, big condensed Archivo clock (font bundled, OFL), light pressable Deck keys, signal orange only on play/pause and quotas >= 90%. Details/tokens: docs/reports/R-CLAUDE-desk-appliance.md.
 
 Done and committed/pushed to private origin main (see git log; no attribution):
 - Dashboard restyle (styles.css rewrite, class names and ARIA kept), status lamps, Terminal key, Lamp section label.

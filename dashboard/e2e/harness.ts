@@ -104,7 +104,9 @@ export async function controlProblems(
       problems.push(
         `${box.label} outside ${viewport.width}x${viewport.height}: ${JSON.stringify(box)}`,
       );
-    if (box.width < 44 - tolerance || box.height < 44 - tolerance)
+    // The collapsed bar's opener is the whole bottom edge: full width, 28px tall.
+    const edgeStrip = box.label === "button:Open menu / status" && box.width >= viewport.width - tolerance && box.height >= 28 - tolerance;
+    if (!edgeStrip && (box.width < 44 - tolerance || box.height < 44 - tolerance))
       problems.push(
         `${box.label} tap target ${box.width.toFixed(1)}x${box.height.toFixed(1)} < 44`,
       );
@@ -207,8 +209,12 @@ export function overlapProblems(page: Page): Promise<string[]> {
     }
     for (const control of controls) {
       const box = control.getBoundingClientRect();
+      const controlInDock = Boolean(control.closest(".bottom-dock"));
       for (const { node, rects } of texts) {
         if (control.contains(node)) continue;
+        // The open control bar overlays the bottom of the screen by design, like an
+        // auto-hiding taskbar; only overlaps on the same layer count.
+        if (controlInDock !== Boolean(node.parentElement?.closest(".bottom-dock"))) continue;
         // Text inside a closed/hidden dialog is not visible; skipped by `visible`.
         for (const rect of rects) {
           const w = Math.min(box.right, rect.right) - Math.max(box.left, rect.left);

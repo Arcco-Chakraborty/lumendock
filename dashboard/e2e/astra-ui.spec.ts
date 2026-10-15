@@ -172,14 +172,17 @@ test("custom and unknown durations remain visible on Monitor", async ({page}) =>
   expect(await clippingProblems(page,true)).toEqual([]);
 });
 
-test("enlarged content scrolls above the dock and keeps alerts clickable", async ({page}) => {
+test("enlarged content scrolls clear of the hidden bar's edge strip and keeps alerts clickable", async ({page}) => {
   await open(page,360,800);
   await applyTextZoom(page,1.3);
+  // The open bar overlays content like an auto-hiding taskbar; once hidden, only
+  // the thin edge strip remains and content ends above it.
+  await page.getByRole("button",{name:"Hide bar"}).click();
   const details = page.getByRole("button",{name:"Details (1)",exact:true});
   await details.scrollIntoViewIfNeeded();
   const a = await details.boundingBox();
-  const b = await page.locator(".bottom-dock").boundingBox();
-  expect(a!.y+a!.height).toBeLessThan(b!.y);
+  const b = await page.getByRole("button",{name:"Open menu / status"}).boundingBox();
+  expect(a!.y+a!.height).toBeLessThanOrEqual(b!.y + .5);
   await details.click();
   await expect(page.getByRole("dialog")).toBeVisible();
 });
