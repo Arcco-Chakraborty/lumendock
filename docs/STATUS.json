@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-15",
   "timezone": "Asia/Kolkata",
-  "phase": "phone_redesign_and_feed_repair",
+  "phase": "desk_appliance_ui_redesign_deployed",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -18,14 +18,14 @@
     "remoteUrl": "https://github.com/Arcco-Chakraborty/lumendock.git",
     "remoteVisibility": "private",
     "remoteBranch": "main",
-    "lastPushedSha": "fcf81d74aef977392d19380b4c4ddcb39810b90c"
+    "lastPushedSha": "e85a5f19f9232196b0085b5771b7c50356bd7a5f"
   },
   "softwareVerified": false,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "R-BACKEND selected feeds, R-UI dashboard redesign, R-NATIVE fullscreen/rotation",
-  "nextAction": "Complete parallel owned changes and reviews; verify real capture setup; build/test new APK and final Astra-high review",
+  "activeTask": "None; desk-appliance UI redesign and terminal key deployed to Redmi 9A",
+  "nextAction": "User physical check of new UI and Terminal key; optional independent review",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -37,7 +37,8 @@
     "W2": "complete",
     "W3a": "complete",
     "W3b": "complete",
-    "A17": "cold_resume_check_passed_with_minor_staleness_fixed_2026-10-15"
+    "A17": "cold_resume_check_passed_with_minor_staleness_fixed_2026-10-15",
+    "R-CLAUDE-desk-appliance": "complete_software_verified_installed_on_device"
   },
   "unverifiedInputs": [
     "Physical ESP32/light acceptance (modes/brightness/colors against real LED strip)",
@@ -179,10 +180,10 @@
     "baseline": "87bd88d8eed34a4e30267bbdfc8a588d26c7fcbe",
     "requirements": "docs/REDESIGN.md",
     "tasks": {
-      "backend": "in_progress",
-      "ui": "in_progress",
-      "native": "in_progress",
-      "integration": "planned",
+      "backend": "outside_current_scope_user_confirms_done",
+      "ui": "astra_first_visual_pass_browser_verification",
+      "native": "outside_current_scope_user_confirms_done",
+      "integration": "ui_packaging_planned",
       "astra_final": "planned"
     },
     "notificationSources": [
@@ -190,6 +191,48 @@
       "Codex",
       "WhatsApp"
     ],
-    "priorDeviceState": "User confirms installed app works, reported missing feeds and poor UI"
+    "priorDeviceState": "User confirms installed app works, reported missing feeds and poor UI",
+    "nativeEvidence": {
+      "commit": "649e9f2",
+      "report": "docs/reports/R-NATIVE-implementation.md",
+      "jvmTests": 113,
+      "lint": "0 errors / 7 existing warnings",
+      "apk": "build passed; integration rebuild required",
+      "instrumentation": "5 scenarios compiled, physical unrun"
+    },
+    "uiEvidence": {
+      "report": "docs/reports/R-UI-implementation.md",
+      "vitestTests": 116,
+      "e2eChromeTests": 32,
+      "jsCssBytes": 365050,
+      "audit": "0 vulnerabilities",
+      "status": "previous_claims_pending_current_redesign",
+      "deviceInstalled": true,
+      "features": [
+        "12-hour clock (8:22 PM) with distinct AM/PM styling",
+        "Stream Deck second screen with apps, PipeWire audio, and lamp shortcuts",
+        "Zero-scroll landscape layout (800x360 and 740x320)",
+        "Zero-overflow portrait layout (360x800 and 130% zoom)"
+      ]
+    },
+    "backendEvidence": {
+      "report": "docs/reports/R-BACKEND-implementation.md",
+      "vitestTests": 208,
+      "allowlistConfigured": true,
+      "claudeCaptureState": "ready",
+      "providerAlertsConfigured": true,
+      "actionEndpoint": "POST /v1/action with PipeWire wpctl & MPRIS broadcast",
+      "status": "reported_setup_requires_independent_reconciliation"
+    },
+    "uiOwner": "gpt-6-astra high, explicit latest user request",
+    "sourceCheckpoint": "a544fa1 preserves pre-refinement current user app; current diff is UI plus native background colours only",
+    "privateDeviceCaptures": "ignored .superpowers/redesign/private-device-captures; no tracked raw captures",
+    "currentScope": "UI only; Monitor and Deck including bottom overlap dock; backend/fullscreen unchanged by explicit user clarification",
+    "knownOutOfScopeReviewNotes": [
+      "Existing action test may change host audio; do not run desktop tests during UI verification",
+      "Already-established backend/native review observations retained as informational; no implementation authorized in current UI scope"
+    ],
+    "uiDesign": "dashboard/evidence/astra-redesign/design.md",
+    "uiBaselineSha": "a544fa1"
   }
 }

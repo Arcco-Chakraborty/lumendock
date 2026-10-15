@@ -8,6 +8,8 @@ The user has installed and used the app, and requested a complete phone dashboar
 
 Only Claude, Codex and WhatsApp notifications are selected. Where a provider does not emit a desktop event, this revision may use an opt-in provider attention hook with fixed generic text. Preserve existing hooks and status-line behavior; never forward prompt/transcript input or broadly allow terminal/browser notifications. Exact desktop/PWA identifiers are privacy filters, not authenticated identities. The original exclusions and architecture continue to apply except for these explicitly requested changes.
 
+Latest UI-only clarification: the current app now contains Monitor and Deck screens, a 12-hour clock and a bottom auto-hide overlap dock. The user likes this general direction and requested Astra to refine both screens, while confirming backend/fullscreen work is already complete. Retain existing Deck app/media/audio/lamp actions and full lighting sheet; do not restore a large lighting panel to Monitor. The current task changes visual presentation and UI interactions only. See REDESIGN.md for the current interaction requirements.
+
 Original planning-time environment facts below are historical. Consult STATUS for the canonical execution root, current evidence and pending device checks.
 
 ## Intent and verified context

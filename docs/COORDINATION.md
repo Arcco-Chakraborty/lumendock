@@ -81,3 +81,15 @@ User paused Claude (limits); you resume as coordinator. State, order of work and
 ## R01 Current revision ownership (2026-10-15)
 
 User assigned phone backend/frontend/fullscreen redesign and feed repair to this coordinator; Gemini keeps desktop launcher/tray/icons/manager UX. Backend collector/setup files+tests, dashboard presentation, and Android display policy have separate owners. Startup scripts/root package/launcher files are excluded from these tracks. Coordinator owns checkpoint writes/commits/pushes. See docs/REDESIGN.md and current STATUS; old C01-C08 task claims are historical.
+
+## R02 Astra redesign after Antigravity changes (2026-10-15)
+
+User explicitly assigned current UI refinement to Astra. Exclusive dashboard owner is current Astra-high designer; prior UI owner released. Keep Monitor/Deck, 12-hour local clock and auto-hide bottom overlap dock. Current backend/protocol/native sources are independently reviewed read-only; no concurrent edits in those paths until findings are assigned. Coordinator owns docs, integration, commits/pushes. Gemini keeps launcher/tray/scripts. No external agent should edit dashboard during this track; communicate through this file and preserve current uncommitted source.
+
+2026-10-15 — User scope correction: backend and fullscreen are already done; work is UI only, including the second Deck section. Astra dashboard ownership continues for both Monitor and Deck. Stopped backend/native investigations; preserve their already-established notes without fixes or widening scope. UI verification uses dashboard mocks and must not run host-action backend tests. Updated APK packaging/deployment may use existing source unchanged; no device/global setting or feed setup work.
+
+## R03 Claude Code UI redesign claim (2026-10-15)
+
+User asked Claude Code (Opus) directly to fully redesign the phone UI (they disliked the Astra/Antigravity look; function is fine) and swap the Deck's Spotify key for a terminal launcher. User picked the "desk appliance" direction (warm charcoal hardware body, condensed clock, pressable light keys, one signal-orange key). Claude claims `dashboard/**` (src, e2e, tests, evidence) plus `desktop/src/actions.ts` and its test only (new `open_terminal` action; also fixes existing bug: dashboard sent `volume_mute` but desktop only handles `media_mute`, so Mute always failed). No protocol, android, scripts or launcher edits. Nothing will be committed or pushed by Claude; coordinator keeps HANDOFF/STATUS/PROGRESS, commits and pushes. Live scoped report: `docs/reports/R-CLAUDE-desk-appliance.md`.
+
+2026-10-15 R03 update (Claude): desk-appliance redesign + open_terminal done in software, uncommitted. Dashboard vitest 116/116, Playwright 46/46, desktop 195/195 (server.test.ts skipped: it fires the real media_mute action on the host; please mock executeAction there). Details/paths: docs/reports/R-CLAUDE-desk-appliance.md. Dashboard ownership released back to coordinator after review.

@@ -85,8 +85,16 @@ Codex usage appears automatically: the hub finds the Codex CLI on `PATH` or insi
 
 ## You are running when
 
-- the header shows **Laptop connected** and **Controller connected**,
+- the bottom control dock shows **Laptop connected** and **Controller connected**,
 - the Claude/Codex cards show percentages and reset times,
-- the Room card shows temperature/humidity and the Lighting card responds to **Light controls**.
+- **Monitor** shows room temperature/humidity, and **Deck** gives access to lighting controls.
 
 Then fill in the rows of [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md), starting with A2-D1 (pair) and A3-D1 (USB + Wi-Fi at the same time).
+
+## Use Monitor and Deck
+
+**Monitor** is the glanceable screen for local time/date, room readings, Claude/Codex limits and recent selected alerts. Open provider details to see every reported usage window, and History for room readings.
+
+**Deck** contains the existing app shortcuts, audio/media controls and lighting presets. Open Light controls for colour, brightness, all modes, speed and timer.
+
+The bottom control dock switches between Monitor and Deck and opens Settings. It hides after eight seconds of inactivity; tap the small bottom handle to show it again. It stays accessible while a control has keyboard focus. Settings contains laptop/controller setup and display preferences. The phone clock remains available without either connection.

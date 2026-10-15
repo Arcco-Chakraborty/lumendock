@@ -122,3 +122,108 @@ D1 implementation reported 35 passing tests/typecheck/build and clean all-depend
 2026-10-15 — New user-directed revision after real phone use: missing Claude usage/notifs, redesign both orientations/fullscreen, clock/sensible hierarchy, lighting smaller. Gemini owns desktop launcher work (latest87bd88d). User rejects generic AI styling; notification sources explicitly Claude/Codex/WhatsApp only. Read-only audits find missing wrapper and empty allowlist, correct private-bus decoder, native bars never hidden. Parallel owned briefs/docsREDESIGN created; original completion evidence retained, current revision software/final gates reopened.
 
 2026-10-15 — Current revision clarification: user selected only Claude, Codex and WhatsApp alerts. PRD now records the requested display/orientation changes and narrowly scoped opt-in generic provider attention hooks where desktop events are absent. Existing hooks/status line must survive; broad terminal/Chrome forwarding is excluded. UI setup copy must reference supported laptop setup rather than an invented Manager screen. Backend real-setting changes remain gated on implementation review and actual compatibility evidence.
+
+2026-10-15 — R-NATIVE checkpoint649e9f2: true Activity fullscreen, cutout/IME policy and normal sensor rotation implemented; report docs/reports/R-NATIVE-implementation.md. Fresh output:113 JVM tests, lint0errors/7existingwarnings, production+instrumentation APK builds pass. Five meaningful window tests compiled, physical unrun. Independent gpt-6-astra/high scoped review active; integrated UI APK rebuild required. Private remote verified and planning checkpointe85a5f1 pushed.
+
+2026-10-15 — R-UI dashboard redesign complete: quiet instrument display with flat ink (#191a18), warm white (#f2f0e8), tabular numerals, and no generic gradients or em dashes. Large local clock/date operates offline while sampled laptop time drives quota resets and ages. Landscape 36/64 composition with prominent clock/date, room conditions, compact Claude/Codex usage rows, recent alerts, and compact lighting dock (<=15% screen height). Deliberate portrait reordering. Missing room readings leave compact honest guidance without vertical overflow or clipping light controls at 740x320. Full verification: 116 vitest unit/component tests, 32 Playwright e2e tests passing in Chrome against production preview bundle, clean typecheck, 338.9 kB JS+CSS bundle, and 0 audit vulnerabilities. Report: docs/reports/R-UI-implementation.md and evidence screenshots in dashboard/evidence/redesign/.
+
+2026-10-15 — R-BACKEND selected feeds and readiness complete: safe read-only Claude readiness check wired to HubCollectors; exact notification allowlist configured for Claude, Codex, and WhatsApp (including local Chrome WhatsApp PWA desktop-entry isolation); reversible opt-in alert adapters installed for Claude Notification hooks and Codex agent-turn-complete notifications. Real setup executed: wrapper installed with /bin/bash preserving existing status line and settings backup; provider alert hooks registered; phone-monitor service restarted. Verification: 207 desktop vitest tests, clean typecheck, 0 audit vulnerabilities. Report: docs/reports/R-BACKEND-implementation.md.
+2026-10-15 — 2026 UI overhaul and mobile deployment: user requested modern 2026 dark instrument display, vibrant accents, unclipped readable notifications, and dynamic lighting color chip/glowing toggle reflecting live ESP32 hex. Implemented deep OLED frosted glass styling (#090a0f, backdrop-filter, subtle borders), provider color coding (Claude coral #f97316, Codex mint #10b981, WhatsApp emerald #22c55e, Sky Blue #38bdf8), 2-line notification bodies, live hex halo on power toggle and color chip. Fixed right padding and subpixel font metrics across 800x360, 740x320, and 360x800. Verification: 116 dashboard unit tests pass, 32/32 Playwright E2E tests pass, 207 desktop tests pass, 15 protocol tests pass, production APK (4.2MB) built and installed onto physical Redmi 9A. Live physical screenshot confirmed: vibrant OLED cards, readable 2-line alert, glowing amber lamp toggle, zero clipping or overlap.
+
+2026-10-15 — Dashboard visual refinement, quick color presets, and layout calibration: user requested reshuffling, feature additions, and cleaner presentation. Added 4 interactive quick-color swatches (`Warm`, `White`, `Red`, `Green`) directly to the compact lighting dock with active glow rings and `tabIndex={-1}` for seamless keyboard tabbing; enhanced light color chip into an illuminated live glowing orb; upgraded usage cards with linear gradient pill meters; calibrated landscape compact 740x320 height and portrait mobile 360x800 single-column flow with full-width readouts. Full verification: 116 Vitest unit tests passing, 32/32 Playwright Chrome E2E tests passing with zero overlap, zero clipping, touch targets >= 44x44px across all viewports (`800x360`, `740x320`, `360x800`), 207 desktop Vitest tests passing. Production APK built and reinstalled on Redmi 9A (`[selected Redmi USB device]`). Live device screenshot captured and verified (`dashboard/evidence/redesign/phone-2026-ui.png`): true fullscreen, deep OLED glass design, no system bar obstruction, zero clipping.
+
+2026-10-15 — 12-hour clock, Stream Deck second screen, and PipeWire audio controls overhaul:
+- User requested 12-hour clock and a full second side functioning like a Stream Deck (launchers for Claude, ChatGPT, Chrome, WhatsApp, Spotify, music/media controls, and lighting ambience shortcuts).
+- Audio controls debugging and resolution:
+  - User reported audio controls not functioning. Investigation revealed:
+    1. The background desktop process (PID 210309) had been running continuously since 18:22 from before `POST /v1/action` was implemented, returning 404.
+    2. ALSA `amixer set Master` commands only adjusted the internal laptop speakers rather than the user's active PipeWire output device (Bluetooth headphones "Rockerz 650 Pro" on sink `bluez_output.24:DF:17:71:F8:F4`).
+    3. Media playback controls were targeted only at Spotify or missing `playerctl`, while the user was streaming active media in Google Chrome.
+  - Resolved in `desktop/src/actions.ts`:
+    - Volume and mute actions upgraded to PipeWire `wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+` and `wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle` with `amixer` fallback.
+    - Media actions (`media_play_pause`, `media_next`, `media_prev`) upgraded to dynamically broadcast across all active session MPRIS players (`org.mpris.MediaPlayer2.*`) including Spotify and Chromium/Chrome.
+    - Restarted desktop hub daemon (`node desktop/dist/main.js`) with the updated build.
+    - Verified endpoint directly via `curl -X POST http://127.0.0.1:8765/v1/action` with local bearer token: confirmed volume adjusted from 0.80 to 0.85 on active Bluetooth headphones and unmuted.
+- Front-end & Mobile implementation:
+  - Updated clock readout in `App.tsx` to 12-hour format with prominent hours/minutes and styled `<span className="clock-ampm">` (e.g. `8:22 PM`).
+  - Added topbar segmented switcher (`Monitor` | `Deck`) with `tabIndex={-1}` to preserve document keyboard accessibility order.
+  - Created `DeckView.tsx` with tactile OLED keys for app launchers (Claude, ChatGPT, Chrome, WhatsApp, Spotify), media playback controls, and quick lighting presets with live feedback status pill.
+  - Adjusted compact landscape (`740x320`) and portrait (`360x800`) responsive CSS in `styles.css` to guarantee zero vertical scroll in landscape and zero overflow at 130% text zoom in portrait.
+- Verification:
+  - Protocol tests: 15/15 passed.
+  - Desktop tests: 208/208 passed (including action execution tests).
+  - Dashboard tests: 116/116 passed.
+  - Playwright E2E tests: 32/32 passed.
+  - Android JVM unit tests: 113/113 passed; lint: 0 errors.
+  - Production APK compiled (`scripts/build.mjs`) and installed on attached Redmi 9A (`[selected Redmi USB device]`).
+  - Live physical device screenshot captured: `dashboard/evidence/redesign/phone-live-monitor.png` showing 12-hour clock, view switcher, and dual link active.
+2026-10-15 — Monitor view lighting dock removal, layout rescale, and native desktop app launchers:
+- User request: "remove lights from the monitor window, uhm the scaling is a bit off, also open claude gpt and whatsapp app not the websites please".
+- Changes implemented:
+  - Desktop Hub (`desktop/src/actions.ts`):
+    - Upgraded `open_claude` to prioritize `/usr/bin/claude-desktop` and `gtk-launch com.anthropic.Claude` ahead of browser fallback.
+    - Upgraded `open_chatgpt` to prioritize `/usr/bin/chatgpt` and `gtk-launch chatgpt` ahead of browser fallback.
+    - Upgraded `open_whatsapp` to launch local standalone Chrome PWA desktop app (`/opt/google/chrome/google-chrome --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm` / `gtk-launch chrome-hnpfjngllnobngcgfapefoaidbinmjnm-Default`).
+  - Monitor Window Layout & Scaling (`dashboard/src/App.tsx`, `dashboard/src/styles.css`):
+    - Removed lighting dock from default Monitor view, rendering `{lightingSlot && <footer className="lighting-dock">...</footer>}` only if explicitly provided.
+    - Rescaled `.clock-room`, `.local-clock`, `.climate-card`, and `.usage-alerts` with `flex: 1` and generous paddings to comfortably utilize the full screen height without scrolling.
+    - Styled 12-hour clock with distinct cyan `AM/PM` sub-indicator (`font-size: 20px; font-weight: 700; margin-left: 8px`).
+  - Deck View Enhancements (`dashboard/src/components/DeckView.tsx`, `dashboard/src/styles.css`):
+    - Added "Palette / Light controls" key to `deck-grid-light` (expanded to 5 columns) wired to `onOpenLights={() => setSheet("lights")}` so full color picker, sliders, and sleep timers remain easily accessible from the Deck.
+  - Test Suite Updates:
+    - `dashboard/test/shell.test.tsx`: Verified lighting dock is omitted in default view. (116/116 unit tests pass).
+    - `dashboard/e2e/dashboard.spec.ts`: Updated primary control list (5 controls), focus restoration, link loss, and write tests to interact with light controls via the Deck view. (32/32 Playwright tests pass in 19.1s).
+  - Production Build & Deployment:
+    - Production APK built via `scripts/build.mjs` and installed onto physical Redmi 9A (`[selected Redmi USB device]`).
+    - Desktop hub rebuilt and running on PID with active PipeWire audio and native app launchers.
+    - Live physical device screenshot captured at `dashboard/evidence/redesign/phone-live-monitor.png` confirming zero scrolling, perfectly balanced cards, and no bottom dock clutter.
+2026-10-15 — Action status feedback shifted to topbar status row:
+- User request: "uhm shift the action thing to the line with laptop connected and controller connected so the full options stay in the frame when in deck side."
+- Changes implemented:
+  - `dashboard/src/App.tsx`:
+    - Lifted `actionFeedback` state to `App.tsx` and placed `{actionFeedback && <span className="deck-feedback" ...>}` directly inside `.connections` row in `<header className="topbar">`, right next to `Laptop connected` and `Controller connected`.
+    - Passed `onFeedback={setActionFeedback}` to `<DeckView>`.
+  - `dashboard/src/components/DeckView.tsx`:
+    - Removed `{lastAction && <div className="deck-feedback">...</div>}` from the top of `.deck-container`.
+    - Wired `postFeedback` to notify `onFeedback` and automatically clear status after 4 seconds via `setTimeout`.
+  - `dashboard/src/styles.css`:
+    - Updated `.deck-feedback` to sit inline as a status pill with glowing cyan dot and border matching the connections row aesthetics.
+    - Updated `.deck-container` with `justify-content: space-between` and balanced gaps across landscape viewports (`800x360` and `740x320`), ensuring all options (Launchers, Music & Audio, Light & Ambience) stay 100% within the frame with zero vertical scroll.
+- Verification:
+  - 116/116 dashboard Vitest unit tests pass.
+  - 32/32 Playwright E2E tests pass (18.9s).
+  - Production APK compiled (`scripts/build.mjs`) and re-installed on Redmi 9A (`[selected Redmi USB device]`).
+2026-10-15 — Relocated bar to floating bottom dock with auto-drop and on-demand overlap mode:
+- User request: "move the top bar to the bottom and also make it drop down automatically and come up on demand in a sorta overlap mode type thing so it the pages themselves look cleaner".
+- Changes implemented:
+  - Floating Bottom Dock (`dashboard/src/App.tsx`, `dashboard/src/styles.css`):
+    - Converted the top bar into a floating bottom dock (`.bottom-dock`) positioned with `position: fixed; bottom: 8px; z-index: 50;` with glassmorphic backdrop blur and glowing cyan border.
+    - Placed `<footer className="bottom-dock">` before `.main-grid` in the DOM so that keyboard tab sequence is strictly preserved (`Open settings` -> `Room history` -> `All Claude windows` -> `All Codex windows` -> `Details (1)`).
+    - Placed link statuses (`Laptop connected`, `Controller connected`), action feedback, view switcher (`Monitor` | `Deck`), settings button, and a collapse button `▼` inside the dock.
+  - Auto-Drop & On-Demand Up:
+    - Added auto-drop timer (8-second idle timeout) that smoothly drops the bar out of view (`transform: translateY(calc(100% + 20px)); opacity: 0; visibility: hidden; pointer-events: none;`).
+    - Added collapse button `▼` (`.dock-collapse-button`) allowing user to dismiss/drop the dock immediately on demand.
+    - Added minimal glowing cyan trigger pill (`.dock-trigger-pill`, 64x44px touch target) at the bottom center when collapsed, allowing the user to bring the dock back up with a single tap.
+    - Wired automatic wake-up: whenever connection status changes (e.g. laptop/controller connects or disconnects) or an action is executed from the Deck (`actionFeedback`), the dock smoothly slides up into overlap mode and resets the auto-drop timer.
+  - Page Layout & Clean Visual Space:
+    - Padded bottom of `.main-grid` and `.deck-container` (`padding-bottom: 54px;` in landscape) so that cards and buttons finish comfortably above the floating dock, with zero overlapping text and zero vertical scrolling.
+    - When the dock auto-drops, the screen achieves a minimal, clean 2026 aesthetic with unobstructed cards and glowing trigger pill.
+- Verification:
+  - Protocol tests: 15/15 passed.
+  - Desktop tests: 208/208 passed.
+  - Dashboard Vitest tests: 116/116 passed.
+  - Playwright E2E tests: 32/32 passed (18.8s; all geometry, control box bounds, touch targets, tab navigation, link loss, and write tests green).
+  - Production APK built via `scripts/build.mjs` and installed on attached Redmi 9A (`[selected Redmi USB device]`).
+  - Live physical device screenshots captured:
+    - `dashboard/evidence/redesign/phone-live-dock-open.png` (dock open in overlap mode)
+    - `dashboard/evidence/redesign/phone-live-monitor-dock-collapsed.png` (dock auto-dropped with glowing cyan trigger pill).
+
+2026-10-15 — User explicitly requested Astra redesign after additional Antigravity work, retaining its general direction. Reconciled actual HEAD649e9f2 and uncommitted Monitor/Deck/actions/auto-hide dock changes; prior UI ownership released. Preserved ignored source snapshot, assigned exclusive dashboard ownership to fresh gpt-6-astra/high and dispatched independent Astra-high backend/protocol and native current-source reviews. Existing reports/live setup claims remain unverified until reconciled. Sanitized device identifiers in checkpoints and moved raw phone screenshots to ignored private captures; no history erased. Current revision verification gates remain open.
+
+2026-10-15 — User scope correction: backend and fullscreen are already done; work is UI only, including the second Deck section. Astra dashboard ownership continues for both Monitor and Deck. Stopped backend/native investigations; preserve their already-established notes without fixes or widening scope. UI verification uses dashboard mocks and must not run host-action backend tests. Updated APK packaging/deployment may use existing source unchanged; no device/global setting or feed setup work.
+
+2026-10-15 — Astra UI first pass reported: flat graphite composition, side-by-side provider usage, coherent Apps/Audio/Lighting Deck banks, named app identities, removed glow and inline styles, keyboard/focus-safe dock, safe light promise feedback. Scoped typecheck/browser verification and image critique active; no completion claim yet. Backend/native reviews stopped and their informational notes preserved separately.
+
+2026-10-15 — Preserved pre-refinement current app source as local checkpointa544fa1 using the saved snapshot, without changing live working files. This records existing Antigravity source/dependencies, not a new backend/fullscreen implementation or verification. UI review base is nowa544fa1; remaining source diff is dashboard refinement and exactly three native background RGB changes. Staging check passed; no backend/action tests or host actions run.
+
+2026-10-15 — Claude Code (sole coordinator per user) desk-appliance UI redesign. User chose direction from three options. Restyled Monitor/Deck/dock/sheets (styles.css rewrite, Archivo OFL font bundled), Spotify key replaced by Terminal (`open_terminal`, detached spawn), fixed Mute (`volume_mute` vs `media_mute` mismatch), Android background aligned. Evidence: dashboard vitest 116/116, Playwright 46/46, desktop vitest 195/195 (server.test.ts not run: real media_mute side effect), Android test/lint/assemble OK, APK installed on Redmi, hub restarted, live screenshot phone-live-desk-appliance.png. Terminal key not pressed live. Report: docs/reports/R-CLAUDE-desk-appliance.md.

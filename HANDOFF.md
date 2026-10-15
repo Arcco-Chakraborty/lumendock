@@ -1,13 +1,19 @@
 # LumenDock live handoff
 
-Updated2026-10-15. Active revision: phone dashboard redesign and real feed setup repair, requested by user after installing and using the app. Read docs/REDESIGN.md and docs/STATUS.json before working. Prior implementation is complete in source; do not restart old D1-W3 tasks.
+Current revision, 2026-10-15 (Claude Code, Opus 5.5, acting as sole coordinator at the user's instruction: "its just you, do it all please commit push, put it on the phone too").
 
-Canonical execution root: /home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor (managed detached HEAD). Original project remains a checkpoint/launcher mirror. Baseline87bd88d; private remote https://github.com/Arcco-Chakraborty/lumendock. Gemini owns desktop launcher/tray/icons/scripts; new work owns collector backend, phone dashboard and Android fullscreen in disjoint paths.
+User disliked the Astra/Antigravity UI (function fine) and asked for a full UI redesign plus swapping the Deck's Spotify key for a terminal. User chose the "desk appliance" direction: warm charcoal housing (#2a2823), one recessed display well for quotas/alerts, big condensed Archivo clock (font bundled, OFL), light pressable Deck keys, signal orange only on play/pause and quotas >= 90%. Details/tokens: docs/reports/R-CLAUDE-desk-appliance.md.
 
-Current diagnosis: Claude status-line wrapper uninstalled, notification allowlist absent/disabled. User selected only Claude/Codex/WhatsApp. Real busctl decoder passed isolated synthetic test. Do not fake usage, overwrite existing status line, fabricate compatibility attestations, or broadly enable browser notifications.
+Done and committed/pushed to private origin main (see git log; no attribution):
+- Dashboard restyle (styles.css rewrite, class names and ARIA kept), status lamps, Terminal key, Lamp section label.
+- desktop/src/actions.ts: `open_spotify` replaced by `open_terminal` (detached spawn: ptyxis, gnome-terminal, kgx, x-terminal-emulator). Fixed bug: dashboard sent `volume_mute`, desktop only handled `media_mute`, so Mute never worked; dashboard now sends `media_mute`.
+- Android MainActivity window/WebView background aligned to #2a2823.
+- Earlier uncommitted Astra/Antigravity UI work and docs/reports/reviews were committed with it (user asked to commit everything).
 
-Design: restrained instrument display, local clock/date and room/usage prominent, recent alerts, compact lighting sheet. No generic futuristic gradients/fonts/em-dash copy. Both orientations plus true fullscreen with safe insets and normal gestures.
+Verified: dashboard typecheck, vitest 116/116, Playwright 46/46 (800x360, 740x320, 360x800, 130% text); desktop tsc + vitest 195/195 excluding desktop/test/server.test.ts (it fires the REAL media_mute action on the host; should be mocked before anyone runs it); Android unit tests + lint + assembleDebug via scripts/build.mjs (Node 24.22.0 toolchain). APK installed on the Redmi 9A (XGV8****) and app relaunched; live screenshot dashboard/evidence/astra-redesign/phone-live-desk-appliance.png shows new UI on real data. Hub rebuilt and restarted with ./scripts/phone-monitor.sh restart (single hub + connect process).
 
-Next: finish three owned tracks, independent reviews, actual reversible feed setup, build/test APK and final fresh Astra-high review. Software verification reset for this revision; prior physical dual-link succeeded but new UI/fullscreen/feed delivery still require actual acceptance. AGENTS.md, docs/COORDINATION.md and append-only docs/PROGRESS.md bind the work.
+Not verified: Terminal key pressed live on the phone (action unit-tested with fake spawner only); ESP32/lamp physical acceptance; final independent review (AGENTS.md asks for Astra-high; not available to Claude).
 
-Prior detailed evidence: docs/reports, docs/reviews, docs/DEVICE_ACCEPTANCE.md. Node24/JDK17/SDK36 are user-local under ~/.local/share/phone-monitor/toolchains; system defaults unchanged. No firmware changes, auth/transcript reads or inference for monitoring tests. User Git identity only; no attribution.
+Canonical execution root: /home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor (detached HEAD; push with `git push origin HEAD:main`). Original project dir is a checkpoint/launcher mirror. Node 24/JDK 17/SDK 36 are user-local in ~/.local/share/phone-monitor/toolchains; defaults unchanged. User Git identity only; no attribution.
+
+Next: user tries the new UI and Terminal key; optional follow-ups: mock executeAction in desktop/test/server.test.ts, align "History" button in the no-reading room state, final independent review.
