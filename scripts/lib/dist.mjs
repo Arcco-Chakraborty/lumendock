@@ -7,7 +7,7 @@ export const root = fileURLToPath(new URL('../../', import.meta.url));
 export async function loadDist(name) {
   const file = new URL(`../../desktop/dist/${name}.js`, import.meta.url);
   if (!existsSync(file)) {
-    console.error('The desktop hub is not built. Run: npm run build --workspace @phone-monitor/desktop');
+    console.error('The desktop hub is not built. Run: npm ci && npm run build');
     process.exit(1);
   }
   return import(pathToFileURL(fileURLToPath(file)).href);

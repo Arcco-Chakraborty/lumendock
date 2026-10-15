@@ -65,6 +65,15 @@ describe('authenticated loopback API', () => {
       expect(r.statusCode).toBe(input.status); expect(r.json()).toEqual({v:1,error:{code:'BAD_PAYLOAD'}}); expect(r.body).not.toContain('stack');
     }
   });
+  it('applies pairing content-type checks and attempt counting to percent-encoded paths too', async () => {
+    const {app,pairing} = makeTestHub(); const code = pairing.open(fixtureHub().serverNowEpochMs);
+    for(let i=0;i<5;i++) {
+      const r = await app.inject({method:'POST',url:'/v1/%70air',payload:'{',headers:{...headers,'content-type':'text/plain'}});
+      expect(r.statusCode).toBe(415);
+    }
+    // Five rejected encoded-path attempts close pairing exactly like plain-path ones.
+    expect((await app.inject({method:'POST',url:'/v1/pair',headers,payload:{code}})).statusCode).toBe(403);
+  });
   it('closes setup after five failed HTTP bodies, with only one concurrent exchange success', async () => {
     const {app,pairing} = makeTestHub(); let code = pairing.open(fixtureHub().serverNowEpochMs);
     for(let i=0;i<5;i++) expect((await app.inject({method:'POST',url:'/v1/pair',headers,payload:{extra:'synthetic'}})).statusCode).toBe(400);

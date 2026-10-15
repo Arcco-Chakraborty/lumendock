@@ -117,7 +117,7 @@ describe('installHubService', () => {
 
 describe('uninstallHubService', () => {
   it('removes only the owned unit and record, leaving other files and the token directory', async () => {
-    const o = setup(); const sc = fakeSystemctl();
+    const o = setup(); const sc = fakeSystemctl(['is-enabled']);
     mkdirSync(o.unitDir, { recursive: true }); writeFileSync(join(o.unitDir, 'other.service'), 'keep');
     mkdirSync(o.configDir, { recursive: true }); writeFileSync(join(o.configDir, 'phone-token'), 'synthetic-token-placeholder');
     await installHubService({ ...o, systemctl: sc.run });
@@ -129,6 +129,14 @@ describe('uninstallHubService', () => {
     expect(existsSync(join(o.configDir, 'phone-token'))).toBe(true);
     expect(sc.calls.some(c => c[0] === 'disable')).toBe(false); // never enabled by us
     expect(sc.calls.at(-1)).toEqual(['daemon-reload']);
+  });
+  it('also disables a service the user enabled by hand after install', async () => {
+    const o = setup(); const sc = fakeSystemctl();
+    await installHubService({ ...o, systemctl: sc.run });
+    const result = await uninstallHubService({ ...o, systemctl: sc.run });
+    expect(result.changed).toBe(true);
+    expect(sc.calls).toContainEqual(['disable', '--now', 'phone-monitor-hub.service']);
+    expect(existsSync(unitPathOf(o))).toBe(false);
   });
   it('disables a service it enabled before removing the unit', async () => {
     const o = setup(); const sc = fakeSystemctl();

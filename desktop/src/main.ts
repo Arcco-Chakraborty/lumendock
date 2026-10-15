@@ -7,6 +7,7 @@ import { HubCollectors } from './collectors/index.js';
 import { NotificationCollector } from './collectors/notifications.js';
 import { AllowlistSync } from './notification-sync.js';
 import { runNotificationsCommand } from './notifications-cli.js';
+import { resolveCodexPath } from './codex-path.js';
 
 const args = process.argv.slice(2);
 if (args[0] === 'notifications') {
@@ -22,7 +23,7 @@ if (args[0] === 'notifications') {
   try { allowlist = listNotificationApps(tokenStore.directory); } catch { allowlist = []; }
   const store = new HubStore({notificationAllowlist:allowlist});
   const app = buildHub({store,pairing,tokenStore,clock});
-  const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs});
+  const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})}});
   const notifications = new NotificationCollector({store,clock});
   const allowlistSync = new AllowlistSync({configDir:tokenStore.directory,apply:async labels=>{store.setNotificationAllowlist(labels);await notifications.start(labels);}});
   const stop = () => { pairing.close(); allowlistSync.stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };

@@ -44,26 +44,30 @@ export function ClimateCard({
       60
     : 0;
   const data = snapshot.data,
-    ok = data?.sensorOk === true;
+    ok = data?.sensorOk === true,
+    // Design: when the sensor fails but HTTP works, keep the firmware's last values, labelled as old.
+    sensorFailed = data !== null && !ok;
   return (
     <section className="climate-card" aria-label="Room conditions">
       <div className="card-heading">
         <h2>Room</h2>
         <span className="muted">
-          {snapshot.stale && data
-            ? "Last reading"
-            : ok
-              ? "Sensor ready"
-              : "No reading"}
+          {sensorFailed
+            ? "Sensor failed · last reading"
+            : snapshot.stale && data
+              ? "Last reading"
+              : ok
+                ? "Sensor ready"
+                : "No reading"}
         </span>
       </div>
-      <div className="temperature">
-        {ok && data.temperatureC !== null ? data.temperatureC.toFixed(1) : "—"}
+      <div className={sensorFailed ? "temperature is-old" : "temperature"}>
+        {data !== null && data.temperatureC !== null ? data.temperatureC.toFixed(1) : "—"}
         <span>°C</span>
       </div>
       <div className="humidity">
         <strong>
-          {ok && data.humidityPercent !== null
+          {data !== null && data.humidityPercent !== null
             ? `${Math.round(data.humidityPercent)}%`
             : "—"}
         </strong>

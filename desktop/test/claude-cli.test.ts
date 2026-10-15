@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { mkdtempSync,writeFileSync,readFileSync,existsSync,chmodSync } from 'node:fs';
+import { mkdtempSync,writeFileSync,readFileSync,existsSync,chmodSync,symlinkSync,mkdirSync } from 'node:fs';
 import { join } from 'node:path';import { tmpdir } from 'node:os';
 import { runClaudeInstallCommand,runClaudeUninstallCommand,type ClaudeCliDeps } from '../src/claude-cli.js';
 
@@ -23,7 +23,7 @@ describe('claude-install / claude-uninstall commands',()=>{
  it('dry run fails when the wrapper is not built',async()=>{
   const o=setup({unrelated:1});
   expect(await runClaudeInstallCommand(['--dry-run'],{...o.deps,wrapperPath:join(o.dir,'missing.js')})).toBe(1);
-  expect(o.out.join('\n')).toContain('NO (build');
+  expect(o.out.join('\n')).toContain('NO (run npm ci');
  });
  it('installs with no existing status line, is idempotent, and uninstall removes only the owned field',async()=>{
   const o=setup({unrelated:1});
@@ -65,5 +65,32 @@ describe('claude-install / claude-uninstall commands',()=>{
   expect(await runClaudeInstallCommand(['--settings','relative.json','--dry-run'],o.deps)).toBe(2);
   expect(await runClaudeInstallCommand(['--previous-shell','sh'],o.deps)).toBe(2);
   expect(await runClaudeUninstallCommand(['--wat'],o.deps)).toBe(2);
+ });
+ it('refuses a wrapper that cannot load (e.g. shared protocol not built) and changes nothing',async()=>{
+  const o=setup({unrelated:1});const before=o.read();
+  writeFileSync(o.deps.wrapperPath,"import '@phone-monitor/definitely-missing';\n");
+  expect(await runClaudeInstallCommand([],o.deps)).toBe(1);
+  expect(o.err.join('\n')).toContain('cannot load');expect(o.read()).toBe(before);
+  expect(await runClaudeInstallCommand(['--dry-run'],o.deps)).toBe(1);
+ });
+ it('creates a missing settings folder for a first-time Claude user',async()=>{
+  const o=setup(null);const nested=join(o.dir,'fresh','.claude','settings.json');
+  expect(await runClaudeInstallCommand(['--settings',nested],o.deps)).toBe(0);
+  expect(JSON.parse(readFileSync(nested,'utf8')).statusLine.command).toContain('exec ');
+ });
+ it('dry run and install both refuse a symlinked settings file with a clear message',async()=>{
+  const o=setup(null);const real=join(o.dir,'real-settings.json');writeFileSync(real,JSON.stringify({unrelated:1}));
+  symlinkSync(real,o.settingsPath);
+  expect(await runClaudeInstallCommand(['--dry-run'],o.deps)).toBe(1);
+  expect(o.out.join('\n')).toContain('symbolic link');
+  expect(await runClaudeInstallCommand([],o.deps)).toBe(1);
+  expect(o.err.join('\n')).toContain('symbolic link');
+  expect(JSON.parse(readFileSync(real,'utf8'))).toEqual({unrelated:1});
+ });
+ it('reports a malformed override file as a warning after a successful install, not as a failure',async()=>{
+  const o=setup({unrelated:1});const local=join(o.dir,'settings.local.json');writeFileSync(local,'{ // not json\n}');
+  expect(await runClaudeInstallCommand([],{...o.deps,overrideSettingsPaths:[local]})).toBe(0);
+  expect(o.out.join('\n')).toContain('Could not read');expect(o.err).toEqual([]);
+  expect(JSON.parse(o.read()).statusLine.command).toContain('exec ');
  });
 });

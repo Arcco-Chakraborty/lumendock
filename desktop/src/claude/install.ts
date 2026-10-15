@@ -43,8 +43,11 @@ function activate(record:ClaudeInstallation,configDir:string,bytes:Buffer|null,s
 export function diagnoseClaudeOverrides(paths:readonly string[]):string[] {
   const diagnostics:string[]=[];
   for(const path of paths)if(existsSync(path)){
-    const data=object(JSON.parse(readOwnedFile(path,1024*1024).toString('utf8')));
-    if(Object.hasOwn(data,'statusLine'))diagnostics.push(`Status line override present at ${path}; the user-level wrapper may not run.`);
+    // Runs after the settings commit, so a malformed/unsafe override file must be reported, never thrown.
+    try{
+      const data=object(JSON.parse(readOwnedFile(path,1024*1024).toString('utf8')));
+      if(Object.hasOwn(data,'statusLine'))diagnostics.push(`Status line override present at ${path}; the user-level wrapper may not run.`);
+    }catch{diagnostics.push(`Could not read ${path} (not plain JSON, a symlink, or too large); check it does not override statusLine.`);}
   }
   return diagnostics;
 }

@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import type { SetupState } from "@phone-monitor/protocol";
 import type { DeviceAdapter } from "../device.js";
 import { DeviceError } from "../device.js";
@@ -32,6 +32,32 @@ export function SettingsSheet({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
   const app = snapshot.app;
+  // Brightness is latest-wins: the slider stays enabled while dragging, at most one write is in flight,
+  // and only the newest value is sent next, so a drag is never reset by a pending reply.
+  const [draft, setDraft] = useState<number | null>(null);
+  const pendingBrightness = useRef<number | null>(null);
+  const brightnessInFlight = useRef(false);
+  const flushBrightness = async (): Promise<void> => {
+    if (brightnessInFlight.current || pendingBrightness.current === null) return;
+    const value = pendingBrightness.current;
+    pendingBrightness.current = null;
+    brightnessInFlight.current = true;
+    try {
+      await store.setDisplay("app.setBrightness", { value: value / 100 });
+    } catch {
+      setError("Could not change brightness. Check the connection and try again.");
+    } finally {
+      brightnessInFlight.current = false;
+      if (pendingBrightness.current !== null) void flushBrightness();
+      else setDraft(null);
+    }
+  };
+  const changeBrightness = (percent: number) => {
+    setDraft(percent);
+    setError(null);
+    pendingBrightness.current = percent;
+    void flushBrightness();
+  };
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
@@ -108,22 +134,16 @@ export function SettingsSheet({
           </label>
           <label className="control-row">
             Display brightness{" "}
-            <output>{Math.round(app.brightness * 100)}%</output>
+            <output>{draft ?? Math.round(app.brightness * 100)}%</output>
             <input
               aria-label="Display brightness"
               type="range"
               min="10"
               max="100"
               step="1"
-              value={Math.round(app.brightness * 100)}
-              disabled={!nativeAvailable || busy}
-              onChange={(event) =>
-                void run(() =>
-                  store.setDisplay("app.setBrightness", {
-                    value: Number(event.target.value) / 100,
-                  }),
-                )
-              }
+              value={draft ?? Math.round(app.brightness * 100)}
+              disabled={!nativeAvailable}
+              onChange={(event) => changeBrightness(Number(event.target.value))}
             />
           </label>
         </>

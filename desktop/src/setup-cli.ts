@@ -67,7 +67,7 @@ const SERVICE_MESSAGES: Record<string, string> = {
   ABSOLUTE_PATH_REQUIRED: 'Paths must be absolute.',
   UNSAFE_PATH: 'A path contains control characters.',
   CONFIG_DIRECTORY_NAME_UNSUPPORTED: 'The service needs the configuration directory to be named "phone-monitor" (the hub reads XDG_CONFIG_HOME/phone-monitor).',
-  HUB_BUILD_MISSING: 'The compiled hub (desktop/dist/main.js) is missing. Run: npm run build --workspace @phone-monitor/desktop',
+  HUB_BUILD_MISSING: 'The compiled hub (desktop/dist/main.js) is missing. Run: npm ci && npm run build',
   UNIT_EXISTS_NOT_OWNED: 'A unit file with this name already exists and was not created by Phone Monitor; it was left untouched.',
   UNIT_MODIFIED: 'The unit file was modified after installation, so it was left untouched (and so was the service state). Restore or remove it yourself, then rerun.',
   UNIT_UNSAFE: 'The unit path is a symlink or not owned by you; refusing to touch it.',

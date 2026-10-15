@@ -113,6 +113,38 @@ describe("independent dashboard lifecycle", () => {
     await flush();
     expect(vi.getTimerCount()).toBe(0);
   });
+  it("retries a failed first app.status (renderer recreated while stopped) so light writes can initialize", async () => {
+    const b = fakeBridge(),
+      s = new DashboardStore(fakeClock());
+    s.start(createNativeAdapter(b.bridge, fakeClock()));
+    const first = b.sent.find((r) => r.op === "app.status")!;
+    b.raw({ v: 1, id: first.id, ok: false, error: { code: "SESSION_ENDED", retryable: false } });
+    b.sent.filter((r) => r.op !== "app.status").forEach((r) => b.reply(r.id, r.op === "hub.snapshot" ? hub : esp));
+    await flush();
+    expect(s.snapshot().app).toBeNull();
+    const statusReads = () => b.sent.filter((r) => r.op === "app.status");
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(statusReads()).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(statusReads()).toHaveLength(2);
+    b.reply(statusReads()[1]!.id, status);
+    await flush();
+    expect(s.snapshot().app?.nextCommandGeneration).toBe(status.nextCommandGeneration);
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(statusReads()).toHaveLength(2); // no polling once known and no setup is active
+    s.dispose();
+  });
+  it("re-reads a missing app.status when the view becomes visible again", async () => {
+    const b = fakeBridge(),
+      s = new DashboardStore(fakeClock());
+    s.start(createNativeAdapter(b.bridge, fakeClock()), false);
+    const first = b.sent.find((r) => r.op === "app.status")!;
+    b.raw({ v: 1, id: first.id, ok: false, error: { code: "SESSION_ENDED", retryable: false } });
+    await flush();
+    s.setVisible(true);
+    expect(b.sent.filter((r) => r.op === "app.status")).toHaveLength(2);
+    s.dispose();
+  });
   it("polls hub each two seconds and ESP each three with independent failures", async () => {
     const b = fakeBridge(),
       s = new DashboardStore(fakeClock());

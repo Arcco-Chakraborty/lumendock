@@ -242,6 +242,21 @@ h2 {
   color: var(--muted);
   background: var(--surface);
 }
+.pair-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  border-left: 3px solid var(--amber);
+}
+.pair-card p {
+  margin: 0;
+}
+.pair-card button {
+  min-height: 44px;
+  align-self: flex-start;
+}
 .sheet {
   color: inherit;
   background: #1a2326;
@@ -777,4 +792,8 @@ select:focus-visible {
 .connections {
   flex-wrap: wrap;
   row-gap: 2px;
+}
+.temperature.is-old,
+.temperature.is-old + .humidity strong {
+  opacity: 0.6;
 }

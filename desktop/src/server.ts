@@ -15,7 +15,8 @@ export function buildHub({store,pairing,tokenStore,clock}: HubOptions): FastifyI
     if (request.url !== '/healthz') reply.header('cache-control','no-store');
     if (request.headers.host !== '127.0.0.1:8765' || request.headers.origin !== undefined) return reply.code(403).send({v:1,error:{code:'BAD_PAYLOAD'}});
     if (request.url.includes('?')) return reply.code(400).send(badPayload);
-    if (request.method === 'POST' && request.url === '/v1/pair') {
+    // Match the resolved route, not the raw URL, so percent-encoded paths cannot skip these checks.
+    if (request.method === 'POST' && request.routeOptions.url === '/v1/pair') {
       const contentType = request.headers['content-type']?.split(';',1)[0]?.trim().toLowerCase();
       if (contentType !== 'application/json') {
         try { pairing.rejectAttempt(clock.nowMs()); } catch { /* Count an invalid setup request without leaking setup data. */ }
@@ -24,7 +25,7 @@ export function buildHub({store,pairing,tokenStore,clock}: HubOptions): FastifyI
     }
   });
   app.setErrorHandler((error,request,reply) => {
-    if (request.url === '/v1/pair') { try { pairing.rejectAttempt(clock.nowMs()); } catch { /* Fixed safe response below. */ } }
+    if (request.routeOptions.url === '/v1/pair') { try { pairing.rejectAttempt(clock.nowMs()); } catch { /* Fixed safe response below. */ } }
     const status = (error as {statusCode?:number}).statusCode;
     return reply.code(status === 413 ? 413 : status === 415 ? 415 : 400).send(badPayload);
   });

@@ -127,8 +127,8 @@ export function LightCard({
         intent.stateOutcome === "superseded") && (
         <>
           <p className="warning">
-            Last confirmed: {confirmed?.bright ?? "—"}% brightness. Change is
-            unconfirmed.
+            The last change was not confirmed by the controller. Showing the
+            last confirmed light state.
           </p>
           <button
             disabled={!ready}

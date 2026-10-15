@@ -521,3 +521,72 @@ test.describe("light control writes (bridge log)", () => {
     await expect(dialog.getByText(/45 minutes/)).toBeVisible();
   });
 });
+
+test.describe("final-review fixes", () => {
+  for (const viewport of LANDSCAPE) {
+    test(`unpaired layout fits ${viewport.name} without clipping`, async ({ page }) => {
+      await openDashboard(page, viewport, {
+        edit: (f) => {
+          f.app.paired = false;
+          f.hub = { state: "error", ageMs: null, stale: true, data: null, errorCode: "AUTH_REQUIRED" };
+        },
+      });
+      await expect(page.locator(".pair-card")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+      expect(await clippingProblems(page)).toEqual([]);
+      expect(await controlProblems(page)).toEqual([]);
+      expect(await overlapProblems(page), "controls must not cover text").toEqual([]);
+      await page.screenshot({ path: evidence(`${viewport.name}-unpaired`) });
+    });
+  }
+  test("an unpaired phone says so and offers pairing on the main screen", async ({ page }) => {
+    await openDashboard(page, { width: 740, height: 320 }, {
+      edit: (f) => {
+        f.app.paired = false;
+        f.hub = { state: "error", ageMs: null, stale: true, data: null, errorCode: "AUTH_REQUIRED" };
+      },
+    });
+    await expect(page.locator(".link-status", { hasText: /Laptop not paired$/ })).toBeVisible();
+    await expect(page.getByText("This phone is not paired with the laptop yet.")).toBeVisible();
+    const pair = page.locator(".pair-card").getByRole("button", { name: "Pair laptop" });
+    const box = await pair.boundingBox();
+    expect(box && box.height >= 44 && box.y + box.height <= 320).toBe(true);
+    await pair.click();
+    await expect.poll(async () => (await bridgeLog(page)).some((e) => e.op === "app.setupHub")).toBe(true);
+  });
+  test("a revoked token asks to pair again", async ({ page }) => {
+    await openDashboard(page, { width: 800, height: 360 }, {
+      edit: (f) => {
+        f.hub = { state: "error", ageMs: null, stale: true, data: null, errorCode: "AUTH_REQUIRED" };
+      },
+    });
+    await expect(page.getByText("The laptop no longer accepts this phone. Pair again.")).toBeVisible();
+  });
+  test("a paired phone shows no pairing banner", async ({ page }) => {
+    await openDashboard(page, { width: 800, height: 360 });
+    await connected(page);
+    await expect(page.locator(".pair-card")).toHaveCount(0);
+  });
+  test("brightness slider keeps focus and sends the final value while replies are slow", async ({ page }) => {
+    await openDashboard(page, { width: 800, height: 360 }, { latencyMs: 300 });
+    await connected(page);
+    await page.getByRole("button", { name: "Open settings" }).click();
+    const slider = page.getByRole("slider", { name: "Display brightness" });
+    await slider.focus();
+    const start = Number(await slider.inputValue());
+    for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowLeft");
+    await expect(slider).toBeFocused();
+    await expect(slider).toBeEnabled();
+    await expect(slider).toHaveValue(String(start - 5));
+    await expect
+      .poll(async () => {
+        const sent = (await bridgeLog(page)).filter((e) => e.op === "app.setBrightness");
+        return (sent.at(-1)?.args as { value?: number } | undefined)?.value;
+      }, { timeout: 5000 })
+      .toBeCloseTo((start - 5) / 100, 5);
+    const sent = (await bridgeLog(page)).filter((e) => e.op === "app.setBrightness");
+    expect(sent.length).toBeLessThan(5); // latest-wins, not one write per keypress
+    await expect(slider).toHaveValue(String(start - 5));
+  });
+});

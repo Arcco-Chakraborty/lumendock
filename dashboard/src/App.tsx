@@ -29,13 +29,16 @@ export interface AppProps {
 function LinkStatus({
   name,
   link,
+  unpaired = false,
 }: {
   name: string;
   link: DashboardSnapshot["hub"] | DashboardSnapshot["esp"];
+  unpaired?: boolean;
 }) {
-  const connected = link.state === "connected" && !link.stale;
-  const label =
-    link.state === "connecting"
+  const connected = link.state === "connected" && !link.stale && !unpaired;
+  const label = unpaired
+    ? "not paired"
+    : link.state === "connecting"
       ? "connecting"
       : connected
         ? "connected"
@@ -66,6 +69,11 @@ export function App({
     store.snapshot,
     store.snapshot,
   );
+  // Native reports a missing/revoked laptop token as AUTH_REQUIRED and stops polling until pairing.
+  const unpaired =
+    snapshot.hub.errorCode === "AUTH_REQUIRED" || snapshot.app?.paired === false;
+  const [pairStarting, setPairBusy] = useState(false);
+  const pairBusy = pairStarting || snapshot.app?.setup.hub.state === "in_progress";
   const [dismissed, setDismissed] = useState<string[]>([]);
   const dismiss = (id: string) =>
     setDismissed((previous) => [...previous.slice(-99), id]);
@@ -129,7 +137,7 @@ export function App({
           )}
         </div>
         <div className="connections">
-          <LinkStatus name="Laptop" link={snapshot.hub} />
+          <LinkStatus name="Laptop" link={snapshot.hub} unpaired={unpaired} />
           <LinkStatus name="Controller" link={snapshot.esp} />
         </div>
         <time className="clock" aria-label="Laptop time">
@@ -168,7 +176,28 @@ export function App({
       )}
       <div className="main-grid">
         <div className="usage-stack">
-          {usageSlot ?? (
+          {usageSlot ?? (nativeAvailable && unpaired ? (
+            <section className="card pair-card" role="status" aria-label="Laptop pairing">
+          <h2>Laptop</h2>
+          <p>
+            {snapshot.hub.errorCode === "AUTH_REQUIRED" && snapshot.app?.paired !== false
+              ? "The laptop no longer accepts this phone. Pair again."
+              : "This phone is not paired with the laptop yet."}
+          </p>
+          <button
+            disabled={pairBusy}
+            onClick={() => {
+              setPairBusy(true);
+              store
+                .setup("app.setupHub")
+                .catch(() => undefined)
+                .finally(() => setPairBusy(false));
+            }}
+          >
+            Pair laptop
+          </button>
+            </section>
+          ) : (
             <>
               <UsageCard
                 name="Claude"
@@ -183,7 +212,7 @@ export function App({
                 onDetails={() => setSheet("codex")}
               />
             </>
-          )}
+          ))}
         </div>
         {climateSlot ?? (
           <ClimateCard

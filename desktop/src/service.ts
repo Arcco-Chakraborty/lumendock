@@ -149,9 +149,14 @@ export async function uninstallHubService(options: UninstallHubOptions): Promise
     if (bytes && !owned(record, sha(bytes))) throw new ServiceError('UNIT_MODIFIED');
     const warnings: string[] = [];
     saveRecord({ ...record, phase: 'uninstall_pending' });
-    if (record.enabled) {
+    // Also covers a user who ran `systemctl --user enable --now` by hand after installing.
+    const enabledNow = (await options.systemctl(['is-enabled', '--quiet', SERVICE_NAME])).code === 0;
+    if (record.enabled || enabledNow) {
       const disabled = await options.systemctl(['disable', '--now', SERVICE_NAME]);
-      if (disabled.code !== 0) throw new ServiceError('SERVICE_DISABLE_FAILED');
+      if (disabled.code !== 0) {
+        if (bytes) throw new ServiceError('SERVICE_DISABLE_FAILED');
+        warnings.push(`Could not disable ${SERVICE_NAME} (its unit file is already gone); run systemctl --user disable --now ${SERVICE_NAME} if it is still enabled.`);
+      }
     }
     if (bytes) unlinkSync(unitPath);
     const reload = await options.systemctl(['daemon-reload']);

@@ -16,7 +16,7 @@ export interface DoctorReport {
 export interface DoctorInput {
   nodeVersion: string; env: Record<string, string | undefined>; toolchain?: { jdk?: string; sdk?: string };
   artifacts: { hub: boolean; apk: boolean }; fileExists: (path: string) => boolean; listDir: (path: string) => string[];
-  runner?: ProcessRunner; adbPath?: string; showSerial?: boolean; selectedSerial?: string;
+  runner?: ProcessRunner; adbPath?: string; showSerial?: boolean; selectedSerial?: string; codexPath?: string;
 }
 
 const REQUIRED_JDK = 17;
@@ -65,14 +65,14 @@ export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
 
   const claudeVersion = firstMatch(await probe(runner, 'claude', ['--version']), /(\d+\.\d+\.\d+)/);
   checks.push({ id: 'claude', label: 'Claude Code', status: claudeVersion ? 'ok' : 'warn', ...(claudeVersion ? { version: claudeVersion } : { detail: 'Not found; Claude usage will show as unavailable.' }) });
-  const codexVersion = firstMatch(await probe(runner, 'codex', ['--version']), /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/);
+  const codexVersion = firstMatch(await probe(runner, input.codexPath ?? 'codex', ['--version']), /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/);
   const codexCompatible = codexVersion !== null && CODEX_COMPATIBLE_VERSION.endsWith(codexVersion);
   checks.push({
     id: 'codex', label: 'Codex CLI', status: codexVersion ? 'ok' : 'warn',
-    ...(codexVersion ? { version: codexVersion } : { detail: 'Not found; Codex usage will show as unavailable.' }),
+    ...(codexVersion ? { version: codexVersion } : { detail: 'Not found on PATH, in config.json codexPath, PHONE_MONITOR_CODEX or the VS Code extension; Codex usage will show as unavailable.' }),
     ...(codexVersion && !codexCompatible ? { detail: 'Differs from the verified version; the collector may report the data source as unsupported.' } : {})
   });
-  checks.push({ id: 'hub-build', label: 'Desktop hub build', status: input.artifacts.hub ? 'ok' : 'warn', ...(input.artifacts.hub ? {} : { detail: 'Run npm run build --workspace @phone-monitor/desktop.' }) });
+  checks.push({ id: 'hub-build', label: 'Desktop hub build', status: input.artifacts.hub ? 'ok' : 'warn', ...(input.artifacts.hub ? {} : { detail: 'Run npm ci && npm run build.' }) });
   checks.push({ id: 'apk-build', label: 'Android debug APK', status: input.artifacts.apk ? 'ok' : 'warn', ...(input.artifacts.apk ? {} : { detail: 'Not built yet (optional for laptop-only checks).' }) });
 
   const devices: DoctorReport['devices'] = { authorizedUsb: [], unauthorized: 0, offline: 0, wirelessIgnored: 0, otherIgnored: 0 };

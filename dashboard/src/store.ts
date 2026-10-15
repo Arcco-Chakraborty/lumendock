@@ -184,7 +184,8 @@ export class DashboardStore {
     }
     if (visible && this.adapter) {
       this.readSources();
-      if (this.settingUp()) void this.poll("app.status");
+      // Also re-read a missing AppStatus (e.g. the first read hit SESSION_ENDED after renderer recreation).
+      if (this.settingUp() || this.app === null) void this.poll("app.status");
       this.schedule();
     }
   }
@@ -304,9 +305,12 @@ export class DashboardStore {
         now - (this.last.get("esp.history") ?? -Infinity) >= 30000
       )
         void this.poll("esp.history");
+      const statusAge = now - (this.last.get("app.status") ?? -Infinity);
+      // Poll during setup; otherwise retry a failed first read every 5 s, since light writes
+      // stay disabled until AppStatus provides the generation floor.
       if (
-        this.settingUp() &&
-        now - (this.last.get("app.status") ?? -Infinity) >= 2000
+        (this.settingUp() && statusAge >= 2000) ||
+        (this.app === null && this.appError !== null && statusAge >= 5000)
       )
         void this.poll("app.status");
       this.notify();

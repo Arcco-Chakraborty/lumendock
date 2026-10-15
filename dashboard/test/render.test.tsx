@@ -87,9 +87,11 @@ it("escapes notification markup and excludes locally expired items", () => {
 it("sensor failure leaves lighting independent and history uses gaps/relative offsets", () => {
   const snapshot = EspSnapshotSchema.parse(esp);
   snapshot.data!.sensorOk = false;
-  expect(render(<ClimateCard snapshot={snapshot} />)).toContain(
-    "Lighting still works",
-  );
+  const html = render(<ClimateCard snapshot={snapshot} />);
+  expect(html).toContain("Lighting still works");
+  // Design: sensor failure with HTTP working keeps the last values, labelled as old.
+  expect(html).toContain("Sensor failed · last reading");
+  expect(html).toContain(snapshot.data!.temperatureC!.toFixed(1));
   const path = historyPath([20, null, 22, 23], 60);
   expect(path.match(/M/g)).toHaveLength(2);
   expect(path).not.toContain("NaN");
