@@ -482,7 +482,7 @@ test.describe("content rules", () => {
     await page.getByRole("button", { name: /all codex windows/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("45 minutes")).toBeVisible();
-    await expect(dialog.getByText("10080 minutes")).toBeVisible();
+    await expect(dialog.getByText("7 days")).toBeVisible();
     await expect(dialog.getByText("Duration unknown")).toBeVisible();
     await expect(dialog.getByText("0% used", { exact: true })).toBeVisible();
     await expect(dialog.getByText("33.333% used")).toBeVisible();
@@ -682,7 +682,7 @@ test.describe("instrument display revision", () => {
     await connected(page);
     await expect(page.getByRole("button",{name:"All Codex windows"})).toHaveText("View 2");
     await page.getByRole("button",{name:"All Codex windows"}).click();
-    await expect(page.getByRole("dialog").getByText("10080 minutes")).toBeVisible();
+    await expect(page.getByRole("dialog").getByText("7 days")).toBeVisible();
   });
 });
 

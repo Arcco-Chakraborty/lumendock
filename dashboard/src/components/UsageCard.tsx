@@ -3,7 +3,7 @@ import {
   type UsageSource,
   type UsageWindow,
 } from "@phone-monitor/protocol";
-import { countdown, elapsedLabel, secondsUntilReset } from "../lib/time.js";
+import { countdown, durationWords, elapsedLabel, secondsUntilReset } from "../lib/time.js";
 function Row({
   row,
   now,
@@ -21,23 +21,26 @@ function Row({
     now - row.reportedAtEpochMs >= threshold;
   return (
     <div className="quota-row">
-      <div className="quota-label">
-        <span className="quota-identity" title={row.label || row.windowId}>
-          {row.label || row.windowId}
-        </span>{" "}
-        <span className="quota-duration muted" aria-label={row.windowDurationMins === null ? "Duration unknown" : `${row.windowDurationMins} minutes`}>
-          {row.windowDurationMins === null
-            ? "Duration unknown"
-            : expanded ? `${row.windowDurationMins} minutes`
-            : row.windowDurationMins % 1440 === 0 ? `${row.windowDurationMins / 1440}d`
-            : row.windowDurationMins % 60 === 0 ? `${row.windowDurationMins / 60}h`
-            : `${row.windowDurationMins}m`}
-        </span>
-      </div>
-      <div className="usage-value" aria-label={row.usedPercent === null ? "Unknown usage" : undefined}>
-        {row.usedPercent === null
-          ? "Unknown"
-          : <><span className="usage-number">{row.usedPercent}%</span>{" "}<span className="usage-unit">used</span></>}
+      {/* The percentage and window name share a line on Monitor and wrap when narrow. */}
+      <div className="quota-headline">
+        <div className="usage-value" aria-label={row.usedPercent === null ? "Unknown usage" : undefined}>
+          {row.usedPercent === null
+            ? "Unknown"
+            : <><span className="usage-number">{row.usedPercent}%</span>{" "}<span className="usage-unit">used</span></>}
+        </div>
+        <div className="quota-label">
+          <span className="quota-identity" title={row.label || row.windowId}>
+            {row.label || row.windowId}
+          </span>{" "}
+          <span className="quota-duration muted" aria-label={row.windowDurationMins === null ? "Duration unknown" : durationWords(row.windowDurationMins)}>
+            {row.windowDurationMins === null
+              ? "Duration unknown"
+              : expanded ? durationWords(row.windowDurationMins)
+              : row.windowDurationMins % 1440 === 0 ? `${row.windowDurationMins / 1440}d`
+              : row.windowDurationMins % 60 === 0 ? `${row.windowDurationMins / 60}h`
+              : `${row.windowDurationMins}m`}
+          </span>
+        </div>
       </div>
       <svg
         className="quota-meter"

@@ -183,3 +183,24 @@ test("enlarged content scrolls above the dock and keeps alerts clickable", async
   await details.click();
   await expect(page.getByRole("dialog")).toBeVisible();
 });
+
+for (const [width, height, shown] of [[800,360,2],[740,320,2],[360,800,3]] as const) {
+  test(`alerts list the newest ${shown} and fit beside compact usage at ${width}x${height}`, async ({page}) => {
+    await open(page,width,height,{edit:f => {
+      const items = f.hub.data!.notifications.items;
+      const base = items[0]!;
+      items.splice(0, items.length,
+        {...base, id:"synthetic-a", appId:"Codex", title:"Synthetic oldest alert", receivedAtEpochMs: base.receivedAtEpochMs - 120_000, expiresAtEpochMs: base.expiresAtEpochMs - 120_000},
+        {...base, id:"synthetic-b", appId:"WhatsApp", title:"Synthetic middle alert with a long title that must truncate cleanly", receivedAtEpochMs: base.receivedAtEpochMs - 60_000, expiresAtEpochMs: base.expiresAtEpochMs - 60_000},
+        {...base, id:"synthetic-c", appId:"Claude", title:"Synthetic newest alert"},
+      );
+    }});
+    const titles = page.locator(".notification-preview article:visible strong");
+    await expect(titles).toHaveCount(shown);
+    await expect(titles.first()).toHaveText("Synthetic newest alert");
+    expect(await page.locator(".main-grid").evaluate(e => e.scrollHeight <= e.clientHeight + 1), "Monitor needs no internal scroll").toBe(true);
+    expect(await clippingProblems(page)).toEqual([]);
+    expect(await overlapProblems(page)).toEqual([]);
+    await page.screenshot({animations:"disabled",path:evidence(`${width}x${height}-alerts`)});
+  });
+}

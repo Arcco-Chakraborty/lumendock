@@ -29,5 +29,20 @@ export function countdown(seconds: number | null): string {
   if (seconds < 60) return `Reset in ${seconds}s`;
   if (seconds < 3600)
     return `Reset in ${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  return `Reset in ${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  if (seconds < 86400)
+    return `Reset in ${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+  return `Reset in ${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
+}
+const unit = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/** Window length in words for the full usage view: "45 minutes", "5 hours", "7 days". */
+export function durationWords(mins: number): string {
+  const days = Math.floor(mins / 1440),
+    hours = Math.floor((mins % 1440) / 60),
+    minutes = mins % 60;
+  const parts = [
+    days ? unit(days, "day") : "",
+    hours ? unit(hours, "hour") : "",
+    minutes ? unit(minutes, "minute") : "",
+  ].filter(Boolean);
+  return parts.length ? parts.join(" ") : unit(0, "minute");
 }

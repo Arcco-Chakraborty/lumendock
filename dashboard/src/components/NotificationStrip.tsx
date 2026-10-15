@@ -25,7 +25,8 @@ export function NotificationStrip({
       !dismissed.includes(item.id) &&
       (laptopNowEpochMs === null || item.expiresAtEpochMs > laptopNowEpochMs),
   );
-  const shown = expanded ? visible : visible.slice(-1);
+  // The Monitor preview lists the newest few first; CSS decides how many fit.
+  const shown = expanded ? visible : visible.slice(-3).reverse();
   return (
     <>
       <div className={expanded ? "notification-list" : "notification-preview"}>
@@ -64,7 +65,7 @@ export function NotificationStrip({
         )}
       </div>
       {onDetails && (
-        <button onClick={onDetails}>
+        <button className="text-button" onClick={onDetails}>
           Details{visible.length ? ` (${visible.length})` : ""}
         </button>
       )}
