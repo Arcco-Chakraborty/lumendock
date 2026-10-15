@@ -116,3 +116,28 @@ This disables the service only if `install-hub --enable` enabled it, removes onl
 ## What this document does not claim
 
 Hub, adb routing, installer and doctor logic are software-verified. Physical USB reverse on the Redmi, real replug recovery, ESP Wi-Fi coexistence, live Claude/Codex/GNOME capture, and the service at login are **UNRUN** until the acceptance rows in [TESTING.md](TESTING.md) are recorded.
+
+## 9. Controller Wi-Fi on the phone: native and manual steps (A3)
+
+The phone reaches the controller at `192.168.4.1` over Wi-Fi while the laptop link stays on USB. Only the controller client uses the selected Wi-Fi network (each connection is opened on that `Network`); the app never binds the whole process to Wi-Fi, so USB loopback, and mobile data if present, are unaffected.
+
+**Native (preferred).**
+
+1. Power the controller and open the app in the foreground.
+2. Tap the controller setup action (dashboard) or **Connect controller** (diagnostic APK). One native "Controller Wi-Fi" dialog opens. Screenshots of it are blocked.
+3. Type the controller's network name and password into that dialog only, then tap **Connect**. They are stored in app-private storage (backup disabled) and never shown to the dashboard, logs or diagnostics. The password is never prefilled.
+4. Grant the one permission Android asks for: precise location on Android 10–12L (API 29–32; Location must also be switched on), or "Nearby devices" on Android 13+ (declared as not used for location).
+5. Approve Android's prompt to join the controller network. It has no internet, which is expected.
+6. Setup succeeds only once the controller itself answers over HTTP on that network. Internet validation is never used as readiness.
+
+If you deny the permission, decline the prompt, or enter a wrong password, setup ends as failed and the app **does not ask again by itself**. Tap setup again when ready, or use the manual path. Leaving the app (Home, or another app taking over) releases the network request. Returning restores it from the stored settings, but only if it had previously reached the controller. Whether MIUI shows the approval prompt again on return is a device-acceptance observation (A3-D10).
+
+**Manual fallback.**
+
+1. Choose **Use Wi-Fi settings** in the dialog (or the dashboard's Wi-Fi settings action).
+2. Join the controller network in Android settings. If asked, choose to stay connected without internet.
+3. Return to the app. It observes the Wi-Fi network you joined and shows the controller as connected only after the controller replies.
+
+**Stop using it.** Uninstalling the app, or clearing its storage, removes the stored controller settings. In manual mode, also forget the network in Android settings. The controller firmware and its access point are never modified by this product.
+
+SOFTWARE-VERIFIED (JVM fakes): network selection and loss handling, the permission policy for API 29–33, no automatic re-prompting, strict controller parsing, and light-command ordering. UNRUN on hardware: every row A3-D1…A3-D14 in [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md), including simultaneous USB + Wi-Fi on the Redmi.

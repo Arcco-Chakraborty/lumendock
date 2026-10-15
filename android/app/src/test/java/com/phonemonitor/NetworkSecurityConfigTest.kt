@@ -30,6 +30,16 @@ class NetworkSecurityConfigTest {
         val activity=app.children("activity").single()
         assertEquals("sensorLandscape",activity.getAttributeNS(ns,"screenOrientation"))
         assertTrue(activity.getAttributeNS(ns,"configChanges").split('|').containsAll(listOf("orientation","screenSize","screenLayout","smallestScreenSize")))
-        assertEquals(listOf("android.permission.INTERNET"),manifest.children("uses-permission").map{ it.getAttributeNS(ns,"name") })
+    }
+    @Test fun wifiPermissionsAreScopedByApiLevelAndNeverForLocation() {
+        val ns="http://schemas.android.com/apk/res/android"
+        val p="android.permission."
+        val permissions=xml("src/main/AndroidManifest.xml").children("uses-permission").associateBy{ it.getAttributeNS(ns,"name") }
+        assertEquals(setOf("${p}INTERNET","${p}ACCESS_NETWORK_STATE","${p}CHANGE_NETWORK_STATE","${p}CHANGE_WIFI_STATE",
+            "${p}ACCESS_FINE_LOCATION","${p}ACCESS_COARSE_LOCATION","${p}NEARBY_WIFI_DEVICES"),permissions.keys)
+        assertEquals("32",permissions.getValue("${p}ACCESS_FINE_LOCATION").getAttributeNS(ns,"maxSdkVersion"))
+        assertEquals("32",permissions.getValue("${p}ACCESS_COARSE_LOCATION").getAttributeNS(ns,"maxSdkVersion"))
+        assertEquals("neverForLocation",permissions.getValue("${p}NEARBY_WIFI_DEVICES").getAttributeNS(ns,"usesPermissionFlags"))
+        assertEquals("No background location, wake lock, foreground service, boot receiver or admin",7,permissions.size)
     }
 }

@@ -11,12 +11,28 @@ import java.util.concurrent.Future
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicInteger
+
+/**
+ * One single-thread lane per transport operation. The router already admits at most one live request per
+ * operation, so a slow controller read/write can never queue the USB hub reply behind it (and vice versa).
+ */
+class BridgeLanes(private val capacity:Int=4) {
+    private val lanes=HashMap<String,ThreadPoolExecutor>()
+    private var shut=false
+    private fun laneFor(op:String)=when(op) { "hub.snapshot","esp.state","esp.history","esp.set" -> op; else -> "other" }
+    @Synchronized fun submit(op:String,task:Runnable):Future<*> {
+        if(shut) throw RejectedExecutionException("BRIDGE_UNAVAILABLE")
+        return lanes.getOrPut(laneFor(op)) { ThreadPoolExecutor(1,1,30,TimeUnit.SECONDS,ArrayBlockingQueue(capacity)).apply{ allowCoreThreadTimeOut(true) } }.submit(task)
+    }
+    @Synchronized fun shutdownNow() { shut=true; lanes.values.forEach{ it.shutdownNow() } }
+}
 
 /** One bridge per renderer, with bounded work and callbacks; never owns the native setup session. */
 class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
     private val main=Handler(Looper.getMainLooper())
-    private val workers=ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue(30))
+    private val lanes=BridgeLanes()
     private val deadlines=ScheduledThreadPoolExecutor(1).apply{removeOnCancelPolicy=true}
     private var webView:WebView?=null
     fun attach(view:WebView):Boolean {
@@ -41,8 +57,8 @@ class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
         if(request.op.startsWith("app.")) { task.run(); return }
         try {
             task.deadline=deadlines.schedule({task.cancel("REQUEST_TIMEOUT")},10,TimeUnit.SECONDS)
-            task.future=workers.submit(task)
-        } catch(_:java.util.concurrent.RejectedExecutionException) { task.cancel("BRIDGE_UNAVAILABLE") }
+            task.future=lanes.submit(request.op,task)
+        } catch(_:RejectedExecutionException) { task.cancel("BRIDGE_UNAVAILABLE") }
     }
     private fun postReply(callback:(BridgeReply)->Unit,reply:BridgeReply) {
         main.post { try { callback(reply) } catch(_:RuntimeException) { /* renderer may already be gone */ } }
@@ -69,7 +85,7 @@ class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
     fun dispose() {
         check(Looper.myLooper()==Looper.getMainLooper())
         router.lifecycle.close()
-        workers.shutdownNow(); deadlines.shutdownNow()
+        lanes.shutdownNow(); deadlines.shutdownNow()
         if(WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             webView?.let { WebViewCompat.removeWebMessageListener(it,"phoneMonitor") }
         }

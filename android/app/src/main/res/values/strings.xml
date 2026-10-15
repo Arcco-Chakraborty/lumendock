@@ -10,4 +10,19 @@
     <string name="pairing_bad_code">That code was not accepted. Check the 8 digits on the laptop and try again.</string>
     <string name="pairing_unreachable">Laptop not reachable over USB. Check the cable, USB debugging authorization, and that the hub is in pairing mode.</string>
     <string name="pairing_retry">Pairing did not complete. Try again.</string>
+    <string name="wifi_title">Controller Wi-Fi</string>
+    <string name="wifi_instructions">Enter the light controller\'s network name and password. Android asks once to approve this local network; it has no internet, and USB to the laptop keeps working.</string>
+    <string name="wifi_ssid_hint">Controller network name</string>
+    <string name="wifi_password_hint">Controller Wi-Fi password</string>
+    <string name="wifi_connect">Connect</string>
+    <string name="wifi_manual">Use Wi-Fi settings</string>
+    <string name="wifi_close">Close</string>
+    <string name="wifi_location_settings">Location settings</string>
+    <string name="wifi_invalid">Check the network name (1–32 bytes) and password (8–63 plain characters).</string>
+    <string name="wifi_connecting">Waiting for Android to approve and join the controller network…</string>
+    <string name="wifi_denied">Wi-Fi access permission was not granted. You can join the controller network in Wi-Fi settings instead.</string>
+    <string name="wifi_location_off">This Android version needs Location turned on to request a Wi-Fi network. Turn Location on, then tap Connect controller again.</string>
+    <string name="wifi_unavailable">Android did not join the controller network (declined, not found, or wrong password). You can try again or use Wi-Fi settings.</string>
+    <string name="wifi_unreachable">Joined the network, but the light controller did not answer at its address. Check the controller is powered and try again.</string>
+    <string name="wifi_save_failed">The controller settings could not be saved on this phone. Try again.</string>
 </resources>

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
@@ -48,6 +49,13 @@ class MainActivity : Activity() {
     private val pairingWorker=ThreadPoolExecutor(0,1,1,TimeUnit.SECONDS,LinkedBlockingQueue(1))
     private val orientationPolicy=OrientationPolicy()
     private var orientationListener:OrientationEventListener?=null
+    /** Activity-owned controller client and Wi-Fi selection: caches, outcomes and the request outlive renderers. */
+    private lateinit var esp:EspClient
+    private lateinit var wifi:WifiSession
+    private lateinit var wifiStore:WifiStore
+    private lateinit var wifiFlow:WifiSetupFlow
+    private var permissionSetupId:String?=null
+    private var wifiStatus:TextView?=null
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,13 +66,25 @@ class MainActivity : Activity() {
         val ui=main
         laptop=LaptopClient(PrivatePairingStore(this)) { paired -> owner.get()?.let { if(it::nativeSession.isInitialized) it.nativeSession.paired=paired } }
         val client=laptop
+        esp=EspClient.create()
+        val controller=esp
         nativeSession=NativeSession(
-            onBackground={ client.pause() },
+            // A genuine background/end releases hub requests, controller I/O, queued commands and the Wi-Fi request.
+            onBackground={ client.pause(); controller.pause(); owner.get()?.let{ if(it::wifi.isInitialized) it.wifi.pause() } },
             onStartSetup={kind,id->ui.post { owner.get()?.showSetupGuidance(kind,id) }},
-            onCancelSetup={_,_->ui.post { owner.get()?.setupDialog?.dismiss() }},
+            onCancelSetup={kind,id->ui.post { owner.get()?.let { it.setupDialog?.dismiss(); if(kind=="esp") it.wifiFlow.onSetupEnded(id) } }},
             onScreenChanged={_,_->ui.post { owner.get()?.applyScreenSettings() }},
         )
         nativeSession.paired=laptop.paired
+        wifiStore=PrivateWifiStore(this)
+        val session=nativeSession
+        wifi=WifiSession(AndroidWifiPlatform(this),wifiStore,{ lease -> controller.onNetworkChanged(lease) },{ mode -> session.wifiMode=mode })
+        wifiFlow=WifiSetupFlow(nativeSession,wifi,wifiStore,AndroidPermissionGate(applicationContext),
+            { lease,done -> controller.verify(lease) { ok -> ui.post { done(ok) } } },
+            object:WifiSetupUi {
+                override fun requestPermissions(setupId:String,permissions:List<String>) { ui.post { owner.get()?.requestWifiPermissions(setupId,permissions) } }
+                override fun show(setupId:String,message:WifiSetupMessage) { ui.post { owner.get()?.showWifiMessage(setupId,message) } }
+            })
         pairingFlow=HubPairingFlow(nativeSession,client::pair,{ pairingWorker.execute(it) },{ action -> ui.post { if(owner.get()?.isDestroyed==false) action() } })
         orientationListener=object:OrientationEventListener(this) {
             override fun onOrientationChanged(degrees:Int) {
@@ -116,17 +136,18 @@ class MainActivity : Activity() {
         if(activityStarted) scope.enterForeground() else view.onPause()
         val owner=WeakReference(this)
         val client=laptop
-        // hub.snapshot is real (A2); esp.* remain explicit unavailable seams until A3.
+        val controller=esp
+        val selection=wifi
+        // hub.snapshot (A2, unbound loopback) and esp.* (A3, selected Wi-Fi network) are independent clients.
         val services=object:UnavailableBridgeServices() {
             override fun hubSnapshot()=client.snapshot().toJson()
+            override fun espState()=controller.state().toJson()
+            override fun espHistory()=controller.history().toJson()
+            override fun setLight(patch:com.google.gson.JsonObject,generation:Long)=controller.set(LightPatch.fromJson(patch),generation).toJson()
             override fun openWifiSettings():com.google.gson.JsonObject {
-                val opened=try {
-                    val activity=owner.get()
-                    if(activity==null || activity.isFinishing) false else {
-                        activity.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)); true
-                    }
-                } catch(_:RuntimeException) { false }
-                return jsonObject("opened" to opened)
+                // Manual fallback: observe the Wi-Fi the user joins, unless a working app request already exists.
+                if(selection.mode!="app_request" || selection.current()==null) selection.useManual()
+                return jsonObject("opened" to (owner.get()?.openSettings(Settings.ACTION_WIFI_SETTINGS)==true))
             }
         }
         val nextBridge=DashboardBridge(BridgeRouter(services,scope))
@@ -165,13 +186,83 @@ class MainActivity : Activity() {
     private fun showSetupGuidance(kind:String,id:String) {
         if(isFinishing || isDestroyed || !nativeSession.isSetupActive()) return
         setupDialog?.dismiss()
-        if(kind=="hub") { showPairingDialog(id); return }
-        setupDialog=AlertDialog.Builder(this)
-            .setTitle("Controller Wi-Fi")
-            .setMessage("Native controller setup is not installed in this diagnostic host yet.")
-            .setPositiveButton("Close") { _,_-> nativeSession.finishSetup(kind,id,"cancelled") }
-            .setOnCancelListener { nativeSession.finishSetup(kind,id,"cancelled") }
-            .create().also { it.show() }
+        if(kind=="hub") showPairingDialog(id) else showWifiDialog(id)
+    }
+    private fun openSettings(action:String):Boolean = try {
+        if(isFinishing || isDestroyed) false else { startActivity(Intent(action)); true }
+    } catch(_:RuntimeException) { false }
+    /** The one native dialog for app.connectEsp. SSID/passphrase stay native; the passphrase is never prefilled. */
+    private fun showWifiDialog(id:String) {
+        val pad=(16*resources.displayMetrics.density).toInt()
+        val message=TextView(this).apply { setText(R.string.wifi_instructions); setPadding(0,0,0,pad/2) }
+        val ssid=EditText(this).apply {
+            inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            setHint(R.string.wifi_ssid_hint); setText(wifiStore.credentials()?.ssid ?: "")
+            isSaveEnabled=false; importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO
+        }
+        val passphrase=EditText(this).apply {
+            inputType=InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            filters=arrayOf(InputFilter.LengthFilter(63))
+            setHint(R.string.wifi_password_hint)
+            isSaveEnabled=false; importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO
+        }
+        val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(pad,pad/2,pad,0); addView(message); addView(ssid); addView(passphrase) }
+        wifiStatus=message
+        val dialog=AlertDialog.Builder(this)
+            .setTitle(R.string.wifi_title)
+            .setView(content)
+            .setPositiveButton(R.string.wifi_connect,null)
+            .setNeutralButton(R.string.wifi_manual) { _,_-> wifiFlow.chooseManual(id); openSettings(Settings.ACTION_WIFI_SETTINGS) }
+            .setNegativeButton(R.string.pairing_cancel) { _,_-> nativeSession.finishSetup("esp",id,"cancelled"); wifiFlow.onSetupEnded(id) }
+            .setOnCancelListener { nativeSession.finishSetup("esp",id,"cancelled"); wifiFlow.onSetupEnded(id) }
+            .create()
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        dialog.setOnShowListener {
+            val button:Button=dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            button.setOnClickListener {
+                val accepted=wifiFlow.submit(id,ssid.text.toString(),passphrase.text.toString())
+                passphrase.text.clear()
+                if(!accepted && !nativeSession.isSetupCurrent("esp",id)) dialog.dismiss()
+            }
+        }
+        setupDialog=dialog
+        dialog.show()
+        main.postDelayed({ if(!isDestroyed) nativeSession.isSetupActive() },120_500)
+    }
+    private fun showWifiMessage(id:String,message:WifiSetupMessage) {
+        if(isFinishing || isDestroyed) return
+        val text=when(message) {
+            WifiSetupMessage.INVALID_INPUT -> R.string.wifi_invalid
+            WifiSetupMessage.CONNECTING -> R.string.wifi_connecting
+            WifiSetupMessage.CONNECTED -> { setupDialog?.dismiss(); return }
+            WifiSetupMessage.PERMISSION_DENIED -> R.string.wifi_denied
+            WifiSetupMessage.LOCATION_OFF -> R.string.wifi_location_off
+            WifiSetupMessage.UNAVAILABLE -> R.string.wifi_unavailable
+            WifiSetupMessage.CONTROLLER_UNREACHABLE -> R.string.wifi_unreachable
+            WifiSetupMessage.SAVE_FAILED -> R.string.wifi_save_failed
+        }
+        if(nativeSession.isSetupCurrent("esp",id)) { wifiStatus?.setText(text); return }
+        // The flow has finished as failed: one explanation with the manual fallback. No automatic re-prompt.
+        setupDialog?.dismiss()
+        val builder=AlertDialog.Builder(this).setTitle(R.string.wifi_title).setMessage(text).setNegativeButton(R.string.wifi_close,null)
+        if(message==WifiSetupMessage.LOCATION_OFF) builder.setPositiveButton(R.string.wifi_location_settings) { _,_-> openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS) }
+        else builder.setPositiveButton(R.string.wifi_manual) { _,_-> wifi.useManual(); openSettings(Settings.ACTION_WIFI_SETTINGS) }
+        setupDialog=builder.create().also { it.show() }
+    }
+    /** A real OS permission screen: the flow has already marked the approval outstanding for this setup. */
+    private fun requestWifiPermissions(id:String,permissions:List<String>) {
+        if(isFinishing || isDestroyed || !nativeSession.isSetupCurrent("esp",id)) { wifiFlow.onPermissionsResult(id,false); return }
+        permissionSetupId=id
+        requestPermissions(permissions.toTypedArray(),WIFI_PERMISSION_REQUEST)
+    }
+    override fun onRequestPermissionsResult(requestCode:Int,permissions:Array<out String>,grantResults:IntArray) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if(requestCode!=WIFI_PERMISSION_REQUEST) return
+        val id=permissionSetupId ?: return
+        permissionSetupId=null
+        // An interrupted request returns empty arrays and counts as denied (no automatic re-prompt).
+        wifiFlow.onPermissionsResult(id,grantResults.isNotEmpty() && grantResults.all{ it==PackageManager.PERMISSION_GRANTED })
     }
     /** The one native code-entry dialog for app.setupHub. The code and token never touch the WebView. */
     private fun showPairingDialog(id:String) {
@@ -232,7 +323,7 @@ class MainActivity : Activity() {
     }
     override fun onStart() {
         super.onStart(); activityStarted=true; userLeaving=false
-        laptop.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
+        laptop.resume(); esp.resume(); wifi.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
         orientationListener?.let { if(orientationPolicy.needsSensor && it.canDetectOrientation()) it.enable() }
     }
     override fun onUserLeaveHint() { userLeaving=true; super.onUserLeaveHint() }
@@ -241,13 +332,14 @@ class MainActivity : Activity() {
         // Permission/system approval can stop an Activity; genuine Home/background still ends work.
         lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings()
         // Only a matching OS approval pause keeps the foreground session; anything else releases hub requests.
-        if(!nativeSession.foreground) laptop.pause()
+        if(!nativeSession.foreground) { laptop.pause(); esp.pause(); wifi.pause() }
         orientationListener?.disable()
         super.onStop()
     }
     override fun onDestroy() {
-        setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close()
+        setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close(); wifi.close(); esp.close()
         pairingWorker.shutdownNow(); orientationListener?.disable()
         main.removeCallbacksAndMessages(null); super.onDestroy()
     }
+    private companion object { const val WIFI_PERMISSION_REQUEST=4101 }
 }
