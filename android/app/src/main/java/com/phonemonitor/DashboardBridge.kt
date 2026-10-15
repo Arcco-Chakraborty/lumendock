@@ -11,7 +11,6 @@ import java.util.concurrent.Future
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /** One bridge per renderer, with bounded work and callbacks; never owns the native setup session. */
@@ -50,7 +49,8 @@ class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
     }
     private inner class RequestTask(val request:PreparedRequest,val callback:(BridgeReply)->Unit):Runnable {
         private val state=AtomicInteger(0) // 0 queued, 1 executing, 2 finished/cancelled before execution
-        private val settled=AtomicBoolean(false)
+        private val delivery=LifecycleReplyDelivery(router.lifecycle,request.id,request.epoch,
+            { action -> main.post(action) },callback)
         @Volatile var future:Future<*>?=null
         @Volatile var deadline:Future<*>?=null
         override fun run() {
@@ -63,8 +63,7 @@ class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
             settle(BridgeReply.failure(request.id,code))
         }
         private fun settle(result:BridgeReply) {
-            if(!settled.compareAndSet(false,true)) return
-            deadline?.cancel(false); router.lifecycle.completePending(request.id); postReply(callback,result)
+            if(delivery.submit(result)) deadline?.cancel(false)
         }
     }
     fun dispose() {

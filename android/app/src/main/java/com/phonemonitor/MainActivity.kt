@@ -76,7 +76,8 @@ class MainActivity : Activity() {
         view.webViewClient=DashboardClient(assets)
         val scope=SessionLifecycle(nativeSession)
         lifecycle=scope
-        if(activityStarted) scope.enterForeground()
+        // Requests stay closed until the Activity is actually started; a stopped replacement is also paused.
+        if(activityStarted) scope.enterForeground() else view.onPause()
         val owner=WeakReference(this)
         val services=object:UnavailableBridgeServices() {
             override fun openWifiSettings():com.google.gson.JsonObject {
@@ -148,8 +149,7 @@ class MainActivity : Activity() {
     override fun onStop() {
         activityStarted=false
         // Permission/system approval can stop an Activity; genuine Home/background still ends work.
-        val reason=if(nativeSession.isSetupActive() && !userLeaving) "approval_pause" else "background"
-        lifecycle?.leaveForeground(reason); dashboardView?.onPause(); applyScreenSettings(); super.onStop()
+        lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings(); super.onStop()
     }
     override fun onDestroy() { setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); main.removeCallbacksAndMessages(null); super.onDestroy() }
 }

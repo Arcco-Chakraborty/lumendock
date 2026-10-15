@@ -24,6 +24,8 @@ class NativeSession(
     private var brightness=0.6
     private var generation=1L
     private var generationsExhausted=false
+    /** Setup whose human-visible OS permission/approval screen is currently outstanding. */
+    private var approvalSetupId:String?=null
 
     @Synchronized fun startSetup(kind:String):JsonObject {
         require(kind in setup)
@@ -47,12 +49,31 @@ class NativeSession(
         val current=setup[kind] ?: return
         if(ended || current.id!=id || current.state!="in_progress") return
         setup[kind]=current.copy(state=state,error=errorCode)
+        if(approvalSetupId==id) approvalSetupId=null
         if(kind=="hub" && state=="succeeded") paired=true
+    }
+    /** A2/A3 call this just before launching an OS permission/approval screen for the live setup flow. */
+    @Synchronized fun beginOsApproval(kind:String,setupId:String) {
+        expireSetup()
+        val current=setup[kind] ?: return
+        if(!ended && current.id==setupId && current.state=="in_progress") approvalSetupId=setupId
+    }
+    @Synchronized fun endOsApproval(setupId:String) { if(approvalSetupId==setupId) approvalSetupId=null }
+    /**
+     * An Activity stop is an approval pause only when a matching OS approval is outstanding and the user
+     * did not leave; active setup alone (e.g. an incoming-call Activity, which skips onUserLeaveHint) is not proof.
+     */
+    @Synchronized fun activityStopReason(userLeaving:Boolean):String {
+        expireSetup()
+        val pending=approvalSetupId
+        val outstanding=pending!=null && setup.values.any{it.id==pending && it.state=="in_progress"}
+        return if(outstanding && !userLeaving) "approval_pause" else "background"
     }
     @Synchronized fun isSetupActive():Boolean { expireSetup(); return setup.values.any{it.state=="in_progress"} }
     private fun expireSetup() {
         setup.toMap().forEach { (kind,s) -> if(s.state=="in_progress" && clock()-s.beganAt>=120_000) {
             setup[kind]=s.copy(state="failed",error=if(kind=="hub") "PAIRING_EXPIRED" else "WIFI_UNAVAILABLE")
+            if(approvalSetupId==s.id) approvalSetupId=null
             onCancelSetup(kind,s.id!!)
         } }
     }
@@ -78,6 +99,7 @@ class NativeSession(
         if(wasForeground) onBackground()
     }
     private fun cancelSetups() {
+        approvalSetupId=null
         setup.toMap().forEach { (kind,s) -> if(s.state=="in_progress") {
             setup[kind]=s.copy(state="cancelled",error=null); onCancelSetup(kind,s.id!!)
         } }
@@ -93,14 +115,18 @@ class SessionLifecycle(val session:NativeSession) : AutoCloseable {
     private val pending=LinkedHashMap<String,(String)->Unit>()
     @Volatile var epoch=0L; private set
     @Volatile var isOpen=true; private set
-    @Volatile var acceptsRequests=true; private set
+    /** Closed until the Activity actually starts; a replacement renderer must never accept work while stopped. */
+    @Volatile var acceptsRequests=false; private set
     val pendingCount:Int @Synchronized get()=pending.size
     @Synchronized fun registerPending(id:String,callback:(String)->Unit):Boolean {
         if(!isOpen || !acceptsRequests || pending.size>=32 || pending.containsKey(id)) return false
         pending[id]=callback; return true
     }
     @Synchronized fun completePending(id:String) { pending.remove(id) }
+    /** True only for the same renderer scope and foreground epoch that accepted the request. */
+    fun isCurrent(requestEpoch:Long):Boolean = isOpen && acceptsRequests && epoch==requestEpoch
     fun enterForeground() { if(isOpen) { acceptsRequests=true; session.enterForeground() } }
+    fun onActivityStopped(userLeaving:Boolean) { leaveForeground(session.activityStopReason(userLeaving)) }
     fun leaveForeground(reason:String) {
         if(reason=="approval_pause") return
         epoch++; acceptsRequests=false; cancelPending(); session.leaveForeground(reason)

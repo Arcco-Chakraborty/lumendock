@@ -7,6 +7,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class BridgeRouterTest {
+    private fun startedLifecycle(session:NativeSession)=SessionLifecycle(session).also{it.enterForeground()}
     private fun fixture(name: String) = StrictJson.parse(javaClass.getResource("/$name.json")!!.readText()).asJsonObject
     private fun req(op: String = "hub.snapshot", args: String = "{}", id: String = "x") = """{"v":1,"id":"$id","op":"$op","args":$args}"""
     private class Services : UnavailableBridgeServices() {
@@ -17,7 +18,7 @@ class BridgeRouterTest {
         override fun hubSnapshot(): JsonObject { calls++; entered?.countDown(); gate?.await(2, TimeUnit.SECONDS); return StrictJson.parse(response).asJsonObject }
     }
     @Test fun rejectsUntrustedOriginsFramesAndMalformedRequestsBeforeServices() {
-        val s = Services(); val router = BridgeRouter(s, SessionLifecycle(NativeSession()))
+        val s = Services(); val router = BridgeRouter(s, startedLifecycle(NativeSession()))
         val malformed = listOf(req().replace("\"v\":1", "\"v\":2"), req("shell.exec"), req(args="""{"url":"https://example.com"}"""), req("app.setBrightness", """{"value":NaN}"""), req("app.setBrightness", """{"value":1e999}"""), req().replace("\"args\":{}", "\"args\":{},\"token\":\"synthetic\""), req(id="x".repeat(17000)), req().replace("\"v\":1", "\"v\":1,\"v\":1"))
         malformed.forEach { assertFalse(it.take(90), router.handle(it, TRUSTED_ORIGIN, true).ok) }
         listOf("http://appassets.androidplatform.net", "$TRUSTED_ORIGIN:443", "$TRUSTED_ORIGIN.evil", "null").forEach { assertFalse(router.handle(req(), it, true).ok) }
@@ -25,7 +26,7 @@ class BridgeRouterTest {
         assertEquals(0, s.calls)
     }
     @Test fun validatesEveryOperationAndSharedFixtures() {
-        val s = Services(); val session = NativeSession(); val router = BridgeRouter(s, SessionLifecycle(session))
+        val s = Services(); val session = NativeSession(); val router = BridgeRouter(s, startedLifecycle(session))
         assertTrue(router.handle(req(), TRUSTED_ORIGIN, true).ok)
         assertTrue(ProtocolValidator.response("app.status", fixture("app-status")))
         assertTrue(ProtocolValidator.response("hub.snapshot", StrictJson.parse("""{"state":"connected","ageMs":0,"stale":false,"data":${fixture("hub-ready")},"errorCode":null}""").asJsonObject))
@@ -36,7 +37,7 @@ class BridgeRouterTest {
         assertTrue(router.handle(req("app.setBrightness", """{"value":0.6}"""),TRUSTED_ORIGIN,true).ok)
     }
     @Test fun rejectsCredentialsAndWrongShapesReturnedByServices() {
-        val s = Services(); val router = BridgeRouter(s, SessionLifecycle(NativeSession()))
+        val s = Services(); val router = BridgeRouter(s, startedLifecycle(NativeSession()))
         s.response = """{"state":"connected","ageMs":0,"stale":false,"data":null,"errorCode":null,"token":"SYNTHETIC_SECRET"}"""
         val reply = router.handle(req(), TRUSTED_ORIGIN,true)
         assertFalse(reply.ok); assertFalse(reply.toJson().contains("SYNTHETIC_SECRET"))
@@ -48,7 +49,7 @@ class BridgeRouterTest {
     }
     @Test fun duplicateLiveIdAndOperationDoNotExecuteTwice() {
         val s=Services(); s.entered=CountDownLatch(1); s.gate=CountDownLatch(1)
-        val router=BridgeRouter(s,SessionLifecycle(NativeSession()))
+        val router=BridgeRouter(s,startedLifecycle(NativeSession()))
         val worker=Thread { router.handle(req(),TRUSTED_ORIGIN,true) }; worker.start()
         assertTrue(s.entered!!.await(1,TimeUnit.SECONDS))
         assertFalse(router.handle(req(),TRUSTED_ORIGIN,true).ok)
@@ -56,7 +57,7 @@ class BridgeRouterTest {
         assertEquals(1,s.calls); s.gate!!.countDown(); worker.join()
     }
     @Test fun setupAckIsImmediateAndLongHumanApprovalIsNotRequestTimeout() {
-        var now=0L; val session=NativeSession(clock={now}); val router=BridgeRouter(Services(),SessionLifecycle(session))
+        var now=0L; val session=NativeSession(clock={now}); val router=BridgeRouter(Services(),startedLifecycle(session))
         val started=System.nanoTime(); val first=router.handle(req("app.setupHub"),TRUSTED_ORIGIN,true)
         assertTrue(first.ok); assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started)<1000)
         now=30000; val status=router.handle(req("app.status"),TRUSTED_ORIGIN,true)
