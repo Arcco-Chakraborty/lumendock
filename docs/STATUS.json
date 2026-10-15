@@ -25,7 +25,7 @@
   "implementationTasks": {
     "D1": "complete",
     "D2": "fix_round_1_committed_awaiting_rereview",
-    "D3": "in_progress_claude",
+    "D3": "in_progress_claude_two_subagents",
     "A1": "fix_round_1_committed_awaiting_rereview",
     "A2": "planned",
     "A3": "planned",
