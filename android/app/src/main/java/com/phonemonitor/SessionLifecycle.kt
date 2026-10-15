@@ -70,6 +70,8 @@ class NativeSession(
         return if(outstanding && !userLeaving) "approval_pause" else "background"
     }
     @Synchronized fun isSetupActive():Boolean { expireSetup(); return setup.values.any{it.state=="in_progress"} }
+    /** True only while this exact flow is still live; stale dialogs and late results use it to stand down. */
+    @Synchronized fun isSetupCurrent(kind:String,setupId:String):Boolean { expireSetup(); val s=setup[kind]; return !ended && s?.id==setupId && s.state=="in_progress" }
     private fun expireSetup() {
         setup.toMap().forEach { (kind,s) -> if(s.state=="in_progress" && clock()-s.beganAt>=120_000) {
             setup[kind]=s.copy(state="failed",error=if(kind=="hub") "PAIRING_EXPIRED" else "WIFI_UNAVAILABLE")

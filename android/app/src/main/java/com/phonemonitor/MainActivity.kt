@@ -4,20 +4,32 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
+import android.text.InputFilter
+import android.text.InputType
+import android.view.OrientationEventListener
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.*
+import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.webkit.WebViewAssetLoader
 import java.io.ByteArrayInputStream
 import java.lang.ref.WeakReference
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 class MainActivity : Activity() {
     var dashboardView:WebView?=null; private set
@@ -29,6 +41,13 @@ class MainActivity : Activity() {
     private val main=Handler(Looper.getMainLooper())
     private var userLeaving=false
     private var activityStarted=false
+    /** Activity-owned: its cache/age baseline outlives every renderer; native process death re-fetches. */
+    private lateinit var laptop:LaptopClient
+    private lateinit var pairingFlow:HubPairingFlow
+    /** Pairing I/O only; the thread exits when idle, and onDestroy shuts the pool down. */
+    private val pairingWorker=ThreadPoolExecutor(0,1,1,TimeUnit.SECONDS,LinkedBlockingQueue(1))
+    private val orientationPolicy=OrientationPolicy()
+    private var orientationListener:OrientationEventListener?=null
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,12 +56,29 @@ class MainActivity : Activity() {
         // Session callbacks retain only a weak Activity reference and post bounded UI work.
         val owner=WeakReference(this)
         val ui=main
+        laptop=LaptopClient(PrivatePairingStore(this)) { paired -> owner.get()?.let { if(it::nativeSession.isInitialized) it.nativeSession.paired=paired } }
+        val client=laptop
         nativeSession=NativeSession(
+            onBackground={ client.pause() },
             onStartSetup={kind,id->ui.post { owner.get()?.showSetupGuidance(kind,id) }},
             onCancelSetup={_,_->ui.post { owner.get()?.setupDialog?.dismiss() }},
             onScreenChanged={_,_->ui.post { owner.get()?.applyScreenSettings() }},
         )
+        nativeSession.paired=laptop.paired
+        pairingFlow=HubPairingFlow(nativeSession,client::pair,{ pairingWorker.execute(it) },{ action -> ui.post { if(owner.get()?.isDestroyed==false) action() } })
+        orientationListener=object:OrientationEventListener(this) {
+            override fun onOrientationChanged(degrees:Int) {
+                val reading=if(degrees==ORIENTATION_UNKNOWN) OrientationPolicy.UNKNOWN else degrees
+                if(orientationPolicy.onReading(reading,SystemClock.elapsedRealtime())!=null) applyOrientationPolicy()
+            }
+        }
         createDashboard()
+    }
+    /** Manifest starts in sensorLandscape (landscape default); a deliberate portrait hold unlocks full rotation. */
+    private fun applyOrientationPolicy() {
+        requestedOrientation=if(orientationPolicy.mode==OrientationPolicy.Mode.LANDSCAPE_DEFAULT) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        if(!orientationPolicy.needsSensor) orientationListener?.disable()
     }
     @SuppressLint("SetJavaScriptEnabled")
     private fun createDashboard() {
@@ -79,7 +115,10 @@ class MainActivity : Activity() {
         // Requests stay closed until the Activity is actually started; a stopped replacement is also paused.
         if(activityStarted) scope.enterForeground() else view.onPause()
         val owner=WeakReference(this)
+        val client=laptop
+        // hub.snapshot is real (A2); esp.* remain explicit unavailable seams until A3.
         val services=object:UnavailableBridgeServices() {
+            override fun hubSnapshot()=client.snapshot().toJson()
             override fun openWifiSettings():com.google.gson.JsonObject {
                 val opened=try {
                     val activity=owner.get()
@@ -125,12 +164,59 @@ class MainActivity : Activity() {
     }
     private fun showSetupGuidance(kind:String,id:String) {
         if(isFinishing || isDestroyed || !nativeSession.isSetupActive()) return
+        setupDialog?.dismiss()
+        if(kind=="hub") { showPairingDialog(id); return }
         setupDialog=AlertDialog.Builder(this)
-            .setTitle(if(kind=="hub") "Laptop pairing" else "Controller Wi-Fi")
-            .setMessage(if(kind=="hub") "Native USB pairing is not installed in this diagnostic host yet." else "Native controller setup is not installed in this diagnostic host yet.")
+            .setTitle("Controller Wi-Fi")
+            .setMessage("Native controller setup is not installed in this diagnostic host yet.")
             .setPositiveButton("Close") { _,_-> nativeSession.finishSetup(kind,id,"cancelled") }
             .setOnCancelListener { nativeSession.finishSetup(kind,id,"cancelled") }
             .create().also { it.show() }
+    }
+    /** The one native code-entry dialog for app.setupHub. The code and token never touch the WebView. */
+    private fun showPairingDialog(id:String) {
+        val pad=(16*resources.displayMetrics.density).toInt()
+        val message=TextView(this).apply { setText(R.string.pairing_instructions); setPadding(0,0,0,pad/2) }
+        val input=EditText(this).apply {
+            inputType=InputType.TYPE_CLASS_NUMBER
+            filters=arrayOf(InputFilter.LengthFilter(8))
+            setHint(R.string.pairing_hint)
+            isSaveEnabled=false
+            importantForAutofill=View.IMPORTANT_FOR_AUTOFILL_NO
+        }
+        val content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(pad,pad/2,pad,0); addView(message); addView(input) }
+        val dialog=AlertDialog.Builder(this)
+            .setTitle(R.string.pairing_title)
+            .setView(content)
+            .setPositiveButton(R.string.pairing_submit,null)
+            .setNegativeButton(R.string.pairing_cancel) { _,_-> nativeSession.finishSetup("hub",id,"cancelled") }
+            .setOnCancelListener { nativeSession.finishSetup("hub",id,"cancelled") }
+            .create()
+        dialog.setCanceledOnTouchOutside(false)
+        // The short-lived code stays out of screenshots and the recents thumbnail.
+        dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        dialog.setOnShowListener {
+            val button:Button=dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            button.setOnClickListener {
+                button.isEnabled=false; message.setText(R.string.pairing_progress)
+                val accepted=pairingFlow.submit(id,input.text.toString()) { outcome ->
+                    when(outcome) {
+                        is PairingOutcome.Retry -> { button.isEnabled=true; input.text.clear(); message.setText(pairingMessage(outcome.code)) }
+                        else -> dialog.dismiss()
+                    }
+                }
+                if(!accepted) { if(nativeSession.isSetupCurrent("hub",id)) button.isEnabled=true else dialog.dismiss() }
+            }
+        }
+        setupDialog=dialog
+        dialog.show()
+        // Native expiry also closes the dialog when no renderer is polling app.status.
+        main.postDelayed({ if(!isDestroyed) nativeSession.isSetupActive() },120_500)
+    }
+    private fun pairingMessage(code:String)=when(code) {
+        "BAD_PAIRING_CODE" -> R.string.pairing_bad_code
+        "USB_UNAVAILABLE","REQUEST_TIMEOUT","HUB_UNAVAILABLE" -> R.string.pairing_unreachable
+        else -> R.string.pairing_retry
     }
     private fun applyScreenSettings() {
         if(!::nativeSession.isInitialized) return
@@ -144,12 +230,24 @@ class MainActivity : Activity() {
         dashboardView?.let { root.removeView(it); it.stopLoading(); it.webChromeClient=null; it.destroy() }
         dashboardView=null
     }
-    override fun onStart() { super.onStart(); activityStarted=true; userLeaving=false; lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings() }
+    override fun onStart() {
+        super.onStart(); activityStarted=true; userLeaving=false
+        laptop.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
+        orientationListener?.let { if(orientationPolicy.needsSensor && it.canDetectOrientation()) it.enable() }
+    }
     override fun onUserLeaveHint() { userLeaving=true; super.onUserLeaveHint() }
     override fun onStop() {
         activityStarted=false
         // Permission/system approval can stop an Activity; genuine Home/background still ends work.
-        lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings(); super.onStop()
+        lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings()
+        // Only a matching OS approval pause keeps the foreground session; anything else releases hub requests.
+        if(!nativeSession.foreground) laptop.pause()
+        orientationListener?.disable()
+        super.onStop()
     }
-    override fun onDestroy() { setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); main.removeCallbacksAndMessages(null); super.onDestroy() }
+    override fun onDestroy() {
+        setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close()
+        pairingWorker.shutdownNow(); orientationListener?.disable()
+        main.removeCallbacksAndMessages(null); super.onDestroy()
+    }
 }

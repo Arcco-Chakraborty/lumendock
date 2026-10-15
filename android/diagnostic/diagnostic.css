@@ -4,3 +4,5 @@ main { max-width: 900px; margin: auto; }
 h1 { font-size: 24px; }
 button { min-height: 44px; padding: 10px 20px; border: 1px solid #41c5ce; border-radius: 8px; background: #20363d; color: #fff; font: inherit; }
 pre { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; }
+h2 { font-size: 18px; margin-top: 24px; }

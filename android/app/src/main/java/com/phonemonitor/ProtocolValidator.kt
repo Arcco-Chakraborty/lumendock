@@ -94,6 +94,8 @@ object ProtocolValidator {
     private fun setup(e:JsonElement?):Boolean = obj(e,"setupId state errorCode") { o ->
         nullable(o["setupId"]){str(it,80,true)} && one(o["state"],"idle","in_progress","succeeded","cancelled","failed") && error(o["errorCode"]) && ((o["state"].asString=="idle")==o["setupId"].isJsonNull) && ((o["state"].asString=="failed")==!o["errorCode"].isJsonNull)
     }
+    /** Strict HubSnapshot check for a raw hub payload, before it is cached or wrapped in a LinkSnapshot. */
+    fun hubSnapshot(e:JsonElement):Boolean = try { hub(e) } catch (_:RuntimeException) { false }
     fun response(op:String,e:JsonObject):Boolean = try { when(op) {
         "hub.snapshot" -> link(e,::hub)
         "esp.state" -> link(e,::esp,true) && budget(e,65536)

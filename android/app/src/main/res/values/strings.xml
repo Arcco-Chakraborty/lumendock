@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">Phone Monitor</string>
     <string name="webview_guidance">Update Android System WebView to use Phone Monitor. This device must support secure web messages. Reopen the app after updating.</string>
+    <string name="pairing_title">Pair with laptop</string>
+    <string name="pairing_instructions">Connect USB, start hub pairing on the laptop, then enter the 8-digit code it prints. The code expires after 2 minutes.</string>
+    <string name="pairing_hint">8-digit code</string>
+    <string name="pairing_submit">Pair</string>
+    <string name="pairing_cancel">Cancel</string>
+    <string name="pairing_progress">Pairing…</string>
+    <string name="pairing_bad_code">That code was not accepted. Check the 8 digits on the laptop and try again.</string>
+    <string name="pairing_unreachable">Laptop not reachable over USB. Check the cable, USB debugging authorization, and that the hub is in pairing mode.</string>
+    <string name="pairing_retry">Pairing did not complete. Try again.</string>
 </resources>
