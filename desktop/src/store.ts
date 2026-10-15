@@ -43,6 +43,13 @@ export class HubStore {
     this.notifications.state = this.allowlist.size ? state : 'disabled';
     this.notifications.errorCode = this.allowlist.size ? parsed : null;
   }
+  // Settings change: retain only events from still-allowed apps; an empty list disables the feed.
+  setNotificationAllowlist(labels: readonly string[]): void {
+    this.allowlist.clear(); for (const label of labels) this.allowlist.add(label);
+    this.notifications.items = this.notifications.items.filter(n=>this.allowlist.has(n.appId));
+    if (!this.allowlist.size) {this.notifications.state = 'disabled'; this.notifications.errorCode = null;}
+    else if (this.notifications.state === 'disabled') this.notifications.state = 'unavailable';
+  }
   markPhoneActivity(monotonicMs: number): void { this.lastPhoneActivity = monotonicMs; }
   isPhoneActive(monotonicMs: number): boolean { return this.lastPhoneActivity !== null && monotonicMs >= this.lastPhoneActivity && monotonicMs-this.lastPhoneActivity < 10000; }
   snapshot(nowMs: number): HubSnapshot {

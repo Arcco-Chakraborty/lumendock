@@ -15,14 +15,10 @@ if (Number(process.versions.node.split('.')[0]) !== 24) {
 }
 if (command === 'verify') {
   for (const task of ['test','typecheck','build']) runNpm(task);
-} else if (command === 'doctor') {
-  console.log(`Node ${process.versions.node}: supported`);
-  console.log(`Runtime: ${process.execPath}`);
-  for (const [label,path] of [['Desktop hub','desktop/dist/main.js'],['Android APK','artifacts/phone-monitor-debug.apk']]) console.log(`${label}: ${existsSync(new URL('../'+path,import.meta.url)) ? 'built' : 'not built'}`);
-} else if (command === 'connect' || command === 'package') {
+} else if (['connect','package','doctor','install-hub','uninstall-hub','claude-install','claude-uninstall'].includes(command)) {
   const path = new URL(`./${command}.mjs`,import.meta.url);
   if (!existsSync(path)) {
-    console.error(`${command} requires the desktop installation/packaging task (D3), which has not been implemented yet.`); process.exit(1);
+    console.error(`${command} is not implemented yet.`); process.exit(1);
   }
   const result = spawnSync(process.execPath,[fileURLToPath(path),...process.argv.slice(3)],{cwd:root,stdio:'inherit'});
   process.exit(result.status || (result.error ? 1 : 0));

@@ -1,0 +1,1 @@
+{"type":"method_call","endian":"l","flags":0,"version":1,"cookie":7,"timestamp-realtime":1760000000000000,"sender":":1.99","destination":"org.freedesktop.Notifications","path":"/org/freedesktop/Notifications","interface":"org.freedesktop.Notifications","member":"Notify","payload":{"type":"susssasa{sv}i","data":["SyntheticApp",0,"","Synthetic title","synthetic body",[],{},-1]}}

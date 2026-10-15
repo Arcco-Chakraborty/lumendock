@@ -17,6 +17,10 @@
     "verify": "node scripts/workspace.mjs verify",
     "doctor": "node scripts/workspace.mjs doctor",
     "connect": "node scripts/workspace.mjs connect",
+    "install-hub": "node scripts/workspace.mjs install-hub",
+    "uninstall-hub": "node scripts/workspace.mjs uninstall-hub",
+    "claude-install": "node scripts/workspace.mjs claude-install",
+    "claude-uninstall": "node scripts/workspace.mjs claude-uninstall",
     "package": "node scripts/workspace.mjs package"
   },
   "devDependencies": {
