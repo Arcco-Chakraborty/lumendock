@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-15",
   "timezone": "Asia/Kolkata",
-  "phase": "building",
+  "phase": "software_built_awaiting_independent_review",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -24,18 +24,18 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "Claude is sole active agent (Codex at usage limit): A2 (subagent, android/**), D3 Claude-install CLI (Claude, desktop/**), W2 re-review pending",
-  "nextAction": "Claude: finish D3 CLI + commit D3; A2 via subagent then A3; W2 repair re-review; W3. When Codex resets: independent Astra/Sol-high re-review of everything Claude built.",
+  "activeTask": "All implementation tasks committed; waiting for Codex Astra/Sol-high independent reviews and for hardware",
+  "nextAction": "Codex on reset: review Claude-built commits (D3 64fa1fd, W2 571d45d interim, A2 c00b02a, A3 a7a946c, W3a 5e5863d, build wiring), then final whole-project Astra-high review. User: attach Redmi + ESP32 to run docs/DEVICE_ACCEPTANCE.md rows.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
     "D3": "committed_awaiting_independent_review",
     "A1": "complete",
-    "A2": "in_progress_claude_subagent",
-    "A3": "planned",
+    "A2": "committed_awaiting_independent_review",
+    "A3": "committed_awaiting_independent_review",
     "W1": "complete",
     "W2": "fix_round_1_committed_interim_claude_review_awaiting_codex_gate",
-    "W3": "planned"
+    "W3": "committed_awaiting_independent_review"
   },
   "unverifiedInputs": [
     "Exact Redmi Android/MIUI/WebView/viewport",
@@ -124,11 +124,26 @@
       "desktopTestsPassed": 180,
       "workspaceTestsPassed": "15/180/53",
       "review": "pending, must be non-Claude"
+    },
+    "A2": {
+      "commit": "c00b02a",
+      "report": "docs/reports/A2-implementation.md",
+      "review": "pending, must be non-Claude"
+    },
+    "A3": {
+      "commit": "a7a946c",
+      "report": "docs/reports/A3-implementation.md",
+      "review": "pending, must be non-Claude"
+    },
+    "W3a": {
+      "commit": "5e5863d",
+      "report": "docs/reports/W3a-implementation.md",
+      "review": "pending, must be non-Claude"
     }
   },
   "openImplementationFindings": [
-    "W2 repair 571d45d: interim Claude re-review says addressed (docs/reviews/W2-rereview-1.md); Codex Sol-high gate still open",
-    "D3 commit 64fa1fd: needs non-Claude Sol-high review (Claude-built)"
+    "All Claude-built work (D3, W2 repair interim, A2, A3, W3) awaits independent gpt-6 Sol/Astra-high review",
+    "A16 final Astra-high project review not run"
   ],
   "deferredMinorFindings": [
     "W1-R2 upstream Zod annotation build warnings (W3/final triage)",
@@ -136,5 +151,17 @@
     "W2-M1 refresh narrow notification spacing screenshot (W2/W3)"
   ],
   "reviewerCapabilityNote": "All work after Codex hit its limit is by claude-sonnet-5-5 / Claude subagents and is NOT independently reviewed by the required gpt-6 models. Every Claude-built or Claude-reviewed task needs a Codex Astra/Sol-high review on reset before gates close.",
-  "publishingAuthorization": "User explicitly requested private repository and incremental pushes on2026-10-15"
+  "publishingAuthorization": "User explicitly requested private repository and incremental pushes on2026-10-15",
+  "softwareChecksPassing": {
+    "asOf": "2026-10-15",
+    "typecheck": "clean",
+    "vitest": "protocol 15, desktop 180, dashboard 110",
+    "e2eChrome": "18/18",
+    "androidJvm": "105 pass, lint 0 errors/7 warnings",
+    "build": "ok",
+    "package": "checksums verified",
+    "audit": "0 vulnerabilities (root)",
+    "note": "checks pass, but softwareVerified stays false until independent reviews close"
+  },
+  "acceptanceMatrix": "docs/DEVICE_ACCEPTANCE.md"
 }

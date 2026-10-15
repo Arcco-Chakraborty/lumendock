@@ -6,6 +6,30 @@ Record only sanitized evidence: no phone serial, pairing code, token, Wi-Fi pass
 
 Status values: `UNRUN` · `PASS` · `FAIL` (with a linked finding) · `BLOCKED` (with the missing prerequisite).
 
+## PRD acceptance matrix A01-A17 (status as of 2026-10-15)
+
+Two columns on purpose: **Software** = automated/browser/JVM evidence run by Claude Code (Node 24.22.0, JDK 17, Chrome 155 headless); **Device** = Redmi 9A / ESP32 / real desktop, all of which are `UNRUN` because no phone or controller was attached. No row is "complete" on software evidence alone.
+
+| ID | Software | Device | Evidence / what is missing |
+|---|---|---|---|
+| A01 | PASS (partial) | UNRUN | Production APK builds (`artifacts/phone-monitor-debug.apk`, 4,361,672 B); shell and setup states render in headless Chrome e2e with a fake bridge. Not installed on a phone. |
+| A02 | UNRUN | UNRUN | Needs simultaneous USB hub + controller Wi-Fi on the Redmi (rows A2-D1, A3-D1). JVM tests prove only that the controller factory gets the selected Wi-Fi and the hub client stays unbound. |
+| A03 | PASS (fixtures) | UNRUN | Collectors tested with synthetic data only. No comparison with the real provider views; no inference was made for testing. |
+| A04 | PASS | n/a | Dashboard vitest + e2e: unknown/zero/fractional/over-100%/expired/stale quotas and nonstandard Codex windows (screenshots `dashboard/evidence/w3a-*`). |
+| A05 | PASS (JVM/fake) | UNRUN | Reconnect/backoff/age tests; physical unplug/replug is A2-D2. |
+| A06 | PASS (JVM/fake) | UNRUN | onLost cancel/no-replay tests; power-cycle is A3-D8. |
+| A07 | PASS (queue tests) | UNRUN | ControlQueue/lightIntent tests incl. no timer replay; actual strip is A3-D12/D13. |
+| A08 | PASS | UNRUN | Parser/UI tests for ok=false, nulls, malformed, history gaps; no real sensor fault observed. |
+| A09 | PASS (temp files) | UNRUN | `claude-cli`/installer tests; live opt-in on a real Claude settings file not done. |
+| A10 | PASS (hand-written fixture) | UNRUN | Collector tests; Codex was to verify the wire format on an isolated private bus (result not recorded here). No real GNOME capture. |
+| A11 | PARTIAL | UNRUN | Bridge/origin/token-redaction/markup tests exist; no dedicated security review has been run by a gpt-6 reviewer. |
+| A12 | PASS (JVM lifecycle) | UNRUN | Lifecycle regression tests; real background/approval/renderer/process/ADB transitions unrun (A2-D4, A3-D10/D11). |
+| A13 | PASS | UNRUN | Playwright 18/18 at 800x360, 740x320, 360x800, 130% text, reduced motion; real Redmi viewport/textZoom unknown. |
+| A14 | PASS (size) | UNRUN | JS+CSS 336,704 B <= 768,000 B; APK 4,361,672 B <= 20 MiB. Three-second startup not measured on device. |
+| A15 | UNRUN | UNRUN | 60-minute and 2-hour soaks and PSS measurement need the phone. |
+| A16 | NOT DONE | NOT DONE | Requires a `gpt-6-astra` high whole-project review; not runnable from Claude Code. Claude-built tasks D3, W2 repair, A2, A3, W3a/W3b also still need independent non-Claude review. |
+| A17 | see below | n/a | Cold-resume check result recorded below once run. |
+
 ## Common preconditions (A2 transport rows)
 
 1. Hub built and started on the laptop (`npm run build --workspace @phone-monitor/desktop`; `npm run start --workspace @phone-monitor/desktop`, adding `-- --pair` only where a row says so).
