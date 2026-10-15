@@ -15,7 +15,7 @@ export const ErrorCodeSchema = z.enum([
   'TOKEN_PERSIST_FAILED','WIFI_UNAVAILABLE','SENSOR_UNAVAILABLE','BAD_PAYLOAD',
   'UNSUPPORTED_WEBVIEW','COMMAND_UNCONFIRMED','NOTIFICATION_MONITOR_DENIED',
   'SOURCE_CAPACITY_EXCEEDED','SOURCE_UNAVAILABLE','SETUP_BUSY','BAD_GENERATION',
-  'REQUEST_TIMEOUT','BRIDGE_UNAVAILABLE','SESSION_ENDED','COMMAND_QUEUE_FULL',
+  'REQUEST_TIMEOUT','BRIDGE_UNAVAILABLE','SESSION_ENDED','QUEUE_FULL',
   'NOTIFICATION_MONITOR_UNAVAILABLE','UNSUPPORTED_SOURCE','HUB_UNAVAILABLE',
 ]);
 const errorCode = ErrorCodeSchema.nullable();
@@ -49,7 +49,7 @@ const notifications = z.strictObject({state:z.enum(['disabled','available','unav
 const hubObject = z.strictObject({v:z.literal(1),serverNowEpochMs:epochMs,usage:z.strictObject({claude:UsageSourceSchema,codex:UsageSourceSchema}),notifications});
 export const HubSnapshotSchema = withByteBudget(hubObject.refine(h => h.usage.claude.provider === 'claude' && h.usage.codex.provider === 'codex','Usage provider mismatch'),LIMITS.hubBytes);
 export const EspStateSchema = z.strictObject({
-  power:z.boolean(),hex:z.string().regex(/^#[0-9a-fA-F]{6}$/),bright:safeInt.min(1).max(100),mode:safeInt.max(8),speed:safeInt.min(1).max(100),
+  power:z.boolean(),hex:z.string().regex(/^#[0-9A-F]{6}$/),bright:safeInt.min(1).max(100),mode:safeInt.max(8),speed:safeInt.min(1).max(100),
   timerSeconds:safeInt.max(43200),sensorOk:z.boolean(),temperatureC:finite.nullable(),humidityPercent:finite.min(0).max(100).nullable(),uptimeSeconds:safeInt,
 });
 export const EspHistorySchema = withByteBudget(z.strictObject({intervalSeconds:finite.positive(),temperatureC:z.array(finite.nullable()).max(120),humidityPercent:z.array(finite.min(0).max(100).nullable()).max(120)}).refine(h => h.temperatureC.length === h.humidityPercent.length,'Unpaired sensor samples'),LIMITS.espBytes);

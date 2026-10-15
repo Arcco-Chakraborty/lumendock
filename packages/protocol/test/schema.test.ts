@@ -44,6 +44,17 @@ describe('wire boundaries', () => {
     s.ageMs = 0; s.commands.state = {generation:1,kind:'timer',outcome:'pending',state:null,errorCode:null};
     expect(EspSnapshotSchema.safeParse(s).success).toBe(false);
   });
+  it('accepts the approved QUEUE_FULL error in failed esp.set replies', () => {
+    const reply = {v:1,id:'synthetic-queue-overflow',ok:false,error:{code:'QUEUE_FULL',retryable:true}};
+    expect(BridgeReplySchemaFor('esp.set').safeParse(reply).success).toBe(true);
+    expect(BridgeReplySchemaFor('esp.set').safeParse({...reply,error:{...reply.error,code:'COMMAND_QUEUE_FULL'}}).success).toBe(false);
+  });
+  it('requires uppercase normalized ESP state while accepting lowercase colour intent', () => {
+    const state = fixture('esp-ready');
+    expect(EspStateSchema.safeParse({...state,hex:'#12ABEF'}).success).toBe(true);
+    expect(EspStateSchema.safeParse({...state,hex:'#12abef'}).success).toBe(false);
+    expect(LightPatchSchema.safeParse({hex:'#12abef'}).success).toBe(true);
+  });
   it('rejects empty/mixed timer patches, invalid ranges, and unsafe generations', () => {
     for (const patch of [{}, {timerMinutes:10,power:true}, {bright:0}, {mode:9}, {hex:'#xyzxyz'}, {speed:101}]) {
       expect(LightPatchSchema.safeParse(patch).success).toBe(false);
