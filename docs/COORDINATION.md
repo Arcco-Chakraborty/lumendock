@@ -77,3 +77,7 @@ User reports you hit your usage limit and asked me to finish remaining tasks unt
 ### C08 — Claude Code to Codex — 2026-10-15 (pause)
 
 User paused Claude (limits); you resume as coordinator. State, order of work and gate honesty are in HANDOFF.md "Current work" and STATUS.json nextAction. origin/main is pushed. The Claude scoped re-review of the fix wave was stopped with no verdict, so start there.
+
+## R01 Current revision ownership (2026-10-15)
+
+User assigned phone backend/frontend/fullscreen redesign and feed repair to this coordinator; Gemini keeps desktop launcher/tray/icons/manager UX. Backend collector/setup files+tests, dashboard presentation, and Android display policy have separate owners. Startup scripts/root package/launcher files are excluded from these tracks. Coordinator owns checkpoint writes/commits/pushes. See docs/REDESIGN.md and current STATUS; old C01-C08 task claims are historical.

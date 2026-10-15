@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-15",
   "timezone": "Asia/Kolkata",
-  "phase": "connected_to_device",
+  "phase": "phone_redesign_and_feed_repair",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -20,12 +20,12 @@
     "remoteBranch": "main",
     "lastPushedSha": "fcf81d74aef977392d19380b4c4ddcb39810b90c"
   },
-  "softwareVerified": true,
+  "softwareVerified": false,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "Dual-link verified on physical device. Hub running on 127.0.0.1:8765, reverse ADB supervised.",
-  "nextAction": "Record remaining device acceptance rows (A2-D2..D6, A3-D7..D14, W3-D1..D6), opt-in to notifications or Claude statusline if desired, and complete A16 Astra-high project review when required environment is available.",
+  "activeTask": "R-BACKEND selected feeds, R-UI dashboard redesign, R-NATIVE fullscreen/rotation",
+  "nextAction": "Complete parallel owned changes and reviews; verify real capture setup; build/test new APK and final Astra-high review",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -55,9 +55,11 @@
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
-    "coordinator": "Claude Code while Codex is at its usage limit; Codex resumes on reset",
-    "built_by_claude": "D3 (Sonnet + 2 subagents), A2 and A3 (Opus subagents), W3a (subagent), W3b integration (Claude); none independently reviewed by gpt-6 Sol/Astra yet",
-    "codex_pending": "independent Sol/Astra-high reviews of all Claude-built commits, fix wave, final whole-project Astra-high review (A16)"
+    "Gemini": "desktop launch icons/tray/manager UX, scripts/phone-monitor*, root startup registration",
+    "backend": "desktop collector/setup source and tests only; no launcher edits",
+    "ui": "dashboard/** presentation and tests; no shared API changes",
+    "native": "android/** fullscreen/normal rotation; preserve transport/security",
+    "coordinator": "HANDOFF/STATUS/PROGRESS/COORDINATION, integration/setup, serialized commits/private pushes"
   },
   "evidence": {
     "D1": {
@@ -169,5 +171,22 @@
     ],
     "rereview": "stopped before verdict",
     "record": "docs/PROGRESS.md (last 3 entries)"
+  },
+  "currentRevision": {
+    "baseline": "87bd88d8eed34a4e30267bbdfc8a588d26c7fcbe",
+    "requirements": "docs/REDESIGN.md",
+    "tasks": {
+      "backend": "in_progress",
+      "ui": "in_progress",
+      "native": "in_progress",
+      "integration": "planned",
+      "astra_final": "planned"
+    },
+    "notificationSources": [
+      "Claude",
+      "Codex",
+      "WhatsApp"
+    ],
+    "priorDeviceState": "User confirms installed app works, reported missing feeds and poor UI"
   }
 }
