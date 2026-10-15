@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Phone Monitor</string>
+    <string name="webview_guidance">Update Android System WebView to use Phone Monitor. This device must support secure web messages. Reopen the app after updating.</string>
+</resources>

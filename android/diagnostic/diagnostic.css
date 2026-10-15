@@ -1,0 +1,6 @@
+:root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #12161a; color: #edf3f7; }
+body { margin: 0; padding: 20px; }
+main { max-width: 900px; margin: auto; }
+h1 { font-size: 24px; }
+button { min-height: 44px; padding: 10px 20px; border: 1px solid #41c5ce; border-radius: 8px; background: #20363d; color: #fff; font: inherit; }
+pre { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
