@@ -82,12 +82,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 /* Content fills the screen down to a thin edge strip; the control bar slides
    up over it on demand, like an auto-hiding taskbar. */
 .dashboard { height: 100svh; min-height: 0; padding: 14px 18px 28px; display: flex; flex-direction: column; }
-.main-grid { flex: 1; display: grid; grid-template-columns: minmax(0, 37fr) minmax(0, 63fr); gap: 22px; min-width: 0; min-height: 0; overflow-y: auto; }
+.main-grid { flex: 1; display: grid; grid-template-columns: minmax(0, 38.5fr) minmax(0, 61.5fr); gap: 20px; min-width: 0; min-height: 0; overflow-y: auto; }
 .clock-room { display: flex; flex-direction: column; justify-content: space-between; gap: 12px; min-width: 0; padding-top: 2px; }
 
 /* The clock is the one loud thing on the device. */
 .local-clock { display: flex; flex-direction: column; min-width: 0; }
-.clock { display: flex; flex-wrap: wrap; align-items: baseline; font-size: 118px; font-weight: 300; font-stretch: 62%; line-height: .86; letter-spacing: -2px; white-space: nowrap; margin-left: -4px; }
+.clock { display: flex; flex-wrap: wrap; align-items: baseline; font-size: 130px; font-weight: 300; font-stretch: 62%; line-height: .86; letter-spacing: -4px; white-space: nowrap; margin-left: -4px; }
 .clock-ampm { font-size: 20px; font-weight: 500; font-stretch: 100%; letter-spacing: 0; margin-left: 8px; color: var(--ink-2); }
 .local-date { color: var(--ink); font-size: 17px; font-weight: 500; margin-top: 12px; }
 
@@ -274,7 +274,7 @@ select { margin-left: auto; }
 @media (min-width: 650px) and (max-height: 340px) {
   .dashboard { padding: 10px 14px 28px; }
   .main-grid { gap: 16px; }
-  .clock { font-size: 104px; }
+  .clock { font-size: 112px; }
   .local-date { margin-top: 8px; font-size: 16px; }
   .temperature, .humidity { font-size: 36px; }
   .climate-card { padding-bottom: 6px; }
@@ -298,7 +298,7 @@ select { margin-left: auto; }
   .dashboard { padding: 18px 16px 28px; }
   .main-grid { display: flex; flex-direction: column; gap: 16px; }
   .clock-room { gap: 16px; }
-  .clock { font-size: 116px; }
+  .clock { font-size: 128px; }
   .local-date { margin-top: 10px; font-size: 18px; }
   .usage-card { padding: 4px 10px 12px; }
   .usage-value { font-size: 42px; }
