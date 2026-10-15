@@ -20,7 +20,7 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "D2 collectors, A1 Android host, W1 dashboard shell in parallel",
+  "activeTask": "D2 collectors and A1 Android implementation; W1 dashboard review",
   "nextAction": "Finish parallel desktop D2, Android A1 and dashboard W1; serialize commits and independent task reviews",
   "implementationTasks": {
     "D1": "complete",
@@ -29,7 +29,7 @@
     "A1": "in_progress",
     "A2": "planned",
     "A3": "planned",
-    "W1": "in_progress",
+    "W1": "review_pending",
     "W2": "planned",
     "W3": "planned"
   },
@@ -66,6 +66,14 @@
       "review": "approved; both round1 findings addressed",
       "protocolTestsPassed": 15,
       "reviewReport": "docs/reviews/D1-rereview-1.md"
+    },
+    "W1": {
+      "commit": "f6694f985b03bfba55a305a9989e471f50ed855c",
+      "report": "docs/reports/W1-implementation.md",
+      "dashboardTestsPassed": 20,
+      "workspaceTestsPassed": 57,
+      "jsCssBytes": 313542,
+      "review": "in_progress"
     }
   },
   "openImplementationFindings": []
