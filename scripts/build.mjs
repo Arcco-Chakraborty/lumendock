@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -23,3 +23,11 @@ if (!diagnostic) {
   if (!existsSync(resolve(root, 'dashboard/dist/index.html'))) throw new Error('Production dashboard bundle is missing.');
 }
 run(resolve(root, 'android/gradlew'), ['-p', 'android', ...(diagnostic ? ['-PdiagnosticUi=true'] : []), ':app:testDebugUnitTest', ':app:lintDebug', ':app:assembleDebug'], {...process.env, JAVA_HOME: java, ANDROID_HOME: sdk});
+if (!diagnostic) {
+  // Only a production build is published as an artifact; diagnostic APKs stay in android/app/build.
+  const built = resolve(root, 'android/app/build/outputs/apk/debug/app-debug.apk');
+  if (!existsSync(built)) throw new Error('Gradle reported success but the APK is missing.');
+  mkdirSync(resolve(root, 'artifacts'), {recursive: true});
+  copyFileSync(built, resolve(root, 'artifacts/phone-monitor-debug.apk'));
+  console.log('Production APK copied to artifacts/phone-monitor-debug.apk');
+}
