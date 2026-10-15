@@ -60,7 +60,7 @@ it("rejects pending requests on teardown", async () => {
   const adapter = createNativeAdapter(fakeBridge(), fakeClock());
   const pending = adapter.request("hub.snapshot");
   adapter.dispose();
-  await expect(pending).rejects.toMatchObject({code:"SESSION_CLOSED"});
+  await expect(pending).rejects.toMatchObject({code:"SESSION_ENDED"});
 });
 ```
 

@@ -71,7 +71,7 @@ Use a diagnostic build switch `-PdiagnosticUi=true` to package `android/diagnost
     lifecycle.enterForeground()
     lifecycle.registerPending("x", fakeCallback)
     lifecycle.close()
-    assertEquals("SESSION_CLOSED", fakeCallback.lastError)
+    assertEquals("SESSION_ENDED", fakeCallback.lastError)
     assertEquals(0, lifecycle.pendingCount)
 }
 ```

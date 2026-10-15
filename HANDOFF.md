@@ -1,6 +1,6 @@
 # Phone Monitor — live handoff
 
-Updated: 2026-10-14 (Asia/Kolkata). Current phase: D1 implementation. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
+Updated: 2026-10-15 (Asia/Kolkata). Current phase: parallel D1/A1/W1 implementation. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
 
 ## Objective
 
@@ -17,14 +17,14 @@ Use a spare Redmi 9A as an attractive landscape desk dashboard. Receive Claude C
 
 - Workspace: `/home/arcco-chakraborty/Projects/Phone_monitor`; Git initialized; reviewed baseline 6501f48. Canonical execution root is `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (managed detached-HEAD worktree). The original folder mirrors the checkpoint; implement only in the canonical root.
 - Sibling controller: `/home/arcco-chakraborty/Projects/RGB_Controller`; ESP32 AP `Rgb_Controller` at `192.168.4.1`; GET state/set/history; no CORS; nine modes; DHT11; history up to 120 samples/30 seconds. Read-only for this product.
-- Laptop: Ubuntu/GNOME; Claude 2.1.299, Codex CLI 0.162.0-alpha.17.2, ADB 34.0.5. Node 20 and Java 8 runtime are present; full Android build SDK/JDK are absent. Plan provisions user-local supported tools.
+- Laptop: Ubuntu/GNOME; Claude 2.1.299, Codex CLI 0.162.0-alpha.17.2, ADB 34.0.5. System defaults remain Node 20 and Java 8. User-local JDK 17.0.20.1, Android SDK platform/build tools 36, and Gradle 9.6.0 are installed under `/home/arcco-chakraborty/.local/share/phone-monitor/toolchains`; D1 provisions Node 24.22.0 there. Build agents must select these tools explicitly.
 - User phone: Redmi 9A, “whatever the last update was.” Exact Android/MIUI/WebView/RAM/viewport unverified. No device was attached during ADB discovery.
 - User explicitly chose Claude Code/Codex subscription limits and difficulty-based subagents, with Astra/high checking PRD and finished project.
 
 ## Current work and next action
 
-User approved implementation and requested software first; physical Redmi/ESP32 checks are deferred. D1 is active. Next: finish D1 implementation and independent spec/quality review, then D2. All nine tasks retain their planned agent assignments and final fresh Astra/high review.
+User approved implementation and requested software first; physical Redmi/ESP32 checks are deferred. User explicitly requested parallel subagents. D1 checkpoint `8633669` and report `docs/reports/D1-implementation.md` exist; fresh Sol-high review is active; A1 owns android/** and scripts/build.mjs, W1 owns dashboard/** and frontend lockfile, with shared root edits and commits serialized by coordinator. Next: complete D1 review, then desktop D2 while A1/W1 continue, with independent scoped gates. The D1 usage-limit interruption recovered. All nine tasks retain planned difficulty assignments and final fresh Astra/high review.
 
-Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. No product tests have run yet; software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
+Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. D1 full report records35 tests, typecheck/build, synthetic loopback smoke and zero audit findings; independent review is active. Software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
 
 Read docs/STATUS.json and docs/PROGRESS.md here before resuming; the coordinator mirrors these three checkpoint files to the original project folder after task/review boundaries.

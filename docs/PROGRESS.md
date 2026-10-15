@@ -46,3 +46,15 @@ Implementation tasks D1–D3, A1–A3, W1–W3 are all planned, not started. Pla
 - Reviewed baseline committed as 6501f48 using existing user identity. Native managed worktree created at /home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor; detached HEAD is managed by the app. Baseline has documents only, so no product test suite existed to run.
 - D1 brief extracted; D1 active. User explicitly chose software-first build; physical acceptance remains deferred/unrun.
 - Canonical checkpoint mirrored to original project folder for other AI tools; all implementation/reporting occurs in the execution root.
+
+Ruling: use stable Vitest 5.0.4 with a compatible exact Vite 7 pin instead of planned Vitest 3 — npm audit identifies critical tinypool advisories GHSA-5gmw-xhrv-c9v3/GHSA-85c8-ppgw-ccpr and moderate mocker GHSA-82fw-gwwq-j7x9; audit names 5.0.4 as the fixed stable upgrade and official migration docs support Node24/Vite7 — cost if wrong: adapt test configuration/APIs before task review, without weakening behavioral checks.
+
+2026-10-14 — Build prerequisite verified: user-local Temurin JDK17.0.20.1, Android platform/build-tools36.0.0, platform-tools, Gradle9.6.0; official download checksums verified. Default system Node/Java unchanged. No phone, ESP32, credentials, or firmware accessed.
+
+2026-10-15 — Ruling: user explicitly requested parallel subagents on 2026-10-15; run Android and dashboard implementation concurrently with desktop work in disjoint owned paths, serialize shared root/dependency edits and commits, and review each task diff before integration. This supersedes the earlier sequential shared-tree workflow. Cost if wrong: cross-component contract drift or shared-file collision requires integration fixes; frozen D1 schema and per-owner staging reduce exposure.
+
+D1 implementation reported 35 passing tests/typecheck/build and clean all-dependency audit; report/commit/review still pending. D1 worker then returned a usage-limit error; one resumed dispatch attempted. A1 (Astra high) and W1 (Sol high) dispatched in parallel, owning android/scripts-build and dashboard/frontend lockfile respectively. Hardware remains deferred.
+
+2026-10-15 — Ruling: use shared protocol SESSION_ENDED for both native pending callback teardown and dashboard request disposal; correct the illustrative SESSION_CLOSED examples in A1/W1 plans/briefs. PRD/design do not mandate an alternate teardown error string. Cost if wrong: consumers expecting the obsolete illustrative alias need adaptation; one exported code avoids incompatible replies.
+
+2026-10-15 — D1 local checkpoint 863366909acda1c2a44d56879664bf09e7190a76:35 tests/typecheck/build, synthetic real-loopback smoke and normal-startup closed pairing passed; all-dependency audit zero. Evidence exported to docs/reports/D1-implementation.md and D1-audit.json. Fresh Sol-high D1 reviewer active; gate pending. Node24.22.0 selected explicitly at user-local toolchain path; default unchanged. Parallel Android A1 and dashboard W1 in progress.
