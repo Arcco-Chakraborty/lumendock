@@ -18,7 +18,7 @@ class LifecycleReplyDelivery(
         if(!submitted.compareAndSet(false,true)) return false
         post {
             val reply=if(lifecycle.isCurrent(epoch)) result else BridgeReply.failure(id,"SESSION_ENDED")
-            lifecycle.completePending(id)
+            lifecycle.completePending(id,epoch)
             callback(reply)
         }
         return true

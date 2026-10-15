@@ -112,7 +112,8 @@ class NativeSession(
 
 /** Renderer-owned callbacks. Closing this scope never closes the Activity-owned NativeSession. */
 class SessionLifecycle(val session:NativeSession) : AutoCloseable {
-    private val pending=LinkedHashMap<String,(String)->Unit>()
+    private data class PendingCallback(val epoch:Long,val callback:(String)->Unit)
+    private val pending=LinkedHashMap<String,PendingCallback>()
     @Volatile var epoch=0L; private set
     @Volatile var isOpen=true; private set
     /** Closed until the Activity actually starts; a replacement renderer must never accept work while stopped. */
@@ -120,9 +121,12 @@ class SessionLifecycle(val session:NativeSession) : AutoCloseable {
     val pendingCount:Int @Synchronized get()=pending.size
     @Synchronized fun registerPending(id:String,callback:(String)->Unit):Boolean {
         if(!isOpen || !acceptsRequests || pending.size>=32 || pending.containsKey(id)) return false
-        pending[id]=callback; return true
+        pending[id]=PendingCallback(epoch,callback); return true
     }
-    @Synchronized fun completePending(id:String) { pending.remove(id) }
+    /** A delayed reply can complete only the registration from its own foreground epoch. */
+    @Synchronized fun completePending(id:String,requestEpoch:Long) {
+        if(pending[id]?.epoch==requestEpoch) pending.remove(id)
+    }
     /** True only for the same renderer scope and foreground epoch that accepted the request. */
     fun isCurrent(requestEpoch:Long):Boolean = isOpen && acceptsRequests && epoch==requestEpoch
     fun enterForeground() { if(isOpen) { acceptsRequests=true; session.enterForeground() } }
@@ -132,7 +136,7 @@ class SessionLifecycle(val session:NativeSession) : AutoCloseable {
         epoch++; acceptsRequests=false; cancelPending(); session.leaveForeground(reason)
     }
     private fun cancelPending() {
-        val callbacks=synchronized(this) { pending.values.toList().also{pending.clear()} }
+        val callbacks=synchronized(this) { pending.values.map{it.callback}.also{pending.clear()} }
         callbacks.forEach{it("SESSION_ENDED")}
     }
     override fun close() { epoch++; isOpen=false; acceptsRequests=false; cancelPending() }

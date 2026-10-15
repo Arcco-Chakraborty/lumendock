@@ -41,4 +41,30 @@ class LifecycleReplyDeliveryTest {
         while(queue.isNotEmpty()) queue.removeFirst().invoke()
         assertEquals(1,replies.size); assertTrue(replies.single().ok); assertEquals(0,lifecycle.pendingCount)
     }
+    @Test fun staleDeliveryCannotRemoveNewSameIdCancellationRegistration() {
+        val lifecycle=SessionLifecycle(NativeSession()); lifecycle.enterForeground()
+        val router=BridgeRouter(UnavailableBridgeServices(),lifecycle)
+        val json="""{"v":1,"id":"reused","op":"hub.snapshot","args":{}}"""
+        val oldRequest=router.prepare(json,TRUSTED_ORIGIN,true)
+        val queue=ArrayDeque<()->Unit>(); val oldReplies=mutableListOf<BridgeReply>()
+        val delivery=LifecycleReplyDelivery(lifecycle,oldRequest.id,oldRequest.epoch,{queue.add(it)},{oldReplies.add(it)})
+        assertTrue(lifecycle.registerPending(oldRequest.id){delivery.submit(BridgeReply.failure(oldRequest.id,it))})
+        assertTrue(delivery.submit(router.execute(oldRequest)))
+        lifecycle.leaveForeground("background"); lifecycle.enterForeground()
+
+        val newRequest=router.prepare(json,TRUSTED_ORIGIN,true)
+        val cancellations=mutableListOf<String>()
+        assertTrue(lifecycle.registerPending(newRequest.id){cancellations.add(it)})
+        assertEquals(1,lifecycle.pendingCount)
+        while(queue.isNotEmpty()) queue.removeFirst().invoke()
+        assertEquals(listOf("SESSION_ENDED"),oldReplies.map{it.errorCode})
+        assertEquals("Old delivery must retain the newer cancellation owner",1,lifecycle.pendingCount)
+        assertTrue(cancellations.isEmpty())
+
+        lifecycle.leaveForeground("background")
+        assertEquals(listOf("SESSION_ENDED"),cancellations)
+        assertEquals(0,lifecycle.pendingCount)
+        router.release(newRequest)
+    }
+
 }
