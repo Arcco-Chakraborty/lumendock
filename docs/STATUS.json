@@ -29,12 +29,12 @@
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
-    "D3": "in_progress_sonnet",
+    "D3": "committed_awaiting_independent_review",
     "A1": "complete",
     "A2": "in_progress_claude_subagent",
     "A3": "planned",
     "W1": "complete",
-    "W2": "fix_round_1_committed_awaiting_rereview",
+    "W2": "fix_round_1_committed_interim_claude_review_awaiting_codex_gate",
     "W3": "planned"
   },
   "unverifiedInputs": [
@@ -117,10 +117,18 @@
       ],
       "reviewReport": "docs/reviews/W2-review.md",
       "fixCommit": "571d45d244a410bac37340d38264afc1f50ed011"
+    },
+    "D3": {
+      "commit": "64fa1fd",
+      "report": "docs/reports/D3-implementation.md",
+      "desktopTestsPassed": 180,
+      "workspaceTestsPassed": "15/180/53",
+      "review": "pending, must be non-Claude"
     }
   },
   "openImplementationFindings": [
-    "W2-R1/R2 repairs571d45d awaiting scoped re-review"
+    "W2 repair 571d45d: interim Claude re-review says addressed (docs/reviews/W2-rereview-1.md); Codex Sol-high gate still open",
+    "D3 commit 64fa1fd: needs non-Claude Sol-high review (Claude-built)"
   ],
   "deferredMinorFindings": [
     "W1-R2 upstream Zod annotation build warnings (W3/final triage)",
