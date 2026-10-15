@@ -28,7 +28,7 @@ Two columns on purpose: **Software** = automated/browser/JVM evidence run by Cla
 | A14 | PASS (size) | UNRUN | JS+CSS 336,704 B <= 768,000 B; APK 4,361,672 B <= 20 MiB. Three-second startup not measured on device. |
 | A15 | UNRUN | UNRUN | 60-minute and 2-hour soaks and PSS measurement need the phone. |
 | A16 | NOT DONE | NOT DONE | Requires a `gpt-6-astra` high whole-project review; not runnable from Claude Code. Claude-built tasks D3, W2 repair, A2, A3, W3a/W3b also still need independent non-Claude review. |
-| A17 | see below | n/a | Cold-resume check result recorded below once run. |
+| A17 | PASS (2026-10-15, fresh read-only agent from the original folder) | n/a | Agent identified the true first incomplete gate and verified cited commits/paths/numbers/gates; reported 10 minor staleness items, all fixed in the follow-up docs commit. Re-run after the Codex review wave. |
 
 ## Common preconditions (A2 transport rows)
 

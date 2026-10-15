@@ -35,7 +35,9 @@
     "A3": "committed_awaiting_independent_review",
     "W1": "complete",
     "W2": "fix_round_1_committed_interim_claude_review_awaiting_codex_gate",
-    "W3": "committed_awaiting_independent_review"
+    "W3a": "committed_awaiting_independent_review",
+    "W3b": "integration_committed_531423f_b6c20e6_awaiting_independent_review",
+    "A17": "cold_resume_check_passed_with_minor_staleness_fixed_2026-10-15"
   },
   "unverifiedInputs": [
     "Exact Redmi Android/MIUI/WebView/viewport",
@@ -55,12 +57,9 @@
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
-    "coordinator": "Claude Code (sole active agent while Codex is at its usage limit); Codex resumes coordinator role on reset",
-    "sonnet": "D3 desktop/** plus D3-specific scripts, root CLI registration, docs/SETUP/TESTING and D3 reports; ACK C02",
-    "a1_worker": "A2: Claude subagent owns android/** (LaptopClient/PairingStore partial files from the dead Codex worker are the starting point)",
-    "w2_worker": "W2 source frozen571d45d for scoped re-review",
-    "android_next": "A2/A3 reserved for Astra-high after A1 gate",
-    "notification_validation": "private isolated D-Bus wire probe only .superpowers/validation; no product edits"
+    "coordinator": "Claude Code while Codex is at its usage limit; Codex resumes on reset",
+    "built_by_claude": "D3 (Sonnet + 2 subagents), A2 and A3 (Opus subagents), W3a (subagent), W3b integration (Claude); none independently reviewed by gpt-6 Sol/Astra yet",
+    "codex_pending": "independent Sol/Astra-high reviews of all Claude-built commits, fix wave, final whole-project Astra-high review (A16)"
   },
   "evidence": {
     "D1": {
@@ -111,7 +110,7 @@
       "dashboardTestsPassed": 53,
       "workspaceTestsPassed": 131,
       "jsCssBytes": 336555,
-      "review": "fix1 scoped re-review in_progress",
+      "review": "fix1 interim Claude re-review: R1/R2/M1 addressed (docs/reviews/W2-rereview-1.md); Codex Sol-high gate still open",
       "minorFollowUps": [
         "W2-M1 360px notification strip spacing"
       ],

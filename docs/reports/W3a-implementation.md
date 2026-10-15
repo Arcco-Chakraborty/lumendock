@@ -39,3 +39,6 @@ Date: 2026-10-15. Author: Claude Code (claude-sonnet-5-5). Status: implemented, 
 
 ## NOT verified
 Real Redmi WebView/viewport, Android `textZoom`, bridge implementation on Android, APK build/size/startup, Gradle asset wiring (`build.mjs`, Android tasks), device rows of the acceptance matrix (A01-A17 device parts), soaks, and any ESP32 behaviour. The packaged APK path is untested with a real APK (only synthetic files). Diagnostic-marker scan is regex based and could false-positive if a dependency starts containing the word "diagnostic".
+
+---
+Coordinator note (2026-10-15): the statements above that nothing is committed were true when this report was written. Committed as `5e5863d`.

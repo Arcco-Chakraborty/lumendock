@@ -45,3 +45,6 @@ Root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monito
 
 ## UNRUN (device)
 A3-D1 simultaneous USB + Wi-Fi independence (essential), A3-D2 app request/approval, A3-D3 denial/declined, A3-D4 wrong password, A3-D5 location off, A3-D6 manual, A3-D7 USB unplug, A3-D8 AP power cycle, A3-D9 default-network change, A3-D10 background/process death (including whether MIUI re-prompts), A3-D11 approval vs interruption, A3-D12 light controls/drag rate, A3-D13 timer semantics, A3-D14 buttons/sensor. Also all A2 rows and instrumentation.
+
+---
+Coordinator note (2026-10-15): the statements above that nothing is committed were true when this report was written. Committed as `a7a946c`.
