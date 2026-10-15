@@ -4,16 +4,20 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
-import android.net.LinkAddress
+import android.net.MacAddress
 import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSpecifier
 import android.os.Build
+import androidx.annotation.RequiresApi
 import java.net.HttpURLConnection
 import java.net.Proxy
 import java.net.URL
+import java.util.concurrent.ConcurrentHashMap
 
 /** Controller AP credentials. Native-only: never in a bridge reply, AppStatus, log line or toString. */
 class WifiCredentials private constructor(val ssid:String,val passphrase:String) {
@@ -38,6 +42,20 @@ interface WifiStore {
     var mode:String
     /** True only after an app request reached the controller over HTTP; enables re-request on foreground return. */
     var autoReconnect:Boolean
+    /** BSSID of the AP an app request reached the controller through (normalized); native-only, like the passphrase. */
+    var pinnedBssid:String?
+    /** A request naming [pinnedBssid] was unavailable: the next explicit setup asks by SSID only, once. */
+    var pinFailed:Boolean
+}
+/** Validates a BSSID for pinning. Redacted, all-zero, broadcast, multicast or malformed values are never pinned. */
+object WifiBssid {
+    private val MAC=Regex("[0-9a-f]{2}(:[0-9a-f]{2}){5}")
+    private val REJECTED=setOf("02:00:00:00:00:00","00:00:00:00:00:00","ff:ff:ff:ff:ff:ff")
+    fun normalize(raw:String?):String? {
+        val value=raw?.trim()?.lowercase() ?: return null
+        if(!MAC.matches(value) || value in REJECTED) return null
+        return value.takeIf{ it.substring(0,2).toInt(16) and 1==0 } // unicast only
+    }
 }
 class PrivateWifiStore(context:Context):WifiStore {
     private val preferences=context.applicationContext.getSharedPreferences(FILE,Context.MODE_PRIVATE)
@@ -53,38 +71,65 @@ class PrivateWifiStore(context:Context):WifiStore {
     override var autoReconnect:Boolean
         get()=preferences.getBoolean(AUTO,false)
         set(value) { preferences.edit().putBoolean(AUTO,value).apply() }
-    private companion object { const val FILE="native_wifi"; const val SSID="ssid"; const val PASSPHRASE="passphrase"; const val MODE="mode"; const val AUTO="auto_reconnect" }
+    override var pinnedBssid:String?
+        get()=WifiBssid.normalize(preferences.getString(BSSID,null))
+        set(value) { preferences.edit().apply{ if(value==null) remove(BSSID) else putString(BSSID,value) }.apply() }
+    override var pinFailed:Boolean
+        get()=preferences.getBoolean(PIN_FAILED,false)
+        set(value) { preferences.edit().putBoolean(PIN_FAILED,value).apply() }
+    private companion object { const val FILE="native_wifi"; const val SSID="ssid"; const val PASSPHRASE="passphrase"; const val MODE="mode"; const val AUTO="auto_reconnect"; const val BSSID="bssid"; const val PIN_FAILED="pin_failed" }
 }
 
 interface WifiCallbacks {
     fun onAvailable(network:EspNetwork)
-    /** The network's addresses changed: clients must be recreated. */
+    /** Link properties/capabilities changed on the same Network handle. Never ends or replaces the lease. */
     fun onChanged(network:EspNetwork)
     fun onLost(network:EspNetwork)
     /** The OS could not or would not provide the requested network (including user rejection). */
     fun onUnavailable()
 }
 fun interface WifiRequestHandle { fun release() }
-/** OS seam. Production: ConnectivityManager. JVM tests: a fake factory. Neither ever binds the process. */
+/**
+ * OS seam. Production: ConnectivityManager. JVM tests: a fake factory. Neither ever binds the process.
+ * Request/observe may throw (SecurityException after a revoked permission, IllegalArgumentException, too many
+ * requests); WifiSession catches every RuntimeException from this seam.
+ */
 interface WifiPlatform {
-    /** App-specific, local-only request: TRANSPORT_WIFI, INTERNET removed, WifiNetworkSpecifier for the configured AP. */
-    fun requestLocalNetwork(credentials:WifiCredentials,callbacks:WifiCallbacks):WifiRequestHandle
+    /**
+     * App-specific, local-only request: TRANSPORT_WIFI, INTERNET removed, WifiNetworkSpecifier for the configured AP.
+     * A non-null [bssid] (already validated by [WifiBssid]) also names that exact AP, so Android can reuse the
+     * user's earlier approval for a single access point instead of prompting again.
+     */
+    fun requestLocalNetwork(credentials:WifiCredentials,bssid:String?,callbacks:WifiCallbacks):WifiRequestHandle
     /** Manual mode: observe Wi-Fi networks the user joined in Settings, without an INTERNET requirement. */
     fun observeWifi(callbacks:WifiCallbacks):WifiRequestHandle
+    /** BSSID of the AP behind this app-request network, or null when unknown or redacted. Never logged. */
+    fun accessPoint(network:EspNetwork,ssid:String):String?
 }
+enum class WifiConnectResult { STARTED, NOT_SAVED, REQUEST_FAILED }
 interface WifiRequestListener { fun onAvailable(lease:NetworkLease); fun onUnavailable() }
 
 /**
- * Activity-owned Wi-Fi selection. Holds at most one OS request/observer; every selected network becomes a new
- * NetworkLease for the controller client (nothing else uses it). Loss never re-requests; denial/unavailability
- * never re-prompts. Background releases the request; foreground return restores manual observation, and an app
- * request only if it previously reached the controller. Internet validation is never consulted.
+ * Activity-owned Wi-Fi selection. Holds at most one OS request/observer; every newly selected Network handle becomes
+ * a new NetworkLease for the controller client (nothing else uses it). Same-network link/capability changes keep
+ * the lease. Loss never re-requests. Background releases the request; foreground return restores manual
+ * observation, and an app request only if one previously reached the controller. Internet validation is never
+ * consulted.
+ *
+ * Re-prompt bounds: an explicit setup that is denied/unavailable clears the automatic reconnect. An *automatic*
+ * request that is unavailable (e.g. the controller was off) keeps it and is retried only on the next foreground
+ * start, never while the Activity stays started. An automatic request interrupted by a stop within
+ * [AUTO_INTERRUPT_MS] (for example a system approval screen we cannot tie to a setup) is not re-issued on the
+ * immediately following start, which breaks any request/stop/start loop. After a verified setup the connected AP's
+ * BSSID is pinned so later automatic requests name SSID + exact BSSID; a pinned failure never widens an automatic
+ * request, and only the next explicit setup falls back to SSID-only (once).
  */
 class WifiSession(
     private val platform:WifiPlatform,
     private val store:WifiStore,
     private val onLease:(NetworkLease?)->Unit,
     private val onMode:(String)->Unit={},
+    private val now:()->Long={ System.nanoTime()/1_000_000 },
 ):AutoCloseable {
     private val lock=Any()
     private var handle:WifiRequestHandle?=null
@@ -95,46 +140,89 @@ class WifiSession(
     private var lease:NetworkLease?=null
     private val available=LinkedHashMap<String,EspNetwork>()
     private var closed=false
+    /** Between resume() and pause(): the Activity is started; automatic requests are issued at most once per start. */
+    private var started=false
+    /** The current app request came from an explicit user setup (vs an automatic foreground reconnect). */
+    private var requestExplicit=false
+    private var requestPinned=false
+    /** Monotonic time an automatic request was issued; cleared once it resolves (available/unavailable/release). */
+    private var autoRequestedAt:Long?=null
+    private var skipNextAuto=false
     var mode:String=store.mode.takeIf{ it in MODES } ?: "none"; private set
 
     init { onMode(mode) }
 
     fun current():NetworkLease?=synchronized(lock) { lease }
 
-    /** Explicit user action: replace any request/observer with one app-specific request. False if not persisted. */
-    fun connect(credentials:WifiCredentials,listener:WifiRequestListener?):Boolean { synchronized(lock) {
-        if(closed || !store.saveCredentials(credentials)) return false
-        releaseLocked()
+    /** Explicit user action: replace any request/observer with one app-specific request. */
+    fun connect(credentials:WifiCredentials,listener:WifiRequestListener?):WifiConnectResult { synchronized(lock) {
+        if(closed) return WifiConnectResult.NOT_SAVED
+        val previous=store.credentials()
+        if(!store.saveCredentials(credentials)) return WifiConnectResult.NOT_SAVED
+        releaseLocked(); skipNextAuto=false
+        // A different AP never inherits the pin; after a pinned failure this explicit setup asks by SSID once.
+        if(previous!=credentials || store.pinFailed) { store.pinnedBssid=null; store.pinFailed=false }
         this.credentials=credentials; this.listener=listener
         setModeLocked("app_request"); store.autoReconnect=false
-        requestLocked(credentials)
-        return true
+        if(requestLocked(credentials,explicit=true)) return WifiConnectResult.STARTED
+        this.listener=null
+        return WifiConnectResult.REQUEST_FAILED
     } }
-    /** The controller answered over HTTP on this request's network. */
-    fun markVerified() { synchronized(lock) { if(mode=="app_request" && handle!=null) store.autoReconnect=true } }
+    /** The controller answered over HTTP on [verified]; pins that lease's AP when Android reports a usable BSSID. */
+    fun markVerified(verified:NetworkLease?=null) { synchronized(lock) {
+        if(mode!="app_request" || handle==null) return
+        store.autoReconnect=true
+        val c=credentials ?: return
+        if(verified==null || verified!==lease) return
+        val bssid=try { WifiBssid.normalize(platform.accessPoint(verified.network,c.ssid)) } catch(_:RuntimeException) { null }
+        if(bssid!=null) { store.pinnedBssid=bssid; store.pinFailed=false }
+        else if(requestPinned) store.pinFailed=false // the pinned request itself just proved the pin
+    } }
     fun useManual() { synchronized(lock) {
         if(closed) return
-        releaseLocked(); listener=null
+        releaseLocked(); listener=null; skipNextAuto=false
         setModeLocked("manual"); store.autoReconnect=false
         observeLocked()
     } }
-    fun disconnect() { synchronized(lock) { releaseLocked(); listener=null; setModeLocked("none"); store.autoReconnect=false } }
+    fun disconnect() { synchronized(lock) { releaseLocked(); listener=null; skipNextAuto=false; setModeLocked("none"); store.autoReconnect=false } }
     /** Background/end of foreground session: release the OS request; the mode is remembered. */
-    fun pause() { synchronized(lock) { releaseLocked(); listener=null } }
+    fun pause() { synchronized(lock) {
+        started=false
+        val issued=autoRequestedAt
+        if(issued!=null && now()-issued<AUTO_INTERRUPT_MS) skipNextAuto=true
+        releaseLocked(); listener=null
+    } }
+    /** Foreground start. A second call while still started is a no-op, so nothing is re-requested in a loop. */
     fun resume() { synchronized(lock) {
-        if(closed || handle!=null) return
+        if(closed || started) return
+        started=true
+        if(handle!=null) return
         when(mode) {
             "manual" -> observeLocked()
-            "app_request" -> if(store.autoReconnect) (credentials ?: store.credentials())?.let{ credentials=it; requestLocked(it) }
+            "app_request" -> if(store.autoReconnect) {
+                if(skipNextAuto) { skipNextAuto=false; return }
+                (credentials ?: store.credentials())?.let{ credentials=it; if(requestLocked(it,explicit=false)) autoRequestedAt=now() }
+            }
         }
     } }
     override fun close() { synchronized(lock) { closed=true; releaseLocked(); listener=null } }
 
     private fun setModeLocked(next:String) { mode=next; store.mode=next; onMode(next) }
-    private fun requestLocked(c:WifiCredentials) { val t=++token; handle=platform.requestLocalNetwork(c,Callbacks(t)) }
-    private fun observeLocked() { val t=++token; handle=platform.observeWifi(Callbacks(t)) }
+    /** False when the OS refused the request synchronously; nothing is held and no callback can arrive. */
+    private fun requestLocked(c:WifiCredentials,explicit:Boolean):Boolean {
+        val t=++token
+        val bssid=WifiBssid.normalize(store.pinnedBssid)
+        requestExplicit=explicit; requestPinned=bssid!=null
+        return try { handle=platform.requestLocalNetwork(c,bssid,Callbacks(t)); true }
+        catch(_:RuntimeException) { handle=null; token++; if(bssid!=null) store.pinFailed=true; false }
+    }
+    private fun observeLocked() {
+        val t=++token
+        try { handle=platform.observeWifi(Callbacks(t)) } catch(_:RuntimeException) { handle=null; token++ }
+    }
     private fun releaseLocked() {
         handle?.release(); handle=null; token++
+        autoRequestedAt=null
         available.clear()
         if(lease!=null) setLeaseLocked(null)
     }
@@ -147,8 +235,10 @@ class WifiSession(
             val notify:Pair<WifiRequestListener,NetworkLease>?
             synchronized(lock) {
                 if(!live()) return
+                autoRequestedAt=null
                 available.remove(network.id); available[network.id]=network
-                setLeaseLocked(network)
+                // The same Network handle delivered again keeps its lease and any in-flight controller I/O.
+                if(lease?.network?.id!=network.id) setLeaseLocked(network)
                 notify=listener?.let{ l -> listener=null; l to lease!! }
             }
             notify?.let{ (l,current) -> l.onAvailable(current) }
@@ -156,7 +246,6 @@ class WifiSession(
         override fun onChanged(network:EspNetwork) { synchronized(lock) {
             if(!live() || !available.containsKey(network.id)) return
             available[network.id]=network
-            if(lease?.network?.id==network.id) setLeaseLocked(network)
         } }
         override fun onLost(network:EspNetwork) { synchronized(lock) {
             if(!live()) return
@@ -168,14 +257,21 @@ class WifiSession(
             synchronized(lock) {
                 if(!live()) return
                 handle?.release(); handle=null; token++
-                store.autoReconnect=false
+                autoRequestedAt=null
+                if(requestPinned) store.pinFailed=true
+                // Only an explicit setup's denial/unavailability ends the opt-in; an automatic one retries next start.
+                if(requestExplicit) store.autoReconnect=false
                 if(lease!=null) setLeaseLocked(null)
                 notify=listener; listener=null
             }
             notify?.onUnavailable()
         }
     }
-    private companion object { val MODES=setOf("none","app_request","manual") }
+    private companion object {
+        val MODES=setOf("none","app_request","manual")
+        /** A stop this soon after an automatic request most likely came from a system screen that request opened. */
+        const val AUTO_INTERRUPT_MS=5000L
+    }
 }
 
 /** Runtime permissions required for an app-specific Wi-Fi request, per API level (explicit branches, no fall-through). */
@@ -252,13 +348,18 @@ class WifiSetupFlow(
                 if(!current(a)) return
                 verify(lease) { ok ->
                     if(!current(a)) return@verify
-                    if(ok) { wifi.markVerified(); clear(a); session.finishSetup("esp",a.id,"succeeded"); ui.show(a.id,WifiSetupMessage.CONNECTED) }
+                    if(ok) { wifi.markVerified(lease); clear(a); session.finishSetup("esp",a.id,"succeeded"); ui.show(a.id,WifiSetupMessage.CONNECTED) }
                     else fail(a,WifiSetupMessage.CONTROLLER_UNREACHABLE)
                 }
             }
             override fun onUnavailable() { session.endOsApproval(a.id); if(current(a)) fail(a,WifiSetupMessage.UNAVAILABLE) }
         })
-        if(!started) { a.requested=false; session.endOsApproval(a.id); fail(a,WifiSetupMessage.SAVE_FAILED) }
+        when(started) {
+            WifiConnectResult.STARTED -> {}
+            WifiConnectResult.NOT_SAVED -> { a.requested=false; session.endOsApproval(a.id); fail(a,WifiSetupMessage.SAVE_FAILED) }
+            // The OS threw instead of accepting the request (e.g. a revoked permission): fixed WIFI_UNAVAILABLE failure.
+            WifiConnectResult.REQUEST_FAILED -> { session.endOsApproval(a.id); fail(a,WifiSetupMessage.UNAVAILABLE) }
+        }
     }
     private fun fail(a:Attempt,message:WifiSetupMessage) {
         clear(a)
@@ -290,35 +391,79 @@ class AndroidEspNetwork(private val network:Network):EspNetwork {
 }
 class AndroidWifiPlatform(context:Context):WifiPlatform {
     private val connectivity=context.applicationContext.getSystemService(ConnectivityManager::class.java)
-    override fun requestLocalNetwork(credentials:WifiCredentials,callbacks:WifiCallbacks):WifiRequestHandle {
-        val specifier=WifiNetworkSpecifier.Builder().setSsid(credentials.ssid).apply{ if(credentials.passphrase.isNotEmpty()) setWpa2Passphrase(credentials.passphrase) }.build()
+    private val wifiManager=context.applicationContext.getSystemService(WifiManager::class.java)
+    /** Latest usable BSSID per Network handle, as reported to a live app request's callback. Never logged. */
+    private val accessPoints=ConcurrentHashMap<String,String>()
+    override fun requestLocalNetwork(credentials:WifiCredentials,bssid:String?,callbacks:WifiCallbacks):WifiRequestHandle {
+        val specifier=WifiNetworkSpecifier.Builder().setSsid(credentials.ssid).apply{
+            if(credentials.passphrase.isNotEmpty()) setWpa2Passphrase(credentials.passphrase)
+            // SSID + exact BSSID of a previously approved AP: Android can reuse that approval without prompting.
+            bssid?.let{ setBssid(MacAddress.fromString(it)) }
+        }.build()
         val request=NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .setNetworkSpecifier(specifier).build()
-        val callback=Forwarder(callbacks)
+        val relay=Relay(callbacks,accessPoints,recordAccessPoint=true)
+        val callback=if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S) LocatingForwarder(relay) else Forwarder(relay)
         connectivity.requestNetwork(request,callback)
-        return release(callback)
+        return release(callback,relay)
     }
     override fun observeWifi(callbacks:WifiCallbacks):WifiRequestHandle {
         val request=NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
-        val callback=Forwarder(callbacks)
+        val relay=Relay(callbacks,accessPoints,recordAccessPoint=false)
+        val callback=Forwarder(relay)
         connectivity.registerNetworkCallback(request,callback)
-        return release(callback)
+        return release(callback,relay)
     }
-    private fun release(callback:ConnectivityManager.NetworkCallback)=WifiRequestHandle {
-        try { connectivity.unregisterNetworkCallback(callback) } catch(_:IllegalArgumentException) { /* already released */ }
+    override fun accessPoint(network:EspNetwork,ssid:String):String? {
+        accessPoints[network.id]?.let{ return it }
+        return if(Build.VERSION.SDK_INT<Build.VERSION_CODES.S) legacyAccessPoint(ssid) else null
     }
-    /** Forwards OS callbacks; validation/capability changes are ignored, only address changes recreate clients. */
-    private class Forwarder(private val target:WifiCallbacks):ConnectivityManager.NetworkCallback() {
-        private val addresses=HashMap<Network,List<LinkAddress>>()
-        override fun onAvailable(network:Network) = target.onAvailable(AndroidEspNetwork(network))
-        override fun onLinkPropertiesChanged(network:Network,linkProperties:LinkProperties) {
-            val now=linkProperties.linkAddresses.toList()
-            val previous=synchronized(addresses) { addresses.put(network,now) }
-            if(previous!=null && previous!=now) target.onChanged(AndroidEspNetwork(network))
+    /**
+     * API 29/30: the single client-mode connection is the app-requested controller AP. Its BSSID is readable with
+     * the location permission the setup already required (redacted values are rejected by WifiBssid).
+     */
+    @Suppress("DEPRECATION") // WifiManager.getConnectionInfo is deprecated only from API 31; used below API 31 only.
+    private fun legacyAccessPoint(ssid:String):String? {
+        val info=wifiManager?.connectionInfo ?: return null
+        return if(info.ssid=="\"$ssid\"") WifiBssid.normalize(info.bssid) else null
+    }
+    private fun release(callback:ConnectivityManager.NetworkCallback,relay:Relay)=WifiRequestHandle {
+        relay.clear()
+        try { connectivity.unregisterNetworkCallback(callback) } catch(_:RuntimeException) { /* already released */ }
+    }
+    /**
+     * Forwards OS callbacks. Link-property/capability changes are reported as same-network changes (the lease is
+     * kept); only onLost/onUnavailable or a different Network handle change what the controller client uses.
+     */
+    private class Relay(private val target:WifiCallbacks,private val accessPoints:MutableMap<String,String>,private val recordAccessPoint:Boolean) {
+        private val recorded=ConcurrentHashMap.newKeySet<String>()
+        fun available(network:Network)=target.onAvailable(AndroidEspNetwork(network))
+        fun capabilities(network:Network,capabilities:NetworkCapabilities) {
+            if(!recordAccessPoint) return
+            val id=network.networkHandle.toString()
+            WifiBssid.normalize((capabilities.transportInfo as? WifiInfo)?.bssid)?.let{ accessPoints[id]=it; recorded.add(id) }
         }
-        override fun onLost(network:Network) { synchronized(addresses) { addresses.remove(network) }; target.onLost(AndroidEspNetwork(network)) }
-        override fun onUnavailable() = target.onUnavailable()
+        fun linkProperties(network:Network)=target.onChanged(AndroidEspNetwork(network))
+        fun lost(network:Network) { val id=network.networkHandle.toString(); if(recorded.remove(id)) accessPoints.remove(id); target.onLost(AndroidEspNetwork(network)) }
+        fun unavailable()=target.onUnavailable()
+        fun clear() { recorded.forEach{ accessPoints.remove(it) }; recorded.clear() }
+    }
+    private class Forwarder(private val relay:Relay):ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network:Network)=relay.available(network)
+        override fun onCapabilitiesChanged(network:Network,capabilities:NetworkCapabilities)=relay.capabilities(network,capabilities)
+        override fun onLinkPropertiesChanged(network:Network,linkProperties:LinkProperties)=relay.linkProperties(network)
+        override fun onLost(network:Network)=relay.lost(network)
+        override fun onUnavailable()=relay.unavailable()
+    }
+    /** API 31+: without FLAG_INCLUDE_LOCATION_INFO the callback's WifiInfo always has a redacted BSSID. */
+    @RequiresApi(Build.VERSION_CODES.S)
+    private class LocatingForwarder(private val relay:Relay):ConnectivityManager.NetworkCallback(FLAG_INCLUDE_LOCATION_INFO) {
+        override fun onAvailable(network:Network)=relay.available(network)
+        override fun onCapabilitiesChanged(network:Network,capabilities:NetworkCapabilities)=relay.capabilities(network,capabilities)
+        override fun onLinkPropertiesChanged(network:Network,linkProperties:LinkProperties)=relay.linkProperties(network)
+        override fun onLost(network:Network)=relay.lost(network)
+        override fun onUnavailable()=relay.unavailable()
     }
 }

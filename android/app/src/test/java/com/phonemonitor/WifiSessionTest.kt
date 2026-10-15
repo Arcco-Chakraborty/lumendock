@@ -7,18 +7,30 @@ import org.junit.Test
 internal const val SYNTHETIC_SSID="Synthetic_Controller"
 internal const val SYNTHETIC_WIFI_PASS="synthetic-wifi-pass-0000"
 
+/** RFC 7042 documentation-range MAC: recognisably synthetic, never a real controller's BSSID. */
+internal const val SYNTHETIC_BSSID="00:00:5e:00:53:01"
+
 internal class FakeWifiPlatform:WifiPlatform {
     val requests=mutableListOf<Pair<WifiCredentials,WifiCallbacks>>()
+    /** The BSSID each app request named (null: SSID only), parallel to [requests]. */
+    val bssids=mutableListOf<String?>()
     val observers=mutableListOf<WifiCallbacks>()
     var releases=0
-    override fun requestLocalNetwork(credentials:WifiCredentials,callbacks:WifiCallbacks):WifiRequestHandle { requests.add(credentials to callbacks); return WifiRequestHandle{ releases++ } }
-    override fun observeWifi(callbacks:WifiCallbacks):WifiRequestHandle { observers.add(callbacks); return WifiRequestHandle{ releases++ } }
+    /** Thrown once by the next request/observe call, like ConnectivityManager after a revoked permission. */
+    var failNext:RuntimeException?=null
+    val accessPoints=HashMap<String,String?>()
+    private fun maybeFail() { failNext?.let{ failNext=null; throw it } }
+    override fun requestLocalNetwork(credentials:WifiCredentials,bssid:String?,callbacks:WifiCallbacks):WifiRequestHandle { maybeFail(); requests.add(credentials to callbacks); bssids.add(bssid); return WifiRequestHandle{ releases++ } }
+    override fun observeWifi(callbacks:WifiCallbacks):WifiRequestHandle { maybeFail(); observers.add(callbacks); return WifiRequestHandle{ releases++ } }
+    override fun accessPoint(network:EspNetwork,ssid:String):String?=accessPoints[network.id]
     val lastRequest get()=requests.last().second
 }
 internal class MemoryWifiStore:WifiStore {
     var saved:WifiCredentials?=null; var failSave=false
     override var mode="none"
     override var autoReconnect=false
+    override var pinnedBssid:String?=null
+    override var pinFailed=false
     override fun credentials()=saved
     override fun saveCredentials(credentials:WifiCredentials):Boolean { if(failSave) return false; saved=credentials; return true }
 }
@@ -49,8 +61,7 @@ class WifiSessionTest {
         platform.lastRequest.onAvailable(net1)
         val first=wifi.current()!!; assertSame(net1,first.network); assertSame(first,leases.last()); assertEquals(1,available)
         platform.lastRequest.onChanged(net1)
-        val refreshed=wifi.current()!!
-        assertTrue("Address change recreates the client lease",refreshed.epoch>first.epoch); assertSame(net1,refreshed.network)
+        assertSame("A same-network address change keeps the lease (final-review fix 3)",first,wifi.current())
         platform.lastRequest.onLost(net1)
         assertNull(wifi.current()); assertNull(leases.last())
         platform.lastRequest.onAvailable(net1)

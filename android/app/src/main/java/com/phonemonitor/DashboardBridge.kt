@@ -42,7 +42,7 @@ class DashboardBridge(private val router:BridgeRouter) : AutoCloseable {
         webView=view
         WebViewCompat.addWebMessageListener(view,"phoneMonitor",setOf(TRUSTED_ORIGIN)) { _,message,origin,mainFrame,proxy ->
             if(message.type!=WebMessageCompat.TYPE_STRING) {
-                proxy.postMessage(BridgeReply.failure("invalid","BAD_PAYLOAD").toJson())
+                try { proxy.postMessage(BridgeReply.failure("invalid","BAD_PAYLOAD").toJson()) } catch(_:RuntimeException) { /* renderer gone */ }
                 return@addWebMessageListener
             }
             dispatch(message.data ?: "",origin.toString(),mainFrame) { proxy.postMessage(it.toJson()) }

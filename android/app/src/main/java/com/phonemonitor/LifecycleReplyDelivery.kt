@@ -19,7 +19,8 @@ class LifecycleReplyDelivery(
         post {
             val reply=if(lifecycle.isCurrent(epoch)) result else BridgeReply.failure(id,"SESSION_ENDED")
             lifecycle.completePending(id,epoch)
-            callback(reply)
+            // The renderer may be torn down between post and delivery: drop the reply, never throw on main.
+            try { callback(reply) } catch(_:RuntimeException) { /* reply dropped */ }
         }
         return true
     }

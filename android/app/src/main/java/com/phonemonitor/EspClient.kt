@@ -33,7 +33,10 @@ internal const val ESP_ORIGIN="http://192.168.4.1"
 
 /** A selected Wi-Fi network. Production wraps android.net.Network; every connection is opened through it. */
 interface EspNetwork { val id:String; fun openConnection(url:URL):HttpURLConnection }
-/** The network a controller client may use; epoch changes on every selection/address change. */
+/**
+ * The network a controller client may use. A new lease (new epoch) means a different selected Network handle or
+ * none; WifiSession keeps the same lease across same-network link/capability changes, so they cancel nothing.
+ */
 class NetworkLease(val network:EspNetwork,val epoch:Long)
 
 /** The only three controller endpoints of the existing firmware. There is no URL/path argument anywhere. */

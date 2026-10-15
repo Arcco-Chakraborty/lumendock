@@ -66,5 +66,15 @@ class LifecycleReplyDeliveryTest {
         assertEquals(0,lifecycle.pendingCount)
         router.release(newRequest)
     }
-
+    /** Final-review fix 4: proxy.postMessage throwing after renderer teardown is dropped, never thrown on main. */
+    @Test fun throwingReplyProxyIsDroppedWithoutEscapingThePostedDelivery() {
+        val lifecycle=SessionLifecycle(NativeSession()); lifecycle.enterForeground()
+        val queue=ArrayDeque<()->Unit>(); var attempts=0
+        val delivery=LifecycleReplyDelivery(lifecycle,"x",lifecycle.epoch,{queue.add(it)},{ attempts++; throw IllegalStateException("synthetic: renderer gone") })
+        lifecycle.registerPending("x"){delivery.submit(BridgeReply.failure("x",it))}
+        assertTrue(delivery.submit(BridgeReply("x",true,jsonObject("paired" to true))))
+        while(queue.isNotEmpty()) queue.removeFirst().invoke()
+        assertEquals(1,attempts); assertEquals("The pending slot is still released",0,lifecycle.pendingCount)
+        assertFalse(delivery.submit(BridgeReply.failure("x","REQUEST_TIMEOUT")))
+    }
 }
