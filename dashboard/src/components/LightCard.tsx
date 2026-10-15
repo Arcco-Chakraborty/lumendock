@@ -93,36 +93,76 @@ export function LightCard({
           {marker}
         </span>
       </div>
-      <svg
-        className="light-symbol"
-        width="52"
-        height="52"
-        viewBox="0 0 52 52"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M19 35c0-5-6-7-6-16a13 13 0 0 1 26 0c0 9-6 11-6 16M19 35h14M21 41h10M23 46h6"
-          stroke={data?.hex ?? "#a3b3b8"}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-      </svg>
       <button
-        className="power-button"
+        className={`power-button${!data ? " is-unknown" : ""}${data?.power ? " is-on" : ""}`}
         disabled={!ready || !data}
         aria-label={data?.power ? "Power off" : "Power on"}
         aria-pressed={data?.power ?? false}
+        style={data?.power ? { borderColor: `${data.hex}cc`, boxShadow: `0 0 18px ${data.hex}55`, textShadow: `0 0 12px ${data.hex}` } : undefined}
         onClick={() => data && send({ power: !data.power })}
       >
-        {data ? (data.power ? "On" : "Off") : "—"}
+        {data ? (data.power ? "On" : "Off") : "Unknown"}
       </button>
+      {data && (
+        <span
+          className={`light-color-chip${data.power ? " is-illuminated" : ""}`}
+          style={{
+            backgroundColor: data.hex,
+            boxShadow: data.power
+              ? `0 0 18px ${data.hex}, 0 0 32px ${data.hex}66, inset 0 0 4px rgba(255,255,255,0.7)`
+              : "none",
+          }}
+          title={`Color: ${data.hex}`}
+          aria-hidden="true"
+        />
+      )}
+      {!expanded && data && (
+        <div className="dock-presets" role="group" aria-label="Quick colors">
+          {presets.slice(0, 4).map(([name, value]) => {
+            const active = data.hex.toUpperCase() === value.toUpperCase();
+            return (
+              <button
+                key={name}
+                type="button"
+                tabIndex={-1}
+                className={`dock-preset-button${active ? " is-active" : ""}`}
+                disabled={!ready}
+                aria-label={`Quick color ${name}`}
+                onClick={() => send({ hex: value })}
+              >
+                <span
+                  className="dock-preset-dot"
+                  style={{
+                    backgroundColor: value,
+                    boxShadow: active ? `0 0 12px ${value}, 0 0 2px #fff` : `0 0 4px ${value}44`,
+                  }}
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
       <p className="muted light-summary">
         {data
-          ? `${data.bright}% brightness · ${modes[data.mode]}`
-          : "Connect controller for lights"}
+          ? `${data.bright}% · ${modes[data.mode]}`
+          : "Connect controller"}
       </p>
-      {(intent.stateOutcome === "unconfirmed" ||
+      {!expanded && (confirmed && confirmed.timerSeconds > 0 || intent.timerOutcome === "unconfirmed" || intent.timerOutcome === "pending") && (
+        <p
+          className={
+            intent.timerOutcome === "unconfirmed"
+              ? "light-timer warning"
+              : "light-timer muted"
+          }
+        >
+          {intent.timerOutcome === "unconfirmed"
+            ? "Timer uncertain"
+            : intent.timerOutcome === "pending"
+              ? "Timer pending"
+              : `${Math.ceil(confirmed!.timerSeconds / 60)}m timer`}
+        </p>
+      )}
+      {expanded && (intent.stateOutcome === "unconfirmed" ||
         intent.stateOutcome === "cancelled" ||
         intent.stateOutcome === "superseded") && (
         <>
@@ -151,7 +191,7 @@ export function LightCard({
       {expanded && (
         <>
           <label className="control-row">
-            Brightness <output>{data?.bright ?? "—"}%</output>
+            Brightness <output>{data?.bright ?? "Unknown"}%</output>
             <input
               aria-label="Light brightness"
               type="range"
@@ -169,6 +209,7 @@ export function LightCard({
               <button
                 key={name}
                 disabled={!ready}
+                style={{ borderColor: `${value}66`, boxShadow: `0 0 10px ${value}22` }}
                 onClick={() => send({ hex: value })}
               >
                 <svg width="14" height="14" aria-hidden="true">
@@ -221,7 +262,7 @@ export function LightCard({
             </p>
           )}
           <label className="control-row">
-            Speed <output>{data?.speed ?? "—"}%</output>
+            Speed <output>{data?.speed ?? "Unknown"}%</output>
             <input
               type="range"
               aria-label="Light speed"
@@ -274,7 +315,7 @@ export function LightCard({
             never retried automatically.
           </p>
           <p className="muted">
-            Desired: {data?.hex ?? "—"} · Confirmed: {confirmed?.hex ?? "—"}
+            Desired: {data?.hex ?? "Unknown"} · Confirmed: {confirmed?.hex ?? "Unknown"}
           </p>
         </>
       )}

@@ -31,13 +31,13 @@ export function NotificationStrip({
       <div className={expanded ? "notification-list" : "notification-preview"}>
         {shown.length ? (
           shown.map((item) => (
-            <article key={item.id}>
+            <article key={item.id} className={`notification-card-item source-${item.appId.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}>
               <span className="notification-source">
                 {item.appId} ·{" "}
                 {elapsedLabel(item.receivedAtEpochMs, laptopNowEpochMs)}
               </span>
               <strong>{item.title}</strong>
-              {item.body && <p>{item.body}</p>}
+              {item.body && <p className="notification-body">{item.body}</p>}
               {expanded && (
                 <button
                   onClick={() =>
@@ -57,7 +57,7 @@ export function NotificationStrip({
         ) : (
           <span>
             {state === "disabled"
-              ? "Notifications are off. Choose allowed apps on the laptop."
+              ? "Enable Claude, Codex and WhatsApp on the laptop."
               : state === "unavailable"
                 ? "Laptop notifications unavailable. Check desktop capture permission."
                 : "No selected notifications"}

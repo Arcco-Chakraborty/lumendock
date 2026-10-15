@@ -291,6 +291,15 @@ export class DashboardStore {
       }
     }
   }
+  async dispatchAction(action: string): Promise<{ success: boolean; message?: string }> {
+    if (!this.adapter) return { success: false, message: "No adapter" };
+    try {
+      const res = await this.adapter.request("hub.action", { action });
+      return res as { success: boolean; message?: string };
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : "Action failed" };
+    }
+  }
   private schedule() {
     this.timer = this.clock.setTimeout(() => {
       this.timer = null;

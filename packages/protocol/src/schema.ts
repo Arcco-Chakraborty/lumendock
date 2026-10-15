@@ -71,10 +71,12 @@ export const SetupResultSchema = z.strictObject({setupId:identifier,started:z.bo
 export const AppStatusSchema = z.strictObject({paired:z.boolean(),webViewSupported:z.boolean(),wifiMode:z.enum(['none','app_request','manual']),setup:z.strictObject({hub:SetupStateSchema,esp:SetupStateSchema}),screenOn:z.boolean(),brightness,nextCommandGeneration:generation}).refine(s => !(s.setup.hub.state === 'in_progress' && s.setup.esp.state === 'in_progress'),'Competing setup flows');
 export const ScreenSettingsResultSchema = z.strictObject({screenOn:z.boolean(),brightness});
 export const WifiSettingsResultSchema = z.strictObject({opened:z.boolean()});
+export const ActionReplySchema = z.strictObject({success:z.boolean(),message:bounded(100).optional()});
 const emptyArgs = z.strictObject({});
 export const BridgeArgsSchemas = {
   'hub.snapshot':emptyArgs,'esp.state':emptyArgs,'esp.history':emptyArgs,
   'esp.set':z.strictObject({patch:LightPatchSchema,generation}),
+  'hub.action':z.strictObject({action:identifier}),
   'app.status':emptyArgs,'app.setupHub':emptyArgs,'app.connectEsp':emptyArgs,'app.openWifiSettings':emptyArgs,
   'app.setScreenOn':z.strictObject({enabled:z.boolean()}),'app.setBrightness':z.strictObject({value:brightness}),
 } as const;
@@ -84,6 +86,7 @@ export const BridgeRequestSchema = withByteBudget(z.discriminatedUnion('op',[
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('esp.state'),args:BridgeArgsSchemas['esp.state']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('esp.history'),args:BridgeArgsSchemas['esp.history']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('esp.set'),args:BridgeArgsSchemas['esp.set']}),
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('hub.action'),args:BridgeArgsSchemas['hub.action']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.status'),args:BridgeArgsSchemas['app.status']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.setupHub'),args:BridgeArgsSchemas['app.setupHub']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.connectEsp'),args:BridgeArgsSchemas['app.connectEsp']}),
@@ -93,6 +96,7 @@ export const BridgeRequestSchema = withByteBudget(z.discriminatedUnion('op',[
 ]),LIMITS.bridgeBytes);
 export const BridgeReplyDataSchemas = {
   'hub.snapshot':HubLinkSnapshotSchema,'esp.state':EspSnapshotSchema,'esp.history':EspHistoryLinkSnapshotSchema,'esp.set':CommandResultSchema,
+  'hub.action':ActionReplySchema,
   'app.status':AppStatusSchema,'app.setupHub':SetupResultSchema,'app.connectEsp':SetupResultSchema,'app.openWifiSettings':WifiSettingsResultSchema,'app.setScreenOn':ScreenSettingsResultSchema,'app.setBrightness':ScreenSettingsResultSchema,
 } as const;
 const bridgeError = z.strictObject({code:ErrorCodeSchema,retryable:z.boolean()});
@@ -103,7 +107,7 @@ export function BridgeReplySchemaFor<O extends keyof typeof BridgeReplyDataSchem
   ]);
 }
 export const BridgeReplySchema = z.discriminatedUnion('ok',[
-  z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(true),data:z.union([HubLinkSnapshotSchema,EspSnapshotSchema,EspHistoryLinkSnapshotSchema,CommandResultSchema,AppStatusSchema,SetupResultSchema,WifiSettingsResultSchema,ScreenSettingsResultSchema])}),
+  z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(true),data:z.union([HubLinkSnapshotSchema,EspSnapshotSchema,EspHistoryLinkSnapshotSchema,CommandResultSchema,ActionReplySchema,AppStatusSchema,SetupResultSchema,WifiSettingsResultSchema,ScreenSettingsResultSchema])}),
   z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(false),error:bridgeError}),
 ]);
 export const PairRequestSchema = z.strictObject({code:z.string().regex(/^\d{8}$/)});

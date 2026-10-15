@@ -65,3 +65,13 @@ it("explains an unsupported phone software version before presenting setup", () 
   );
   store.dispose();
 });
+it("shows a useful local clock and date without a laptop time sample", () => {
+  const store = new DashboardStore(fakeClock());
+  const html = renderToStaticMarkup(<App store={store} nativeAvailable />);
+  expect(html).toContain('aria-label="Local time"');
+  expect(html).toContain('class="local-date"');
+  expect(html).not.toContain("—:—");
+  expect(html.indexOf('class="clock-room"')).toBeLessThan(html.indexOf('class="usage-alerts"'));
+  expect(html).not.toContain('class="lighting-dock"');
+  store.dispose();
+});

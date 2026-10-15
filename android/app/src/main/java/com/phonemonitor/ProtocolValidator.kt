@@ -60,6 +60,7 @@ object ProtocolValidator {
         "app.setScreenOn" -> obj(a,"enabled"){bool(it["enabled"])}
         "app.setBrightness" -> obj(a,"value"){brightness(it["value"])}
         "esp.set" -> obj(a,"patch generation"){int(it["generation"],1) && patch(it["patch"])}
+        "hub.action" -> obj(a,"action"){str(it["action"],80,true)}
         else -> false
     }
     fun patch(e:JsonElement?):Boolean = obj(e,"","power hex bright mode speed timerMinutes") { p ->
@@ -101,6 +102,7 @@ object ProtocolValidator {
         "esp.state" -> link(e,::esp,true) && budget(e,65536)
         "esp.history" -> link(e,::history)
         "esp.set" -> command(e)
+        "hub.action" -> obj(e,"success","message"){bool(it["success"]) && (!it.has("message") || str(it["message"],100))}
         "app.setupHub","app.connectEsp" -> obj(e,"setupId started"){str(it["setupId"],80,true) && bool(it["started"])}
         "app.openWifiSettings" -> obj(e,"opened"){bool(it["opened"])}
         "app.setScreenOn","app.setBrightness" -> obj(e,"screenOn brightness"){bool(it["screenOn"]) && brightness(it["brightness"])}

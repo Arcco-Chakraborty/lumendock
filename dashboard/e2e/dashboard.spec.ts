@@ -44,7 +44,6 @@ const link = (
 async function connected(page: Page) {
   await expect(link(page, "Laptop")).toBeVisible();
   await expect(link(page, "Controller")).toBeVisible();
-  await expect(power(page)).toBeEnabled();
 }
 const writes = (log: BridgeLogEntry[]) => log.filter((e) => e.op === "esp.set");
 
@@ -110,6 +109,7 @@ test.describe("production bundle (A13/A14)", () => {
         ),
         "no vertical scroll needed at landscape",
       ).toBe(false);
+      await page.screenshot({ path: evidence(`${viewport.name}-ready`) });
       expect(await clippingProblems(page)).toEqual([]);
       expect(await controlProblems(page)).toEqual([]);
       expect(await overlapProblems(page), "controls must not cover text").toEqual([]);
@@ -119,8 +119,6 @@ test.describe("production bundle (A13/A14)", () => {
         /all claude windows/i,
         /all codex windows/i,
         /room history/i,
-        /^power (on|off)$/i,
-        /light controls/i,
         /^details/i,
       ]) {
         const box = await page.getByRole("button", { name }).boundingBox();
@@ -197,8 +195,9 @@ test.describe("production bundle (A13/A14)", () => {
         expect(box.x, box.label).toBeGreaterThanOrEqual(-0.5);
         expect(box.x + box.width, box.label).toBeLessThanOrEqual(viewport.width + 0.5);
       }
-      await power(page).scrollIntoViewIfNeeded();
-      await expect(power(page)).toBeInViewport();
+      const detailsBtn = page.getByRole("button", { name: /^details/i });
+      await detailsBtn.scrollIntoViewIfNeeded();
+      await expect(detailsBtn).toBeInViewport();
       await page.getByRole("button", { name: /open settings/i }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
       const close = page.getByRole("button", { name: /close sheet/i });
@@ -245,17 +244,15 @@ test.describe("production bundle (A13/A14)", () => {
     // Document order of the primary controls.
     await page.locator("body").click({ position: { x: 1, y: 1 } });
     const order: string[] = [];
-    for (let i = 0; i < 7; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
       await page.keyboard.press("Tab");
       order.push(await focused());
     }
     expect(order).toEqual([
       "Open settings",
+      "Room history",
       "All Claude windows",
       "All Codex windows",
-      "Room history",
-      "Power off",
-      "Light controls",
       "Details (1)",
     ]);
     // Settings: Enter opens, focus moves inside, Tab stays inside, Escape restores focus.
@@ -263,7 +260,6 @@ test.describe("production bundle (A13/A14)", () => {
       [/open settings/i, /^Settings$/],
       [/all claude windows/i, /^Usage windows$/],
       [/room history/i, /^Room history$/],
-      [/light controls/i, /^Lighting$/],
       [/^details/i, /^Notifications$/],
     ];
     for (const [button, title] of openers) {
@@ -295,6 +291,19 @@ test.describe("production bundle (A13/A14)", () => {
       await expect(dialog).toBeHidden();
       await expect(opener).toBeFocused();
     }
+    // Lighting dialog opens from the Deck view and restores focus on Escape.
+    await page.getByRole("tab", { name: /deck/i }).click();
+    const lightOpener = page.getByRole("button", { name: /light controls/i });
+    await lightOpener.focus();
+    await page.keyboard.press("Enter");
+    const lightDialog = page.getByRole("dialog");
+    await expect(lightDialog).toBeVisible();
+    await expect(lightDialog.getByText(/^Lighting$/).first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(lightDialog).toBeHidden();
+    await expect(lightOpener).toBeFocused();
+    await page.getByRole("tab", { name: /monitor/i }).click();
+
     // The Close button also restores focus.
     const settings = page.getByRole("button", { name: /open settings/i });
     await settings.click();
@@ -331,8 +340,10 @@ test.describe("production bundle (A13/A14)", () => {
     await page.getByRole("button", { name: /open settings/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("button", { name: /close sheet/i }).click();
+    await page.getByRole("tab", { name: /deck/i }).click();
     await power(page).click();
     await expect(page.getByRole("button", { name: "Power on" })).toBeVisible();
+    await page.getByRole("tab", { name: /monitor/i }).click();
     await context.setOffline(false);
     // The shell never requested anything beyond its own origin (also asserted at teardown).
     expect(watch.requests.some((p) => /\.(js|css)$/.test(p))).toBe(true);
@@ -357,10 +368,13 @@ test.describe("independent link loss", () => {
     await openDashboard(page, { width: 740, height: 320 }, { hub: "disconnected" });
     await expect(link(page, "Laptop", "disconnected")).toBeVisible();
     await expect(link(page, "Controller", "connected")).toBeVisible();
+    await page.getByRole("tab", { name: /deck/i }).click();
     await expect(power(page)).toBeEnabled();
+    await page.getByRole("tab", { name: /monitor/i }).click();
     await expect(page.getByText("24.5").first()).toBeVisible();
     await page.screenshot({ path: evidence("740x320-usb-down") });
     // The light really works while the laptop path is down.
+    await page.getByRole("tab", { name: /deck/i }).click();
     await power(page).click();
     await expect(page.getByRole("button", { name: "Power on" })).toBeVisible();
     expect(writes(await bridgeLog(page))).toHaveLength(1);
@@ -372,6 +386,7 @@ test.describe("independent link loss", () => {
     await expect(link(page, "Laptop", "connected")).toBeVisible();
     await expect(page.getByText("17.25% used").first()).toBeVisible();
     await expect(page.getByRole("button", { name: /all claude windows/i })).toBeEnabled();
+    await page.getByRole("tab", { name: /deck/i }).click();
     await expect(power(page)).toBeDisabled();
     await page.screenshot({ path: evidence("740x320-esp-down") });
   });
@@ -390,7 +405,9 @@ test.describe("independent link loss", () => {
     });
     await expect(link(page, "Laptop", "disconnected")).toBeVisible({ timeout: 6000 });
     await expect(link(page, "Controller", "connected")).toBeVisible();
+    await page.getByRole("tab", { name: /deck/i }).click();
     await expect(power(page)).toBeEnabled();
+    await page.getByRole("tab", { name: /monitor/i }).click();
     // The last quota is retained with its own report age instead of being blanked.
     await expect(page.getByText("17.25% used").first()).toBeVisible();
     await expect(page.getByText(/\d+[smh] ago/).first()).toBeVisible();
@@ -476,6 +493,7 @@ test.describe("light control writes (bridge log)", () => {
   test("keeps one esp.set in flight and merges later changes", async ({ page }) => {
     await openDashboard(page, { width: 800, height: 360 }, { holdSets: true });
     await connected(page);
+    await page.getByRole("tab", { name: /deck/i }).click();
     await page.getByRole("button", { name: /light controls/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("button", { name: "Red" })).toBeEnabled();
@@ -509,6 +527,7 @@ test.describe("light control writes (bridge log)", () => {
   }) => {
     await openDashboard(page, { width: 800, height: 360 });
     await connected(page);
+    await page.getByRole("tab", { name: /deck/i }).click();
     await page.getByRole("button", { name: /light controls/i }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/sleep timer/i).fill("45");
@@ -589,4 +608,90 @@ test.describe("final-review fixes", () => {
     expect(sent.length).toBeLessThan(5); // latest-wins, not one write per keypress
     await expect(slider).toHaveValue(String(start - 5));
   });
+});
+
+test.describe("instrument display revision", () => {
+  for (const viewport of [...LANDSCAPE, {name: "360x800", width: 360, height: 800}]) {
+    test(`deliberate time-room-usage-alert-light hierarchy at ${viewport.name}`, async ({page}) => {
+      await openDashboard(page, viewport);
+      await connected(page);
+      const boxes = await page.evaluate(() => {
+        const box = (s: string) => {
+          const r = document.querySelector(s)!.getBoundingClientRect();
+          return {x:r.x, y:r.y, right:r.right, bottom:r.bottom, height:r.height, width:r.width};
+        };
+        return {clock:box(".local-clock"), room:box(".climate-card"), usage:box(".usage-stack"), alerts:box(".notification-strip"), left:box(".clock-room"), grid:box(".main-grid")};
+      });
+      expect(boxes.clock.bottom).toBeLessThanOrEqual(boxes.room.y + 0.5);
+      expect(boxes.usage.bottom).toBeLessThanOrEqual(boxes.alerts.y + 0.5);
+      if (viewport.width > viewport.height) {
+        expect(boxes.left.width / boxes.grid.width).toBeGreaterThan(.32);
+        expect(boxes.left.width / boxes.grid.width).toBeLessThan(.39);
+        expect(boxes.clock.right).toBeLessThanOrEqual(boxes.usage.x);
+      } else {
+        expect(boxes.room.bottom).toBeLessThanOrEqual(boxes.usage.y);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(false);
+      expect(await controlProblems(page)).toEqual([]);
+      expect(await page.locator(".clock").evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(72);
+      await page.screenshot({path:evidence(`${viewport.name}-composition`)});
+    });
+  }
+  test("local time works offline and an incorrect phone date does not drive quota reset", async ({page}) => {
+    const syntheticPhoneTime = new Date("2030-07-15T07:42:00Z");
+    await page.clock.setFixedTime(syntheticPhoneTime);
+    await openDashboard(page, {width:800, height:360});
+    await connected(page);
+    await expect(page.getByLabel("Local time")).toHaveAttribute("datetime", syntheticPhoneTime.toISOString());
+    await expect(page.locator(".usage-card").first().getByText(/Reset in [45]h/)).toBeVisible();
+    const data = await installSyntheticNativeBridge(page);
+    data.hub = {state:"disconnected", ageMs:null, stale:true, data:null, errorCode:"USB_UNAVAILABLE"};
+    await setBridgeSlot(page, "hub", data.hub);
+    await expect(link(page,"Laptop","disconnected")).toBeVisible();
+    await page.clock.setFixedTime(new Date("2030-07-15T07:44:00Z"));
+    await expect(page.getByLabel("Local time")).toHaveAttribute("datetime", "2030-07-15T07:44:00.000Z");
+    await expect(page.locator(".usage-card").first().getByText(/Reset in [45]h/)).toBeVisible();
+  });
+  for (const viewport of LANDSCAPE) {
+    test(`source setup stays useful and controls stay reachable at ${viewport.name}`, async ({page}) => {
+      await openDashboard(page, viewport, {edit: f => {
+        const source = f.hub.data!.usage.claude;
+        source.state = "unsupported";
+        source.errorCode = "SOURCE_UNAVAILABLE";
+        source.windows = [];
+        f.hub.data!.notifications = {state:"disabled", errorCode:null, items:[]};
+      }});
+      await connected(page);
+      await expect(page.getByText("Set up Claude capture on the laptop.").first()).toBeVisible();
+      await expect(page.getByText("Enable Claude, Codex and WhatsApp on the laptop.").first()).toBeVisible();
+      expect(await clippingProblems(page)).toEqual([]);
+      expect(await controlProblems(page)).toEqual([]);
+      expect(await overlapProblems(page)).toEqual([]);
+      await page.screenshot({path:evidence(`${viewport.name}-setup`)});
+      await page.getByRole("button",{name:"All Claude windows"}).click();
+      await expect(page.getByRole("dialog").getByText("Set up Claude capture on the laptop.").first()).toBeVisible();
+    });
+  }
+  test("extra windows remain discoverable before opening full quota details", async ({page}) => {
+    await openDashboard(page,{width:740,height:320},{edit:f=> {
+      const windows = f.hub.data!.usage.codex.windows;
+      windows.push({...windows[0]!, windowId:"synthetic-weekly", windowDurationMins:10080, label:"Synthetic weekly"});
+    }});
+    await connected(page);
+    await expect(page.getByRole("button",{name:"All Codex windows"})).toHaveText("View 2");
+    await page.getByRole("button",{name:"All Codex windows"}).click();
+    await expect(page.getByRole("dialog").getByText("10080 minutes")).toBeVisible();
+  });
+});
+
+test("missing room readings leave compact honest guidance and visible light controls", async ({page}) => {
+  await openDashboard(page,{width:740,height:320},{esp:"disconnected"});
+  await expect(link(page,"Controller","disconnected")).toBeVisible();
+  await page.getByRole("tab", { name: /deck/i }).click();
+  await expect(power(page)).toBeDisabled();
+  expect(await clippingProblems(page)).toEqual([]);
+  expect(await controlProblems(page)).toEqual([]);
+  expect(await overlapProblems(page)).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(false);
+  await page.screenshot({path:evidence("740x320-room-unavailable")});
 });

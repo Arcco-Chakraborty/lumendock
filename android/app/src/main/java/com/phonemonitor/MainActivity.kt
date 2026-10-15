@@ -132,6 +132,7 @@ class MainActivity : Activity() {
             override fun espState()=controller.state().toJson()
             override fun espHistory()=controller.history().toJson()
             override fun setLight(patch:com.google.gson.JsonObject,generation:Long)=controller.set(LightPatch.fromJson(patch),generation).toJson()
+            override fun hubAction(action:String)=client.action(action)
             override fun openWifiSettings():com.google.gson.JsonObject {
                 // Manual fallback: observe the Wi-Fi the user joins, unless a working app request already exists.
                 if(selection.mode!="app_request" || selection.current()==null) selection.useManual()

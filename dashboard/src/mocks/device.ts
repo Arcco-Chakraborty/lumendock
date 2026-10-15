@@ -64,6 +64,9 @@ export function createMockAdapter(
           else app.brightness = request.args.value;
           data = { screenOn: app.screenOn, brightness: app.brightness };
         }
+        if (data === undefined && request.op === "hub.action") {
+          data = { success: true, message: `Action ${request.args.action}` };
+        }
         const reply =
           data === undefined
             ? {

@@ -30,6 +30,7 @@ internal const val JOIN_WAIT_MS=6000L
 enum class HubPath(val url:String,val method:String) {
     SNAPSHOT("http://127.0.0.1:8765/v1/snapshot","GET"),
     PAIR("http://127.0.0.1:8765/v1/pair","POST"),
+    ACTION("http://127.0.0.1:8765/v1/action","POST"),
 }
 /** The bearer lives only here and in native storage. toString never renders it. */
 internal class HubRequest(val path:HubPath,val bearer:String?,val body:ByteArray?=null) {
@@ -288,6 +289,18 @@ class LaptopClient internal constructor(
             else -> "BAD_PAYLOAD"
         }
         return PairOutcome(null,code)
+    }
+
+    fun action(actionName:String):JsonObject {
+        val bearer=store.getToken() ?: token ?: throw HubTransportException("AUTH_REQUIRED")
+        val payload=jsonObject("action" to actionName).toString().toByteArray(Charsets.UTF_8)
+        val request=HubRequest(HubPath.ACTION,bearer,payload)
+        val call=transport.newCall(request)
+        val response=try { call.execute() } catch(e:IOException) { throw HubTransportException("USB_UNAVAILABLE") }
+        if(response.status==401) throw HubTransportException("AUTH_REQUIRED")
+        if(response.status!=200) throw HubTransportException("BAD_PAYLOAD")
+        val parsed=parseObject(response.body)
+        return parsed?.getAsJsonObject("data") ?: jsonObject("success" to true)
     }
 
     private fun parseObject(body:ByteArray):JsonObject? = try {

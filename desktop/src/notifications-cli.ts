@@ -1,12 +1,19 @@
-import { allowNotificationApp, listNotificationApps, removeNotificationApp } from './config.js';
+import { allowNotificationApp, listNotificationApps, removeNotificationApp, replaceNotificationApps } from './config.js';
+import { discoverSelectedNotificationApps } from './notification-sources.js';
 
-const USAGE = 'Usage: notifications allow APP_LABEL | notifications remove APP_LABEL | notifications list';
+const USAGE = 'Usage: notifications allow APP_LABEL | notifications remove APP_LABEL | notifications list | notifications configure-selected | notifications clear';
 // Returns a process exit code; every message is fixed text (labels are the user's own input).
-export async function runNotificationsCommand(argv: readonly string[], configDir: string, out: (line: string) => void = console.log): Promise<number> {
+export async function runNotificationsCommand(argv: readonly string[], configDir: string, out: (line: string) => void = console.log,applicationDirectories?:readonly string[]): Promise<number> {
   const args = argv[0] === 'notifications' ? argv.slice(1) : argv;
   const [command, label, ...extra] = args;
   const usage = (): number => { out(USAGE); return 2; };
   try {
+    if(command==='configure-selected'||command==='clear'){
+      if(label!==undefined)return usage();
+      await replaceNotificationApps(configDir,command==='clear'?[]:discoverSelectedNotificationApps(applicationDirectories));
+      out(command==='clear'?'Notification capture is off.':'Selected sources configured: Claude, Codex and WhatsApp only. Installed WhatsApp PWA identities are included; other browser notifications are excluded.');
+      return 0;
+    }
     if (command === 'list') {
       if (label !== undefined) return usage();
       const labels = listNotificationApps(configDir);

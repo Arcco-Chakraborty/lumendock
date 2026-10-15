@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +14,7 @@ import { ClimateCard } from "./components/ClimateCard.js";
 import { LightCard } from "./components/LightCard.js";
 import { NotificationStrip } from "./components/NotificationStrip.js";
 import { SettingsSheet } from "./components/SettingsSheet.js";
+import { DeckView } from "./components/DeckView.js";
 import { LightIntentController } from "./lib/lightIntent.js";
 
 export interface AppProps {
@@ -86,6 +88,54 @@ export function App({
     | "history"
     | null
   >(null);
+  const [view, setView] = useState<"monitor" | "deck">("monitor");
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [dockOpen, setDockOpen] = useState(true);
+  const autoDropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetAutoDropTimer = useCallback(() => {
+    if (autoDropTimerRef.current) clearTimeout(autoDropTimerRef.current);
+    autoDropTimerRef.current = setTimeout(() => {
+      setDockOpen(false);
+    }, 8000);
+  }, []);
+
+  useEffect(() => {
+    if (dockOpen) {
+      resetAutoDropTimer();
+    } else if (autoDropTimerRef.current) {
+      clearTimeout(autoDropTimerRef.current);
+    }
+    return () => {
+      if (autoDropTimerRef.current) clearTimeout(autoDropTimerRef.current);
+    };
+  }, [dockOpen, resetAutoDropTimer]);
+
+  const prevHubState = useRef(`${snapshot.hub.state}:${snapshot.hub.errorCode}`);
+  const prevEspState = useRef(`${snapshot.esp.state}:${snapshot.esp.errorCode}`);
+  useEffect(() => {
+    const hubKey = `${snapshot.hub.state}:${snapshot.hub.errorCode}`;
+    const espKey = `${snapshot.esp.state}:${snapshot.esp.errorCode}`;
+    if (prevHubState.current !== hubKey || prevEspState.current !== espKey) {
+      prevHubState.current = hubKey;
+      prevEspState.current = espKey;
+      setDockOpen(true);
+      resetAutoDropTimer();
+    }
+  }, [
+    snapshot.hub.state,
+    snapshot.hub.errorCode,
+    snapshot.esp.state,
+    snapshot.esp.errorCode,
+    resetAutoDropTimer,
+  ]);
+
+  useEffect(() => {
+    if (actionFeedback) {
+      setDockOpen(true);
+      resetAutoDropTimer();
+    }
+  }, [actionFeedback, resetAutoDropTimer]);
   const controller = useMemo(
     () =>
       adapter
@@ -116,54 +166,116 @@ export function App({
       opener.current?.focus();
     }
   }, [sheet]);
-  const clock =
-    snapshot.laptopNowEpochMs === null
-      ? "—:—"
-      : new Date(snapshot.laptopNowEpochMs).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+  // The room clock uses the phone's local wall time, independently of USB.
+  // Quotas and notification expiry continue to use the store's sampled laptop time.
+  const [localNow, setLocalNow] = useState(() => new Date());
+  useEffect(() => {
+    const update = () => setLocalNow(new Date());
+    const timer = window.setInterval(update, 1000);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+  const rawHours = localNow.getHours();
+  const hours = rawHours % 12 || 12;
+  const minutes = localNow.getMinutes().toString().padStart(2, "0");
+  const ampm = rawHours >= 12 ? "PM" : "AM";
+  const clock = `${hours}:${minutes}`;
+  const date = localNow.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
   const notifications = snapshot.hub.data?.notifications;
   return (
     <main className="dashboard">
-      <header className="topbar">
-        <div className="identity">
-          <span className="brand-mark" aria-hidden="true">
-            ◈
-          </span>
-          <span>Desk monitor</span>
-          {import.meta.env.DEV && demo && (
-            <span className="demo-label">Synthetic demo</span>
-          )}
-        </div>
+      <footer
+        className={`bottom-dock ${dockOpen ? "is-open" : "is-collapsed"}`}
+        role="toolbar"
+        aria-label="Navigation and status"
+        onMouseEnter={resetAutoDropTimer}
+        onTouchStart={resetAutoDropTimer}
+      >
         <div className="connections">
           <LinkStatus name="Laptop" link={snapshot.hub} unpaired={unpaired} />
           <LinkStatus name="Controller" link={snapshot.esp} />
+          {actionFeedback && (
+            <span className="deck-feedback" role="status" aria-live="polite">
+              <span className="deck-feedback-dot" aria-hidden="true" />
+              <span>{actionFeedback}</span>
+            </span>
+          )}
         </div>
-        <time className="clock" aria-label="Laptop time">
-          {clock}
-        </time>
-        <button
-          className="settings-button"
-          aria-label="Open settings"
-          onClick={() => setSheet("settings")}
-        >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
+        <div className="view-switcher" role="tablist" aria-label="Views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "monitor"}
+            className={`view-tab${view === "monitor" ? " is-active" : ""}`}
+            onClick={() => {
+              setView("monitor");
+              resetAutoDropTimer();
+            }}
+            tabIndex={-1}
           >
-            <path
-              d="M4 7h16M4 17h16M9 3v8M15 13v8"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
+            Monitor
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "deck"}
+            className={`view-tab${view === "deck" ? " is-active" : ""}`}
+            onClick={() => {
+              setView("deck");
+              resetAutoDropTimer();
+            }}
+            tabIndex={-1}
+          >
+            Deck
+          </button>
+        </div>
+        <div className="dock-actions">
+          <button
+            className="settings-button"
+            aria-label="Open settings"
+            onClick={() => setSheet("settings")}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 7h16M4 17h16M9 3v8M15 13v8"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="dock-collapse-button"
+            aria-label="Hide bar"
+            tabIndex={-1}
+            onClick={() => setDockOpen(false)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+            </svg>
+          </button>
+        </div>
+      </footer>
+      {!dockOpen && (
+        <button
+          type="button"
+          className="dock-trigger-pill"
+          aria-label="Open menu / status"
+          onClick={() => setDockOpen(true)}
+        >
+          <span className="dock-trigger-handle" aria-hidden="true" />
         </button>
-      </header>
+      )}
       {snapshot.app?.webViewSupported === false && (
         <p className="setup-banner">
           Update Android System WebView to connect this display.
@@ -174,72 +286,88 @@ export function App({
           Open the Phone Monitor app to connect your laptop and room controller.
         </p>
       )}
-      <div className="main-grid">
-        <div className="usage-stack">
-          {usageSlot ?? (nativeAvailable && unpaired ? (
-            <section className="card pair-card" role="status" aria-label="Laptop pairing">
-          <h2>Laptop</h2>
-          <p>
-            {snapshot.hub.errorCode === "AUTH_REQUIRED" && snapshot.app?.paired !== false
-              ? "The laptop no longer accepts this phone. Pair again."
-              : "This phone is not paired with the laptop yet."}
-          </p>
-          <button
-            disabled={pairBusy}
-            onClick={() => {
-              setPairBusy(true);
-              store
-                .setup("app.setupHub")
-                .catch(() => undefined)
-                .finally(() => setPairBusy(false));
-            }}
-          >
-            Pair laptop
-          </button>
-            </section>
-          ) : (
-            <>
-              <UsageCard
-                name="Claude"
-                source={snapshot.hub.data?.usage.claude}
-                laptopNowEpochMs={snapshot.laptopNowEpochMs}
-                onDetails={() => setSheet("claude")}
-              />
-              <UsageCard
-                name="Codex"
-                source={snapshot.hub.data?.usage.codex}
-                laptopNowEpochMs={snapshot.laptopNowEpochMs}
-                onDetails={() => setSheet("codex")}
-              />
-            </>
-          ))}
-        </div>
-        {climateSlot ?? (
-          <ClimateCard
-            snapshot={snapshot.esp}
-            onHistory={() => setSheet("history")}
-          />
-        )}
-        {lightingSlot ?? (
-          <LightCard
-            snapshot={snapshot.esp}
-            controller={controller}
-            onDetails={() => setSheet("lights")}
-          />
-        )}
-      </div>
-      <footer className="notification-strip">
-        {notificationSlot ?? (
-          <NotificationStrip
-            dismissed={dismissed}
-            onDismiss={dismiss}
-            items={notifications?.items ?? []}
-            laptopNowEpochMs={snapshot.laptopNowEpochMs}
-            state={notifications?.state ?? "disabled"}
-            onDetails={() => setSheet("notifications")}
-          />
-        )}
-      </footer>
+      {import.meta.env.DEV && demo && <span className="demo-label">Synthetic demo</span>}
+      {view === "monitor" ? (
+        <>
+          <div className="main-grid">
+            <div className="clock-room">
+              <section className="local-clock" aria-label="Clock and date">
+                <time className="clock" aria-label="Local time" dateTime={localNow.toISOString()}>
+                  {clock}<span className="clock-ampm">{ampm}</span>
+                </time>
+                <p className="local-date">{date}</p>
+              </section>
+              {climateSlot ?? <ClimateCard snapshot={snapshot.esp} onHistory={() => setSheet("history")} />}
+            </div>
+            <div className="usage-alerts">
+              <div className="usage-stack">
+                {usageSlot ?? (nativeAvailable && unpaired ? (
+                  <section className="card pair-card" role="status" aria-label="Laptop pairing">
+                    <h2>Laptop</h2>
+                    <p>
+                      {snapshot.hub.errorCode === "AUTH_REQUIRED" && snapshot.app?.paired !== false
+                        ? "The laptop no longer accepts this phone. Pair again."
+                        : "This phone is not paired with the laptop yet."}
+                    </p>
+                    <button
+                      disabled={pairBusy}
+                      onClick={() => {
+                        setPairBusy(true);
+                        store
+                          .setup("app.setupHub")
+                          .catch(() => undefined)
+                          .finally(() => setPairBusy(false));
+                      }}
+                    >
+                      Pair laptop
+                    </button>
+                  </section>
+                ) : (
+                  <>
+                    <UsageCard
+                      name="Claude"
+                      source={snapshot.hub.data?.usage.claude}
+                      laptopNowEpochMs={snapshot.laptopNowEpochMs}
+                      onDetails={() => setSheet("claude")}
+                    />
+                    <UsageCard
+                      name="Codex"
+                      source={snapshot.hub.data?.usage.codex}
+                      laptopNowEpochMs={snapshot.laptopNowEpochMs}
+                      onDetails={() => setSheet("codex")}
+                    />
+                  </>
+                ))}
+              </div>
+              <section className="notification-strip" aria-label="Recent alerts">
+                <h2>Recent alerts</h2>
+                {notificationSlot ?? <NotificationStrip
+                  dismissed={dismissed}
+                  onDismiss={dismiss}
+                  items={notifications?.items ?? []}
+                  laptopNowEpochMs={snapshot.laptopNowEpochMs}
+                  state={notifications?.state ?? "disabled"}
+                  onDetails={() => setSheet("notifications")}
+                />}
+              </section>
+            </div>
+          </div>
+          {lightingSlot && (
+            <footer className="lighting-dock">
+              {lightingSlot}
+            </footer>
+          )}
+        </>
+      ) : (
+        <DeckView
+          store={store}
+          laptopConnected={snapshot.hub.state === "connected" && !snapshot.hub.stale && !unpaired}
+          esp={snapshot.esp}
+          controller={controller}
+          onOpenLights={() => setSheet("lights")}
+          onFeedback={setActionFeedback}
+        />
+      )}
       <dialog
         ref={dialog}
         aria-labelledby="sheet-title"
@@ -310,8 +438,9 @@ export function App({
           <>
             <h2>Selected notifications</h2>
             <p>
-              Choose allowed laptop apps during desktop setup. Notifications
-              expire after 30 minutes. Hiding an item affects only this display.
+              Selected sources: Claude, Codex and WhatsApp. Enable these sources
+              in laptop notification setup. Notifications expire after 30 minutes.
+              Hiding an item affects only this display.
             </p>
             <NotificationStrip
               dismissed={dismissed}

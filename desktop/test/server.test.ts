@@ -132,4 +132,14 @@ describe('read-time source retention', () => {
     expect(snapshot.notifications.items.at(-1)?.id).toBe('💡'.repeat(75)+'00099');
     expect(snapshot.notifications.items.at(-1)?.body).toBe('💡'.repeat(280));
   });
+  it('executes actions when authenticated and rejects unauthorized calls', async () => {
+    const {app,tokenStore} = makeTestHub(); tokenStore.write('a'.repeat(64));
+    const unauth = await app.inject({method:'POST',url:'/v1/action',headers,payload:{action:'media_play_pause'}});
+    expect(unauth.statusCode).toBe(401);
+    const bad = await app.inject({method:'POST',url:'/v1/action',headers:auth,payload:{}});
+    expect(bad.statusCode).toBe(400);
+    const res = await app.inject({method:'POST',url:'/v1/action',headers:auth,payload:{action:'media_mute'}});
+    expect(res.statusCode).toBe(200);
+    expect(res.json().ok).toBe(true);
+  });
 });

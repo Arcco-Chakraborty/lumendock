@@ -61,18 +61,28 @@ export function ClimateCard({
                 : "No reading"}
         </span>
       </div>
-      <div className={sensorFailed ? "temperature is-old" : "temperature"}>
-        {data !== null && data.temperatureC !== null ? data.temperatureC.toFixed(1) : "—"}
-        <span>°C</span>
-      </div>
-      <div className="humidity">
-        <strong>
-          {data !== null && data.humidityPercent !== null
-            ? `${Math.round(data.humidityPercent)}%`
-            : "—"}
-        </strong>
-        <span className="muted">humidity</span>
-      </div>
+      {data ? (
+        <>
+          <div className={`temperature${sensorFailed ? " is-old" : ""}${data.temperatureC == null ? " is-unknown" : ""}`}>
+            {data.temperatureC !== null ? (
+              <>
+                {data.temperatureC.toFixed(1)}
+                <span>°C</span>
+              </>
+            ) : (
+              "Unknown"
+            )}
+          </div>
+          <div className="humidity">
+            <strong className={data.humidityPercent == null ? "is-unknown" : undefined}>
+              {data.humidityPercent !== null
+                ? `${Math.round(data.humidityPercent)}%`
+                : "Unknown"}
+            </strong>
+            <span className="muted">humidity</span>
+          </div>
+        </>
+      ) : null}
       {history && (
         <>
           <svg
@@ -82,7 +92,7 @@ export function ClimateCard({
             role="img"
             aria-label={`Temperature history, ${history.intervalSeconds} seconds between samples; gaps mean missing readings`}
           >
-            <path d={chartPath} fill="none" stroke="#78d3d8" strokeWidth="1" />
+            <path d={chartPath} fill="none" stroke="#d5b97b" strokeWidth="1" />
           </svg>
           <p className="history-offsets muted">
             <span>
@@ -92,7 +102,7 @@ export function ClimateCard({
           </p>
         </>
       )}
-      <p className="muted room-note">
+      {(!data || !ok || snapshot.stale) && <p className="muted room-note">
         {!data
           ? "Connect controller to see room conditions."
           : !ok
@@ -100,10 +110,10 @@ export function ClimateCard({
             : snapshot.stale
               ? "Controller disconnected. Readings may be old."
               : "Temperature and humidity"}
-      </p>
+      </p>}
       {onHistory && (
-        <button className="text-button" onClick={onHistory}>
-          Room history
+        <button className="text-button" aria-label="Room history" onClick={onHistory}>
+          History
         </button>
       )}
     </section>

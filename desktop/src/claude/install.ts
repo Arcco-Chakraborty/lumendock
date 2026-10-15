@@ -25,6 +25,23 @@ export function readClaudeInstallation(configDir:string):ClaudeInstallation|null
   if(data.phase!==undefined&&!['install_pending','installed','uninstall_pending'].includes(String(data.phase)))throw Error('BAD_INSTALLATION_RECORD');
   return {...data,phase:data.phase??'installed'} as unknown as ClaudeInstallation;
 }
+export interface ClaudeCaptureReadiness {state:'not_installed'|'ready'|'ownership_conflict'|'unavailable'|'invalid'}
+/** Read-only, sanitized ownership check. Never returns a command, path or provider identity. */
+export function inspectClaudeCapture(configDir:string):ClaudeCaptureReadiness {
+  try {
+    const record=readClaudeInstallation(configDir);
+    if(!record)return {state:'not_installed'};
+    if(![record.settingsPath,record.wrapperPath,record.nodePath].every(isAbsolute))return {state:'invalid'};
+    const settings=object(JSON.parse(readOwnedFile(record.settingsPath,1024*1024).toString('utf8')));
+    if(!equal(settings.statusLine,record.installedStatusLine))return {state:'ownership_conflict'};
+    try {
+      const wrapper=lstatSync(record.wrapperPath);
+      if(!wrapper.isFile()||wrapper.isSymbolicLink()||wrapper.uid!==process.getuid?.())return {state:'unavailable'};
+      accessSync(record.wrapperPath,constants.R_OK);accessSync(record.nodePath,constants.X_OK);
+    }catch{return {state:'unavailable'};}
+    return {state:'ready'};
+  }catch{return {state:'invalid'};}
+}
 function matchesOriginal(settings:Record<string,unknown>,record:ClaudeInstallation):boolean {
   return Object.hasOwn(settings,'statusLine')===record.hadStatusLine&&(!record.hadStatusLine||equal(settings.statusLine,record.previousStatusLine));
 }

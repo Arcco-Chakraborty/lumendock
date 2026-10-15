@@ -179,3 +179,23 @@ describe('generation-owned lifecycle',()=>{
   expect(runner.calls).toHaveLength(1);expect(vi.getTimerCount()).toBe(0);
  });
 });
+
+describe('exact selected PWA identity',()=>{
+ const selector='desktop-entry:whatsapp:chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-Default';
+ it('forwards only the selected PWA hint as WhatsApp, dropping unrelated browser events before retaining text',async()=>{
+  const {runner,store,collector}=setup({},[selector]);await collector.start([selector]);
+  const send=(entry:string)=>notify('Google Chrome','Synthetic PWA','Synthetic body',m=>{m.payload.data[6]={'desktop-entry':{type:'s',data:entry}};});
+  runner.children[0]!.say(send('google-chrome'));
+  runner.children[0]!.say(send('chrome-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-Default'));
+  runner.children[0]!.say(send('chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-Default'));
+  await vi.waitFor(()=>expect(items(store)).toHaveLength(1));
+  expect(items(store)[0]).toMatchObject({appId:'WhatsApp',title:'Synthetic PWA'});
+  await collector.stop();
+ });
+ it('does not infer WhatsApp from contact title, body, app name or untyped hints',async()=>{
+  const {runner,store,collector}=setup({},[selector]);await collector.start([selector]);
+  runner.children[0]!.say(notify('Google Chrome','WhatsApp','web.whatsapp.com'));
+  runner.children[0]!.say(notify('WhatsApp','Synthetic','body',m=>{m.payload.data[6]={'desktop-entry':'chrome-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-Default'};}));
+  await new Promise(resolve=>setImmediate(resolve));expect(items(store)).toHaveLength(0);await collector.stop();
+ });
+});

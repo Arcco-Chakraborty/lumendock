@@ -3,6 +3,7 @@ import { PairRequestSchema } from '@phone-monitor/protocol';
 import { TokenStore } from './config.js';
 import { PairingSession } from './pairing.js';
 import { HubStore } from './store.js';
+import { executeAction } from './actions.js';
 
 export interface HubClock {nowMs():number; monotonicMs():number}
 export interface HubOptions {store:HubStore; pairing:PairingSession; tokenStore:TokenStore; clock:HubClock}
@@ -48,6 +49,14 @@ export function buildHub({store,pairing,tokenStore,clock}: HubOptions): FastifyI
       if (code === 'TOKEN_PERSIST_FAILED') return reply.code(503).send({v:1,error:{code}});
       return reply.code(400).send(badPayload);
     }
+  });
+  app.post('/v1/action',async (request,reply) => {
+    if (!tokenStore.matchesBearer(request.headers.authorization)) return reply.code(401).send({v:1,error:{code:'AUTH_REQUIRED'}});
+    const body = request.body as {action?: string} | undefined;
+    if (!body || typeof body.action !== 'string' || !body.action) return reply.code(400).send(badPayload);
+    const result = await executeAction(body.action);
+    store.markPhoneActivity(clock.monotonicMs());
+    return {v:1,ok:true,data:result};
   });
   return app;
 }

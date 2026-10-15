@@ -18,6 +18,7 @@ interface BridgeServices {
     fun espHistory():JsonObject
     fun setLight(patch:JsonObject,generation:Long):JsonObject
     fun openWifiSettings():JsonObject
+    fun hubAction(action:String):JsonObject
 }
 /** Explicit unavailable states until A2/A3 clients are installed. No simulated live data. */
 open class UnavailableBridgeServices : BridgeServices {
@@ -26,6 +27,7 @@ open class UnavailableBridgeServices : BridgeServices {
     override fun espHistory()=unavailable("WIFI_UNAVAILABLE")
     override fun setLight(patch:JsonObject,generation:Long):JsonObject=throw BridgeFailure("WIFI_UNAVAILABLE")
     override fun openWifiSettings()=jsonObject("opened" to false)
+    override fun hubAction(action:String)=jsonObject("success" to false)
     private fun unavailable(code:String)=jsonObject("state" to "disconnected","ageMs" to null,"stale" to true,"data" to null,"errorCode" to code)
 }
 
@@ -68,6 +70,7 @@ class BridgeRouter(private val services:BridgeServices,val lifecycle:SessionLife
                 "app.openWifiSettings" -> services.openWifiSettings()
                 "app.setScreenOn" -> session.setScreenOn(r.args["enabled"].asBoolean)
                 "app.setBrightness" -> session.setBrightness(r.args["value"].asDouble)
+                "hub.action" -> services.hubAction(r.args["action"].asString)
                 else -> throw BridgeFailure("BAD_PAYLOAD")
             }
             if(!lifecycle.isOpen || !lifecycle.acceptsRequests || lifecycle.epoch!=r.epoch) return BridgeReply.failure(r.id,"SESSION_ENDED")

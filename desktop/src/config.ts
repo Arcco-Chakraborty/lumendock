@@ -100,6 +100,10 @@ async function updateAllowlist(directory: string, change: (labels: string[]) => 
     return labels;
   });
 }
+export async function replaceNotificationApps(directory:string,labels:readonly string[]):Promise<string[]> {
+  if(labels.length>MAX_NOTIFICATION_APPS||labels.some(label=>!isValidNotificationLabel(label)))throw Error('BAD_APP_LABEL');
+  return updateAllowlist(directory,()=>[...new Set(labels)]);
+}
 export async function allowNotificationApp(directory: string, label: string): Promise<string[]> {
   if (!isValidNotificationLabel(label)) throw new Error('BAD_APP_LABEL');
   return updateAllowlist(directory,labels => {

@@ -8,15 +8,18 @@ function Row({
   row,
   now,
   threshold,
+  isClaude,
 }: {
   row: UsageWindow;
   now: number | null;
   threshold: number;
+  isClaude?: boolean;
 }) {
   const stale =
     row.reportedAtEpochMs === null ||
     now === null ||
     now - row.reportedAtEpochMs >= threshold;
+  const meterId = isClaude ? "claude-meter" : "codex-meter";
   return (
     <div className="quota-row">
       <div className="quota-label">
@@ -29,14 +32,14 @@ function Row({
             : `${row.windowDurationMins} minutes`}
         </span>
       </div>
-      <div className="usage-value">
+      <div className="usage-value" aria-label={row.usedPercent === null ? "Unknown usage" : undefined}>
         {row.usedPercent === null
-          ? "Unknown usage"
+          ? "Unknown"
           : `${row.usedPercent}% used`}
       </div>
       <svg
         className="quota-meter"
-        viewBox="0 0 100 3"
+        viewBox="0 0 100 6"
         preserveAspectRatio="none"
         role="img"
         aria-label={
@@ -45,12 +48,23 @@ function Row({
             : `${row.usedPercent}% used`
         }
       >
-        <rect width="100" height="3" fill="#344148" />
+        <defs>
+          <linearGradient id="claude-meter" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#fb923c" />
+          </linearGradient>
+          <linearGradient id="codex-meter" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+        </defs>
+        <rect width="100" height="6" rx="3" fill="rgba(255, 255, 255, 0.08)" />
         {row.usedPercent !== null && (
           <rect
             width={Math.max(0, Math.min(100, row.usedPercent))}
-            height="3"
-            fill="#e8b66e"
+            height="6"
+            rx="3"
+            fill={`url(#${meterId})`}
           />
         )}
       </svg>
@@ -89,6 +103,8 @@ export function UsageCard({
     guidance =
       source.errorCode === "SOURCE_CAPACITY_EXCEEDED"
         ? "Source capacity exceeded. Reduce reported buckets; last complete report retained."
+        : source.provider === "claude" && source.state === "unsupported" && source.errorCode === "SOURCE_UNAVAILABLE"
+          ? "Set up Claude capture on the laptop."
         : source.state === "auth_required"
           ? "Sign in to the provider on your laptop."
           : source.state === "unsupported"
@@ -102,17 +118,24 @@ export function UsageCard({
                   : "Latest source read";
   }
   const rows = expanded ? source?.windows : source?.windows.slice(0, 1);
+  const setupRequired = source?.provider === "claude" && source.state === "unsupported" && source.errorCode === "SOURCE_UNAVAILABLE";
+  const isClaude = (source?.provider ?? title.toLowerCase()) === "claude";
   return (
     <section
-      className={`usage-card${expanded ? " usage-expanded" : ""}`}
+      className={`usage-card usage-${title.toLowerCase()}${expanded ? " usage-expanded" : ""}${!rows?.length ? " has-no-windows" : ""}`}
       aria-label={`${title} usage`}
     >
       <div className="card-heading">
-        <h2>{title}</h2>
+        <h2>
+          <span className={`provider-dot dot-${title.toLowerCase()}`} aria-hidden="true" />
+          {title}
+        </h2>
         {source && (source.state !== "available" || source.stale) && (
           <span className="source-state warning">
             {source.errorCode === "SOURCE_CAPACITY_EXCEEDED"
               ? "Capacity error"
+              : setupRequired
+                ? "Setup needed"
               : source.state === "auth_required"
                 ? "Sign in"
                 : source.state === "unsupported"
@@ -130,7 +153,7 @@ export function UsageCard({
             onClick={onDetails}
             aria-label={`All ${title} windows`}
           >
-            Windows {source?.windows.length ?? 0}
+            View {source?.windows.length ?? 0}
           </button>
         )}
       </div>
@@ -140,9 +163,10 @@ export function UsageCard({
           row={row}
           now={laptopNowEpochMs}
           threshold={threshold}
+          isClaude={isClaude}
         />
       ))}
-      {!rows?.length && <p className="empty-quota">Unknown usage</p>}
+      {!rows?.length && <div className="quota-empty"><p className="empty-quota" aria-label="Unknown usage">{expanded ? "Unknown usage" : "Unknown"}</p><p className="muted">{guidance}</p></div>}
       <p className="source-note muted">
         {guidance}
         {source

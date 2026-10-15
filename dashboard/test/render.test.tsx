@@ -198,3 +198,31 @@ it("shows relative history span and bounds plotted points to the latest 120", ()
     ).match(/[ML]/g),
   ).toHaveLength(120);
 });
+it("distinguishes missing Claude setup from an installed source waiting for data", () => {
+  const source = usage(null);
+  source.provider = "claude";
+  source.source = "claude_statusline";
+  source.state = "unsupported";
+  source.errorCode = "SOURCE_UNAVAILABLE";
+  source.windows = [];
+  const missing = render(<UsageCard name="Claude" source={source} laptopNowEpochMs={null} />);
+  expect(missing).toContain("Set up Claude capture on the laptop.");
+  expect(missing).not.toContain("Update the desktop collector");
+  source.state = "awaiting_data";
+  source.errorCode = null;
+  const quiet = render(<UsageCard name="Claude" source={source} laptopNowEpochMs={null} />);
+  expect(quiet).toContain("Waiting for a report");
+  expect(quiet).not.toContain("Set up Claude capture on the laptop.");
+});
+it("names only the selected notification sources in setup guidance", () => {
+  const html = render(<NotificationStrip items={[]} laptopNowEpochMs={null} state="disabled" />);
+  expect(html).toContain("Claude, Codex and WhatsApp");
+});
+it("shows colour and confirmed timer status in the compact light summary", () => {
+  const snapshot = EspSnapshotSchema.parse(esp);
+  snapshot.data!.timerSeconds = 300;
+  const html = render(<LightCard controller={null} snapshot={snapshot} />);
+  expect(html).toContain(snapshot.data!.hex);
+  expect(html).toContain("5m timer");
+  expect(html).not.toContain('class="light-symbol"');
+});

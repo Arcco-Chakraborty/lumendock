@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { LIMITS, type ErrorCode } from '@phone-monitor/protocol';
 import { isValidNotificationLabel, MAX_NOTIFICATION_APPS } from '../config.js';
 import type { HubStore } from '../store.js';
+import { notificationDisplayLabel, whatsAppDesktopEntry } from '../notification-sources.js';
 
 // Capture of GNOME's session-bus Notify calls through one `busctl monitor` child per allowed app label.
 // Nothing from a notification is retained, logged or forwarded unless its app label is allowlisted;
@@ -39,7 +40,8 @@ export function plainText(value: string, maxCodePoints: number): string {
 }
 export function matchExpression(label: string): string {
   if (!isValidNotificationLabel(label)) throw new Error('BAD_APP_LABEL');
-  return `type='method_call',interface='${INTERFACE}',member='Notify',arg0='${label}'`;
+  const base=`type='method_call',interface='${INTERFACE}',member='Notify'`;
+  return whatsAppDesktopEntry(label)?base:`${base},arg0='${label}'`;
 }
 const object = (v: unknown): Record<string,unknown> | null => v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Record<string,unknown> : null;
 export class NotificationCollector {
@@ -62,7 +64,7 @@ export class NotificationCollector {
   private async apply(allowlist: readonly string[]): Promise<void> {
     const wanted: string[] = [];
     for (const label of allowlist) if (isValidNotificationLabel(label) && !wanted.includes(label) && wanted.length < MAX_NOTIFICATION_APPS) wanted.push(label);
-    this.store.setNotificationAllowlist(wanted);
+    this.store.setNotificationAllowlist(wanted.map(notificationDisplayLabel));
     const removed = [...this.monitors.values()].filter(m => !wanted.includes(m.label));
     for (const m of removed) this.monitors.delete(m.label);
     await Promise.all(removed.map(m => this.terminate(m)));
@@ -154,13 +156,18 @@ export class NotificationCollector {
     if (payload?.type !== SIGNATURE || !Array.isArray(data) || data.length !== 8) return;
     const [app,id,icon,summary,body,actions,hints,timeout] = data as unknown[];
     // Allowlist gate first: only this monitor's own label proceeds; no other field is touched.
-    if (app !== m.label) return;
+    const desktopEntry=whatsAppDesktopEntry(m.label);
+    if(desktopEntry){
+      const hint=object(object(hints)?.['desktop-entry']);
+      if(hint?.type!=='s'||hint.data!==desktopEntry)return;
+    }else if (app !== m.label) return;
     if (typeof id !== 'number' || typeof icon !== 'string' || typeof summary !== 'string' || typeof body !== 'string' || !Array.isArray(actions) || !object(hints) || typeof timeout !== 'number') return;
     const title = plainText(summary,100), text = plainText(body,280);
     if (!title && !text) return;
     const now = this.clock.nowMs();
-    if (this.duplicate(m.label,title,text,now)) return;
-    this.store.addNotification({id:`n${now.toString(36)}-${++this.sequence}`,appId:m.label,title,body:text,receivedAtEpochMs:now,expiresAtEpochMs:now + LIMITS.notificationTtlMs});
+    const label=notificationDisplayLabel(m.label);
+    if (this.duplicate(label,title,text,now)) return;
+    this.store.addNotification({id:`n${now.toString(36)}-${++this.sequence}`,appId:label,title,body:text,receivedAtEpochMs:now,expiresAtEpochMs:now + LIMITS.notificationTtlMs});
   }
   private duplicate(label: string, title: string, body: string, now: number): boolean {
     for (const [key,at] of this.seen) if (now - at >= NOTIFICATION_DEDUPE_MS || now < at) this.seen.delete(key);
