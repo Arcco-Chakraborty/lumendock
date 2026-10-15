@@ -57,8 +57,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setBackgroundDrawable(ColorDrawable(Color.rgb(46,51,43)))
-        root=FrameLayout(this).apply { setBackgroundColor(Color.rgb(46,51,43)) }
+        window.setBackgroundDrawable(ColorDrawable(Color.rgb(11,13,15)))
+        root=FrameLayout(this).apply { setBackgroundColor(Color.rgb(11,13,15)) }
         setContentView(root)
         dashboardWindow=DashboardWindow(this,root) { setupDialog?.isShowing==true }
         // Session callbacks retain only a weak Activity reference and post bounded UI work.
@@ -91,7 +91,7 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun createDashboard() {
         if(isFinishing || isDestroyed) return
-        val view=WebView(this).apply { setBackgroundColor(Color.rgb(46,51,43)) }
+        val view=WebView(this).apply { setBackgroundColor(Color.rgb(11,13,15)) }
         val assets=WebViewAssetLoader.Builder().addPathHandler("/assets/",WebViewAssetLoader.AssetsPathHandler(applicationContext)).build()
         view.settings.apply {
             javaScriptEnabled=true

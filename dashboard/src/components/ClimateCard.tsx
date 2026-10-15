@@ -63,23 +63,32 @@ export function ClimateCard({
       </div>
       {data ? (
         <>
-          <div className={`temperature${sensorFailed ? " is-old" : ""}${data.temperatureC == null ? " is-unknown" : ""}`}>
-            {data.temperatureC !== null ? (
-              <>
-                {data.temperatureC.toFixed(1)}
-                <span>°C</span>
-              </>
-            ) : (
-              "Unknown"
-            )}
+          {/* Two labelled readouts in equal columns so the values line up. */}
+          <div className="reading">
+            <span className="reading-label muted">Temperature</span>
+            <div className={`temperature${sensorFailed ? " is-old" : ""}${data.temperatureC == null ? " is-unknown" : ""}`}>
+              {data.temperatureC !== null ? (
+                <>
+                  {data.temperatureC.toFixed(1)}
+                  <span>°C</span>
+                </>
+              ) : (
+                "Unknown"
+              )}
+            </div>
           </div>
-          <div className="humidity">
-            <strong className={data.humidityPercent == null ? "is-unknown" : undefined}>
-              {data.humidityPercent !== null
-                ? `${Math.round(data.humidityPercent)}%`
-                : "Unknown"}
-            </strong>
-            <span className="muted">humidity</span>
+          <div className="reading">
+            <span className="reading-label muted">Humidity</span>
+            <div className={`humidity${sensorFailed ? " is-old" : ""}${data.humidityPercent == null ? " is-unknown" : ""}`}>
+              {data.humidityPercent !== null ? (
+                <>
+                  {Math.round(data.humidityPercent)}
+                  <span>%</span>
+                </>
+              ) : (
+                "Unknown"
+              )}
+            </div>
           </div>
         </>
       ) : null}
