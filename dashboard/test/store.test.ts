@@ -207,3 +207,121 @@ describe("independent dashboard lifecycle", () => {
     await flush();
   });
 });
+
+it("merges typed display result into latest status preserving generation and setup (W1-R1)", async () => {
+  const b = fakeBridge(),
+    s = new DashboardStore(fakeClock());
+  s.start(createNativeAdapter(b.bridge, fakeClock()));
+  s.applyAppStatus(status);
+  const pending = s.setDisplay("app.setScreenOn", { enabled: true });
+  const newer = {
+    ...status,
+    nextCommandGeneration: 77,
+    setup: {
+      ...status.setup,
+      hub: {
+        setupId: "synthetic-late",
+        state: "in_progress" as const,
+        errorCode: null,
+      },
+    },
+  };
+  s.applyAppStatus(newer);
+  b.reply(b.sent.at(-1)!.id, { screenOn: false, brightness: 0.7 });
+  await pending;
+  expect(s.snapshot().app).toEqual({
+    ...newer,
+    screenOn: false,
+    brightness: 0.7,
+  });
+  s.dispose();
+});
+it("retains aging across repeated cached returns for thirty minutes and a new view", () => {
+  vi.useFakeTimers();
+  const s = new DashboardStore(fakeClock());
+  s.applyHub(hub);
+  for (let n = 1; n <= 900; n++) {
+    vi.advanceTimersByTime(2000);
+    s.applyHub({ ...hub, state: "disconnected", stale: true, ageMs: n * 2000 });
+  }
+  expect(s.estimatedLaptopNow()).toBe(hubJson.serverNowEpochMs + 1800000);
+  expect(s.snapshot().hub.data?.notifications.items).toHaveLength(0);
+  const recreated = new DashboardStore(fakeClock());
+  recreated.applyHub({ ...hub, ageMs: 1800000, stale: true });
+  expect(recreated.estimatedLaptopNow()).toBe(s.estimatedLaptopNow());
+  s.dispose();
+  recreated.dispose();
+  vi.useRealTimers();
+});
+it("reads history only while open with no overlapping requests and thirty second refresh", async () => {
+  vi.useFakeTimers();
+  const b = fakeBridge(),
+    s = new DashboardStore(fakeClock());
+  s.start(createNativeAdapter(b.bridge, fakeClock()));
+  s.setHistoryOpen(true);
+  expect(b.sent.at(-1)?.op).toBe("esp.history");
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(b.sent.filter((r) => r.op === "esp.history")).toHaveLength(1);
+  b.reply(b.sent.find((r) => r.op === "esp.history")!.id, {
+    state: "connected",
+    stale: false,
+    ageMs: 0,
+    data: {
+      intervalSeconds: 60,
+      temperatureC: [20, null, 22],
+      humidityPercent: [40, null, 50],
+    },
+    errorCode: null,
+  });
+  await flush();
+  expect(s.snapshot().history?.data?.temperatureC).toEqual([20, null, 22]);
+  s.setHistoryOpen(false);
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(b.sent.filter((r) => r.op === "esp.history")).toHaveLength(1);
+  s.dispose();
+  vi.useRealTimers();
+});
+it("lets native setup remain in progress beyond thirty seconds; duplicate acknowledgment is not success", async () => {
+  vi.useFakeTimers();
+  const b = fakeBridge(),
+    s = new DashboardStore(fakeClock());
+  s.start(createNativeAdapter(b.bridge, fakeClock()));
+  const progress = {
+    ...status,
+    paired: false,
+    setup: {
+      ...status.setup,
+      hub: {
+        setupId: "synthetic-slow",
+        state: "in_progress" as const,
+        errorCode: null,
+      },
+    },
+  };
+  b.reply(b.sent[0]!.id, progress);
+  await flush();
+  let seen = 1;
+  for (let i = 0; i < 18; i++) {
+    await vi.advanceTimersByTimeAsync(2000);
+    const reads = b.sent.filter((r) => r.op === "app.status");
+    for (const r of reads.slice(seen)) b.reply(r.id, progress);
+    seen = reads.length;
+    await flush();
+  }
+  expect(s.snapshot().app?.setup.hub.state).toBe("in_progress");
+  const duplicate = s.setup("app.setupHub");
+  b.reply(b.sent.at(-1)!.id, { setupId: "synthetic-slow", started: false });
+  expect((await duplicate).started).toBe(false);
+  expect(s.snapshot().app?.paired).toBe(false);
+  b.reply(b.sent.at(-1)!.id, {
+    ...progress,
+    setup: {
+      ...progress.setup,
+      hub: { setupId: "synthetic-slow", state: "cancelled", errorCode: null },
+    },
+  });
+  await flush();
+  expect(s.snapshot().app?.setup.hub.state).toBe("cancelled");
+  s.dispose();
+  vi.useRealTimers();
+});

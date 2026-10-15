@@ -1,7 +1,9 @@
 // Explicit development/test fixture transport. Never imported by the production branch.
 import {
   BridgeRequestSchema,
+  EspStateSchema,
   type BridgeOp,
+  type CommandResult,
   type BridgeReplyData,
 } from "@phone-monitor/protocol";
 import {
@@ -23,7 +25,45 @@ export function createMockAdapter(
       const request = BridgeRequestSchema.parse(JSON.parse(message));
       const timer = clock.setTimeout(() => {
         timers.delete(timer);
-        const data = fixtures[request.op];
+        let data: unknown = fixtures[request.op];
+        const esp = fixtures["esp.state"],
+          app = fixtures["app.status"];
+        if (data === undefined && request.op === "esp.set" && esp?.data) {
+          const { patch, generation } = request.args;
+          const kind = patch.timerMinutes === undefined ? "state" : "timer";
+          const next = EspStateSchema.parse({
+            ...esp.data,
+            ...(kind === "state"
+              ? patch
+              : { timerSeconds: patch.timerMinutes! * 60 }),
+          });
+          esp.data = next;
+          const result: CommandResult = {
+            generation,
+            kind,
+            outcome: "confirmed" as const,
+            state: next,
+            errorCode: null,
+          };
+          esp.commands[kind] = result;
+          data = result;
+          if (app)
+            app.nextCommandGeneration = Math.max(
+              app.nextCommandGeneration,
+              generation + 1,
+            );
+        }
+        if (
+          data === undefined &&
+          app &&
+          (request.op === "app.setScreenOn" ||
+            request.op === "app.setBrightness")
+        ) {
+          if (request.op === "app.setScreenOn")
+            app.screenOn = request.args.enabled;
+          else app.brightness = request.args.value;
+          data = { screenOn: app.screenOn, brightness: app.brightness };
+        }
         const reply =
           data === undefined
             ? {

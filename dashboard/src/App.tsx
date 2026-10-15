@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -7,7 +8,12 @@ import {
 } from "react";
 import type { DeviceAdapter } from "./device.js";
 import type { DashboardStore, DashboardSnapshot } from "./store.js";
-import type { UsageSource } from "@phone-monitor/protocol";
+import { UsageCard } from "./components/UsageCard.js";
+import { ClimateCard } from "./components/ClimateCard.js";
+import { LightCard } from "./components/LightCard.js";
+import { NotificationStrip } from "./components/NotificationStrip.js";
+import { SettingsSheet } from "./components/SettingsSheet.js";
+import { LightIntentController } from "./lib/lightIntent.js";
 
 export interface AppProps {
   store: DashboardStore;
@@ -44,211 +50,6 @@ function LinkStatus({
     </span>
   );
 }
-function UsagePlaceholder({
-  name,
-  source,
-}: {
-  name: string;
-  source: UsageSource | undefined;
-}) {
-  const window = source?.windows[0];
-  return (
-    <section className="usage-card" aria-label={`${name} usage`}>
-      <div className="card-heading">
-        <h2>{name}</h2>
-        <span className="muted">Subscription</span>
-      </div>
-      <div className="usage-value">
-        {window?.usedPercent === null || window?.usedPercent === undefined
-          ? "—"
-          : `${Math.round(window.usedPercent)}%`}
-        <span> used</span>
-      </div>
-      <p className="muted">
-        {source
-          ? source.stale
-            ? "Last report is stale"
-            : source.state === "available"
-              ? "Latest report"
-              : "Waiting for a report"
-          : "Connect laptop for usage"}
-      </p>
-    </section>
-  );
-}
-function Climate({ snapshot }: { snapshot: DashboardSnapshot }) {
-  const data = snapshot.esp.data,
-    ok = data?.sensorOk === true;
-  return (
-    <section className="climate-card" aria-labelledby="room-title">
-      <div className="card-heading">
-        <h2 id="room-title">Room</h2>
-        <span className="muted">
-          {snapshot.esp.stale && data
-            ? "Last reading"
-            : ok
-              ? "Sensor ready"
-              : "No reading"}
-        </span>
-      </div>
-      <div className="temperature">
-        {ok && data.temperatureC !== null ? data.temperatureC.toFixed(1) : "—"}
-        <span>°C</span>
-      </div>
-      <div className="humidity">
-        <svg
-          width="20"
-          height="24"
-          viewBox="0 0 20 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M10 2C8 6 3 11 3 15a7 7 0 0 0 14 0c0-4-5-9-7-13Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        </svg>
-        <strong>
-          {ok && data.humidityPercent !== null
-            ? `${Math.round(data.humidityPercent)}%`
-            : "—"}
-        </strong>
-        <span className="muted">humidity</span>
-      </div>
-      <p className="muted room-note">
-        {!data
-          ? "Connect controller to see room conditions."
-          : !ok
-            ? "Sensor unavailable. Lighting still works."
-            : snapshot.esp.stale
-              ? "Controller disconnected. Readings may be old."
-              : "Temperature and humidity"}
-      </p>
-    </section>
-  );
-}
-function Lighting({ snapshot }: { snapshot: DashboardSnapshot }) {
-  const data = snapshot.esp.data;
-  return (
-    <section className="lighting-card" aria-labelledby="light-title">
-      <div className="card-heading">
-        <h2 id="light-title">Lighting</h2>
-        <span className="muted">
-          {data
-            ? snapshot.esp.stale
-              ? "Last state"
-              : "Confirmed"
-            : "Not connected"}
-        </span>
-      </div>
-      <svg
-        className="light-symbol"
-        width="52"
-        height="52"
-        viewBox="0 0 52 52"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M19 35c0-5-6-7-6-16a13 13 0 0 1 26 0c0 9-6 11-6 16M19 35h14M21 41h10M23 46h6"
-          stroke={data?.hex ?? "currentColor"}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="light-reading">
-        {data ? (data.power ? "On" : "Off") : "—"}
-      </div>
-      <p className="muted">
-        {data ? `${data.bright}% brightness` : "Connect controller for lights"}
-      </p>
-    </section>
-  );
-}
-function Settings({
-  store,
-  adapter,
-  nativeAvailable,
-  children,
-}: {
-  store: DashboardStore;
-  adapter: DeviceAdapter | undefined;
-  nativeAvailable: boolean;
-  children: ReactNode;
-}) {
-  const snapshot = useSyncExternalStore(
-    store.subscribe,
-    store.snapshot,
-    store.snapshot,
-  );
-  const [error, setError] = useState<string | null>(null),
-    [busy, setBusy] = useState(false);
-  const run = async (action: () => Promise<unknown>) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-    } catch {
-      setError("Could not complete setup. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
-  const setupBusy =
-    snapshot.app?.setup.hub.state === "in_progress" ||
-    snapshot.app?.setup.esp.state === "in_progress";
-  return (
-    <>
-      <h2>Connections &amp; display</h2>
-      <p className="muted">
-        Connect the laptop by USB and the controller over Wi-Fi.
-      </p>
-      <div className="settings-actions">
-        <button
-          disabled={!nativeAvailable || busy || setupBusy}
-          onClick={() => void run(() => store.setup("app.setupHub"))}
-        >
-          Pair laptop
-        </button>
-        <button
-          disabled={!nativeAvailable || busy || setupBusy}
-          onClick={() => void run(() => store.setup("app.connectEsp"))}
-        >
-          Connect controller
-        </button>
-        <button
-          disabled={!nativeAvailable || busy}
-          onClick={() =>
-            void run(() => adapter!.request("app.openWifiSettings"))
-          }
-        >
-          Open Wi-Fi settings
-        </button>
-      </div>
-      {setupBusy && <p role="status">Finish setup in the phone dialog.</p>}
-      {snapshot.app && (
-        <label className="setting-toggle">
-          <span>Keep screen on while open</span>
-          <input
-            type="checkbox"
-            checked={snapshot.app.screenOn}
-            disabled={!nativeAvailable || busy}
-            onChange={(event) => {
-              const enabled = event.target.checked;
-              void run(async () => {
-                await adapter!.request("app.setScreenOn", { enabled });
-                store.applyAppStatus({ ...snapshot.app!, screenOn: enabled });
-              });
-            }}
-          />
-        </label>
-      )}
-      {error && <p role="alert">{error}</p>}
-      {children}
-    </>
-  );
-}
 export function App({
   store,
   nativeAvailable,
@@ -265,7 +66,37 @@ export function App({
     store.snapshot,
     store.snapshot,
   );
-  const [sheet, setSheet] = useState<"settings" | "notifications" | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const dismiss = (id: string) =>
+    setDismissed((previous) => [...previous.slice(-99), id]);
+  const [sheet, setSheet] = useState<
+    | "settings"
+    | "notifications"
+    | "lights"
+    | "claude"
+    | "codex"
+    | "history"
+    | null
+  >(null);
+  const controller = useMemo(
+    () =>
+      adapter
+        ? new LightIntentController((patch, generation) =>
+            adapter.request("esp.set", { patch, generation }),
+          )
+        : null,
+    [adapter],
+  );
+  useEffect(() => () => controller?.dispose(), [controller]);
+  useEffect(() => {
+    if (snapshot.app?.webViewSupported !== false && snapshot.app)
+      controller?.initialize(snapshot.app.nextCommandGeneration);
+    controller?.applySnapshot(snapshot.esp);
+  }, [controller, snapshot.app, snapshot.esp]);
+  useEffect(() => {
+    store.setHistoryOpen(sheet === "history");
+    return () => store.setHistoryOpen(false);
+  }, [store, sheet]);
   const dialog = useRef<HTMLDialogElement>(null),
     opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -339,35 +170,45 @@ export function App({
         <div className="usage-stack">
           {usageSlot ?? (
             <>
-              <UsagePlaceholder
+              <UsageCard
                 name="Claude"
                 source={snapshot.hub.data?.usage.claude}
+                laptopNowEpochMs={snapshot.laptopNowEpochMs}
+                onDetails={() => setSheet("claude")}
               />
-              <UsagePlaceholder
+              <UsageCard
                 name="Codex"
                 source={snapshot.hub.data?.usage.codex}
+                laptopNowEpochMs={snapshot.laptopNowEpochMs}
+                onDetails={() => setSheet("codex")}
               />
             </>
           )}
         </div>
-        {climateSlot ?? <Climate snapshot={snapshot} />}
-        {lightingSlot ?? <Lighting snapshot={snapshot} />}
+        {climateSlot ?? (
+          <ClimateCard
+            snapshot={snapshot.esp}
+            onHistory={() => setSheet("history")}
+          />
+        )}
+        {lightingSlot ?? (
+          <LightCard
+            snapshot={snapshot.esp}
+            controller={controller}
+            onDetails={() => setSheet("lights")}
+          />
+        )}
       </div>
       <footer className="notification-strip">
         {notificationSlot ?? (
-          <>
-            <span className="notification-icon" aria-hidden="true">
-              ♧
-            </span>
-            <span>
-              {notifications?.state === "available"
-                ? "Selected laptop notifications"
-                : notifications?.state === "unavailable"
-                  ? "Laptop notifications unavailable"
-                  : "Notifications are off"}
-            </span>
-            <button onClick={() => setSheet("notifications")}>Details</button>
-          </>
+          <NotificationStrip
+            dismissed={dismissed}
+            onDismiss={dismiss}
+            items={notifications?.items ?? []}
+            laptopNowEpochMs={snapshot.laptopNowEpochMs}
+            state={notifications?.state ?? "disabled"}
+            onDetails={() => setSheet("notifications")}
+          />
         )}
       </footer>
       <dialog
@@ -381,28 +222,74 @@ export function App({
         }}
       >
         <div className="sheet-header">
-          <span id="sheet-title">{sheet === "settings" ? "Settings" : "Notifications"}</span>
+          <span id="sheet-title">
+            {sheet === "settings"
+              ? "Settings"
+              : sheet === "lights"
+                ? "Lighting"
+                : sheet === "history"
+                  ? "Room history"
+                  : sheet === "claude" || sheet === "codex"
+                    ? "Usage windows"
+                    : "Notifications"}
+          </span>
           <button aria-label="Close sheet" onClick={() => setSheet(null)}>
             Close
           </button>
         </div>
         {sheet === "settings" ? (
-          <Settings
-            store={store}
-            adapter={adapter}
-            nativeAvailable={
-              nativeAvailable && snapshot.app?.webViewSupported !== false
-            }
-          >
+          <>
+            <SettingsSheet
+              store={store}
+              adapter={adapter}
+              nativeAvailable={
+                (nativeAvailable || demo) &&
+                snapshot.app?.webViewSupported !== false
+              }
+            />
             {settingsSlot}
-          </Settings>
+          </>
+        ) : sheet === "lights" ? (
+          <LightCard snapshot={snapshot.esp} controller={controller} expanded />
+        ) : sheet === "claude" || sheet === "codex" ? (
+          <UsageCard
+            name={sheet === "claude" ? "Claude" : "Codex"}
+            source={snapshot.hub.data?.usage[sheet]}
+            laptopNowEpochMs={snapshot.laptopNowEpochMs}
+            expanded
+          />
+        ) : sheet === "history" ? (
+          <>
+            <ClimateCard
+              snapshot={snapshot.esp}
+              history={snapshot.history?.data}
+            />
+            <p className="muted">
+              {snapshot.history?.stale
+                ? "Last history; readings may be old."
+                : "Recent temperature trend. Missing readings leave gaps."}
+            </p>
+            {snapshot.history?.errorCode && (
+              <p role="status">
+                Room history unavailable. Lighting remains independent.
+              </p>
+            )}
+          </>
         ) : (
           <>
             <h2>Selected notifications</h2>
             <p>
               Choose allowed laptop apps during desktop setup. Notifications
-              stay on this display only until they expire.
+              expire after 30 minutes. Hiding an item affects only this display.
             </p>
+            <NotificationStrip
+              dismissed={dismissed}
+              onDismiss={dismiss}
+              items={notifications?.items ?? []}
+              laptopNowEpochMs={snapshot.laptopNowEpochMs}
+              state={notifications?.state ?? "disabled"}
+              expanded
+            />
           </>
         )}
       </dialog>

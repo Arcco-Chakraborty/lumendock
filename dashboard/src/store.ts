@@ -2,6 +2,8 @@ import {
   LIMITS,
   type AppStatus,
   type EspSnapshot,
+  type EspHistory,
+  type BridgeReplyData,
   type HubSnapshot,
   type LinkSnapshot,
   type UsageSource,
@@ -16,6 +18,7 @@ export type HubLink = LinkSnapshot<HubSnapshot>;
 export interface DashboardSnapshot {
   hub: HubLink;
   esp: EspSnapshot;
+  history: LinkSnapshot<EspHistory> | null;
   app: AppStatus | null;
   appError: string | null;
   laptopNowEpochMs: number | null;
@@ -36,6 +39,8 @@ export class DashboardStore {
   private hub = emptyHub();
   private esp = emptyEsp();
   private app: AppStatus | null = null;
+  private history: LinkSnapshot<EspHistory> | null = null;
+  private historyOpen = false;
   private appError: string | null = null;
   private hubReceived = 0;
   private espReceived = 0;
@@ -117,6 +122,7 @@ export class DashboardStore {
         ...aged(this.esp, this.espReceived, LIMITS.espStaleMs),
         commands: this.esp.commands,
       },
+      history: this.history,
       app: this.app,
       appError: this.appError,
       laptopNowEpochMs: epoch,
@@ -191,6 +197,37 @@ export class DashboardStore {
     }
     return result;
   }
+  async setDisplay(
+    op: "app.setScreenOn",
+    args: { enabled: boolean },
+  ): Promise<BridgeReplyData<"app.setScreenOn">>;
+  async setDisplay(
+    op: "app.setBrightness",
+    args: { value: number },
+  ): Promise<BridgeReplyData<"app.setBrightness">>;
+  async setDisplay(
+    op: "app.setScreenOn" | "app.setBrightness",
+    args: { enabled: boolean } | { value: number },
+  ) {
+    if (!this.adapter || this.disposed) throw new DeviceError("SESSION_ENDED");
+    const result =
+      op === "app.setScreenOn"
+        ? await this.adapter.request(op, args as { enabled: boolean })
+        : await this.adapter.request(op, args as { value: number });
+    if (!this.disposed && this.app) {
+      this.app = {
+        ...this.app,
+        screenOn: result.screenOn,
+        brightness: result.brightness,
+      };
+      this.notify();
+    }
+    return result;
+  }
+  setHistoryOpen(open: boolean) {
+    this.historyOpen = open;
+    if (open && this.visible) void this.poll("esp.history");
+  }
   private settingUp() {
     return (
       this.app?.setup.hub.state === "in_progress" ||
@@ -201,7 +238,9 @@ export class DashboardStore {
     void this.poll("hub.snapshot");
     void this.poll("esp.state");
   }
-  private async poll(op: "hub.snapshot" | "esp.state" | "app.status") {
+  private async poll(
+    op: "hub.snapshot" | "esp.state" | "esp.history" | "app.status",
+  ) {
     if (!this.adapter || this.disposed || this.inflight.has(op)) return;
     this.inflight.add(op);
     this.last.set(op, this.clock.now());
@@ -209,7 +248,10 @@ export class DashboardStore {
       if (op === "hub.snapshot") this.applyHub(await this.adapter.request(op));
       else if (op === "esp.state")
         this.applyEsp(await this.adapter.request(op));
-      else this.applyAppStatus(await this.adapter.request(op));
+      else if (op === "esp.history") {
+        this.history = await this.adapter.request(op);
+        this.notify();
+      } else this.applyAppStatus(await this.adapter.request(op));
     } catch (error) {
       if (this.disposed) return;
       const code = error instanceof DeviceError ? error.code : "BAD_PAYLOAD";
@@ -227,7 +269,16 @@ export class DashboardStore {
           stale: true,
           errorCode: code,
         });
-      else {
+      else if (op === "esp.history") {
+        this.history = {
+          state: "error",
+          data: this.history?.data ?? null,
+          ageMs: this.history?.ageMs ?? null,
+          stale: true,
+          errorCode: code,
+        };
+        this.notify();
+      } else {
         this.appError = code;
         this.notify();
       }
@@ -248,6 +299,11 @@ export class DashboardStore {
         void this.poll("hub.snapshot");
       if (now - (this.last.get("esp.state") ?? -Infinity) >= 3000)
         void this.poll("esp.state");
+      if (
+        this.historyOpen &&
+        now - (this.last.get("esp.history") ?? -Infinity) >= 30000
+      )
+        void this.poll("esp.history");
       if (
         this.settingUp() &&
         now - (this.last.get("app.status") ?? -Infinity) >= 2000

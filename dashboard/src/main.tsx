@@ -20,41 +20,30 @@ async function bootstrap() {
   const nativeAvailable =
     typeof window.phoneMonitor?.postMessage === "function";
   if (import.meta.env.DEV && new URLSearchParams(location.search).has("demo")) {
-    const [
-      { createMockAdapter },
-      { HubLinkSnapshotSchema, EspSnapshotSchema, AppStatusSchema },
-      hub,
-      esp,
-      app,
-    ] = await Promise.all([
-      import("./mocks/device.js"),
-      import("@phone-monitor/protocol"),
-      import("../../packages/protocol/fixtures/hub-ready.json"),
-      import("../../packages/protocol/fixtures/esp-link-ready.json"),
-      import("../../packages/protocol/fixtures/app-status.json"),
-    ]);
-    const mode = new URLSearchParams(location.search).get("demo");
-    const hubLink = HubLinkSnapshotSchema.parse({
-      state: mode === "usb-offline" ? "disconnected" : "connected",
-      ageMs: mode === "usb-offline" ? 10000 : 0,
-      stale: mode === "usb-offline",
-      data: hub.default,
-      errorCode: mode === "usb-offline" ? "USB_UNAVAILABLE" : null,
-    });
-    const espLink = EspSnapshotSchema.parse({
-      ...esp.default,
-      ...(mode === "esp-offline"
-        ? {
-            state: "disconnected",
-            ageMs: 15000,
-            stale: true,
-            errorCode: "WIFI_UNAVAILABLE",
-          }
-        : {}),
-    });
+    const [{ createMockAdapter }, { scenario }, { AppStatusSchema }, app] =
+      await Promise.all([
+        import("./mocks/device.js"),
+        import("./mocks/scenarios.js"),
+        import("@phone-monitor/protocol"),
+        import("../../packages/protocol/fixtures/app-status.json"),
+      ]);
+    const { hub, esp } = scenario(
+      new URLSearchParams(location.search).get("demo"),
+    );
     adapter = createMockAdapter({
-      "hub.snapshot": hubLink,
-      "esp.state": espLink,
+      "hub.snapshot": hub,
+      "esp.state": esp,
+      "esp.history": {
+        state: "connected",
+        ageMs: 0,
+        stale: false,
+        errorCode: null,
+        data: {
+          intervalSeconds: 60,
+          temperatureC: [23, 23.2, null, 23.4, 24, 24.5],
+          humidityPercent: [53, 54, null, 54, 55, 55],
+        },
+      },
       "app.status": AppStatusSchema.parse(app.default),
     });
     demo = true;

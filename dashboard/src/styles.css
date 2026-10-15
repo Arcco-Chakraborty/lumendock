@@ -426,3 +426,307 @@ h2 {
     animation: none !important;
   }
 }
+/* Compact instrumentation: the details sheets carry the longer labels and controls. */
+.warning {
+  color: var(--amber);
+}
+.text-button {
+  background: transparent;
+  border-color: transparent;
+  padding: 4px 8px;
+}
+.usage-card {
+  position: relative;
+  min-height: 0;
+  justify-content: flex-start;
+}
+.usage-card:not(.usage-expanded) .card-heading {
+  min-height: 20px;
+  padding-right: 40px;
+}
+.usage-card:not(.usage-expanded) .card-heading button {
+  position: absolute;
+  right: 3px;
+  top: 0;
+  width: 44px;
+  font-size: 0;
+  padding: 0;
+}
+.usage-card:not(.usage-expanded) .card-heading button::after {
+  content: "⋯";
+  font-size: 24px;
+}
+.usage-card:not(.usage-expanded) .quota-label,
+.usage-card:not(.usage-expanded) .source-note {
+  display: none;
+}
+.usage-card:not(.usage-expanded) .quota-row > p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.usage-card .usage-value {
+  font-size: 32px;
+  white-space: nowrap;
+}
+.quota-meter {
+  width: 100%;
+  height: 3px;
+  display: block;
+  margin: 2px 0 3px;
+}
+.usage-expanded {
+  gap: 16px;
+  padding: 12px;
+}
+.usage-expanded .quota-row {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.quota-label {
+  display: flex;
+  flex-direction: column;
+}
+.empty-quota {
+  font-size: 24px;
+  color: var(--amber);
+}
+.light-summary {
+  padding: 0 !important;
+  margin: 4px 0 0 !important;
+}
+.power-button {
+  font-size: 32px;
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  text-align: left;
+  line-height: 1.1;
+}
+.lighting-card .light-symbol {
+  margin-top: 6px;
+  height: 42px;
+}
+.lighting-card > .text-button,
+.climate-card > .text-button {
+  margin-top: auto;
+  align-self: flex-start;
+}
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.control-row output {
+  margin-left: auto;
+  color: var(--cyan);
+}
+.control-row input[type="range"] {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--cyan);
+}
+select,
+input[type="text"],
+input[type="number"] {
+  font: inherit;
+  color: inherit;
+  background: #111719;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-height: 44px;
+  padding: 8px;
+  max-width: 100%;
+}
+select {
+  margin-left: auto;
+}
+select:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.presets button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+}
+.hex-control,
+.timer-control {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.hex-control label,
+.timer-control label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hex-control input {
+  width: 150px;
+}
+.timer-control input {
+  width: 140px;
+}
+.light-controls > .light-symbol {
+  display: none;
+}
+.light-controls > .power-button {
+  margin: 8px 0;
+}
+.notification-preview {
+  min-width: 0;
+  flex: 1;
+}
+.notification-preview article {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+.notification-preview article p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notification-preview strong {
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notification-source {
+  color: var(--muted);
+}
+.notification-list article {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.notification-list strong,
+.notification-list .notification-source {
+  display: block;
+}
+.notification-list button {
+  margin-top: 8px;
+}
+.history-chart {
+  width: 100%;
+  height: 100px;
+  margin-top: 12px;
+}
+@media (min-width: 650px) and (max-height: 400px) {
+  .usage-stack {
+    gap: 6px;
+  }
+  .usage-card {
+    padding: 3px 10px;
+  }
+  .usage-card .usage-value {
+    margin: 0;
+    line-height: 1.05;
+  }
+  .usage-card:not(.usage-expanded) .quota-row > p {
+    line-height: 1.2;
+  }
+  .climate-card,
+  .lighting-card {
+    padding: 10px;
+  }
+  .temperature {
+    margin-top: 6px;
+  }
+  .room-note {
+    font-size: 14px;
+    padding-top: 4px;
+  }
+  .humidity {
+    margin-top: 4px;
+  }
+  .light-reading {
+    margin-top: 2px;
+  }
+}
+@media (max-width: 649px) {
+  .usage-stack {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+  .usage-card:not(.usage-expanded) .quota-label,
+  .usage-card:not(.usage-expanded) .source-note {
+    display: block;
+  }
+  .usage-card {
+    min-height: 180px;
+  }
+  .notification-preview article {
+    display: block;
+    white-space: normal;
+  }
+  .notification-preview article p {
+    display: none;
+  }
+  .notification-preview strong {
+    max-width: 100%;
+  }
+  .presets {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 650px) and (max-height: 400px) {
+  .main-grid {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .usage-stack {
+    min-height: 0;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  .climate-card,
+  .lighting-card {
+    min-height: 0;
+  }
+  .climate-card .card-heading,
+  .lighting-card .card-heading {
+    flex-direction: row;
+    align-items: center;
+  }
+  .usage-card .card-heading h2 {
+    line-height: 20px;
+  }
+  .quota-meter {
+    margin: 1px 0;
+  }
+}
+.empty-quota {
+  font-size: 32px;
+  line-height: 1.1;
+}
+.source-state {
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.setting-toggle input {
+  min-width: 44px;
+  min-height: 44px;
+}
+.history-offsets {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+@media (max-width:649px) {
+ .notification-preview .notification-source,.notification-preview strong {display:block;}
+}
