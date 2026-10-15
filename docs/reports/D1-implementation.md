@@ -73,3 +73,22 @@ Final staged diff check passed. Coordinator HANDOFF/PROGRESS/desktop-plan edits 
 - Root connect/package need their planned D3 scripts; doctor correctly reports absent APK. No claim that later tasks or packaging are done.
 - Fresh independent task review has not yet run. No actual Claude/Codex collector behavior, Android routing, Redmi, ESP32/light or device acceptance was tested in D1.
 - Checkpoint/ledger updates belong to the coordinator. Request checkpoint of this implementation/report and the final review outcome.
+
+## D1 fix round 1 — review consistency findings
+
+Reviewed the full fresh report `task-1-review.md` and verified its findings against design lines 198–200 before editing. Reviewed product base: `863366909acda1c2a44d56879664bf09e7190a76`. Current HEAD during this fix: `4eb58a7c98f3d98fc3c1a96e13473e4f44216699` (coordinator checkpoint changes). This fix changes only `packages/protocol/src/schema.ts` and `packages/protocol/test/schema.test.ts`.
+
+- **D1-R1:** Replaced the non-design `COMMAND_QUEUE_FULL` enum member with the required `QUEUE_FULL`. Added a regression accepting `QUEUE_FULL` in a failed operation-specific `esp.set` reply and rejecting the old alternative. A focused production-source search now finds only `QUEUE_FULL`; the old spelling remains solely in the negative regression.
+- **D1-R2:** Tightened normalized `EspState.hex` to `#` followed by six uppercase RGB digits. Added a regression accepting `#12ABEF` and rejecting lowercase `#12abef` as state, while confirming `LightPatch` still accepts lowercase colour intent.
+
+Red/green evidence, using the same command-local Node 24 PATH prefix as above:
+
+1. Added both regressions before the schema fix. `npm run test --workspace @phone-monitor/protocol -- test/schema.test.ts` exited 1: 2 failed, 13 passed. Queue error failed `expected false to be true`; normalized colour failed `expected true to be false`.
+2. Applied only the two schema corrections. Reran the exact schema test command: exit 0, 15 tests passed, one test file passed, Vitest 5.0.4.
+3. `npm run typecheck --workspace @phone-monitor/protocol`: exit 0; `tsc --noEmit && tsc --noEmit -p tsconfig.type-tests.json`, including the independent payload/args/reply type assertions.
+4. `npm run build --workspace @phone-monitor/protocol`: exit 0; `tsc`.
+5. `git diff --check -- packages/protocol/src/schema.ts packages/protocol/test/schema.test.ts`: exit 0.
+
+No root manifest/lockfile, Android/dashboard, coordinator records, or unrelated source edits. No full frontend workspace rerun: W1 owns its active dependency changes. Both findings are addressed in the working tree; commit is intentionally pending the coordinator's requested serialization. Fresh focused re-review/acceptance remains owned by the coordinator.
+
+Coordinator then authorized the serialized fix commit. Created `75cb65dd752eaa33df3aa636241bf91ed4d42e49` — `fix: align queue error and normalized ESP colour contracts` — from base `4eb58a7c98f3d98fc3c1a96e13473e4f44216699`. Exactly the two protocol schema/test files were staged (13 insertions, 2 deletions); staged diff check passed. Previously evidenced tests were not rerun because the verified source was unchanged. Independent focused re-review remains pending.

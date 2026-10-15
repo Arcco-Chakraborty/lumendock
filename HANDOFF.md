@@ -1,6 +1,6 @@
 # Phone Monitor — live handoff
 
-Updated: 2026-10-15 (Asia/Kolkata). Current phase: parallel D1/A1/W1 implementation. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
+Updated: 2026-10-15 (Asia/Kolkata). Current phase: D1 approved; parallel D2/A1/W1 implementation. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
 
 ## Objective
 
@@ -23,8 +23,8 @@ Use a spare Redmi 9A as an attractive landscape desk dashboard. Receive Claude C
 
 ## Current work and next action
 
-User approved implementation and requested software first; physical Redmi/ESP32 checks are deferred. User explicitly requested parallel subagents. D1 checkpoint `8633669` and report `docs/reports/D1-implementation.md` exist; fresh Sol-high review is active; A1 owns android/** and scripts/build.mjs, W1 owns dashboard/** and frontend lockfile, with shared root edits and commits serialized by coordinator. Next: complete D1 review, then desktop D2 while A1/W1 continue, with independent scoped gates. The D1 usage-limit interruption recovered. All nine tasks retain planned difficulty assignments and final fresh Astra/high review.
+User approved implementation and requested software first; physical Redmi/ESP32 checks are deferred. User explicitly requested parallel subagents. D1 complete at `75cb65d`; initial review findings fixed and scoped Sol-high re-review approved (`docs/reviews/D1-rereview-1.md`); A1 owns android/** and scripts/build.mjs, W1 owns dashboard/** and frontend lockfile, with shared root edits and commits serialized by coordinator. Next: desktop D2 collectors in parallel with A1/W1, followed by each component task review. The D1 usage-limit interruption recovered. All nine tasks retain planned difficulty assignments and final fresh Astra/high review.
 
-Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. D1 full report records35 tests, typecheck/build, synthetic loopback smoke and zero audit findings; independent review is active. Software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
+Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. D1 full report records initial35 tests, then15/15 protocol regressions, typecheck/build, synthetic loopback smoke and zero audit findings; independent review is approved. Software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
 
 Read docs/STATUS.json and docs/PROGRESS.md here before resuming; the coordinator mirrors these three checkpoint files to the original project folder after task/review boundaries.
