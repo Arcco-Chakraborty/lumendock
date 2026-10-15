@@ -1,6 +1,14 @@
 # Phone Monitor — Product Requirements
 
-Date: 2026-10-14 (Asia/Kolkata). Status: proposed product baseline, ready for user review. This document describes the intended product; it does not claim implementation or hardware validation.
+Date: 2026-10-14 (Asia/Kolkata). Approved product baseline, with the user-requested revision below dated 2026-10-15. Requirements describe intended behavior; verification is recorded separately in STATUS and DEVICE_ACCEPTANCE.
+
+## Current revision
+
+The user has installed and used the app, and requested a complete phone dashboard redesign plus repair of missing Claude usage and selected notifications. [REDESIGN.md](REDESIGN.md) defines this revision. It replaces the original visual layout and startup orientation below: use a flat, restrained instrument display with a prominent local clock/date, room readings and usage, selected alerts, and compact lighting that expands on demand. Both portrait and landscape must work through normal sensor rotation. Hide Android system bars with transient gesture access and preserve setup dialogs, keyboard and cutout safety. The user rejected generic futuristic styling, deep blue gradients, fashionable tech fonts and em-dash copy.
+
+Only Claude, Codex and WhatsApp notifications are selected. Where a provider does not emit a desktop event, this revision may use an opt-in provider attention hook with fixed generic text. Preserve existing hooks and status-line behavior; never forward prompt/transcript input or broadly allow terminal/browser notifications. Exact desktop/PWA identifiers are privacy filters, not authenticated identities. The original exclusions and architecture continue to apply except for these explicitly requested changes.
+
+Original planning-time environment facts below are historical. Consult STATUS for the canonical execution root, current evidence and pending device checks.
 
 ## Intent and verified context
 
@@ -42,13 +50,13 @@ ESP32 favourites can be displayed as six local dashboard presets initially. Writ
 
 ## Dashboard and interaction requirements
 
-Default orientation: landscape. Also support a readable portrait layout so setup and Android dialogs do not become unusable. Primary layout must fit an 800 × 360 CSS-pixel viewport, with an additional check at 740 × 320 for system-bar differences. The actual Redmi viewport is recorded during installation.
+Support normal sensor rotation with deliberate landscape and portrait layouts. Setup and Android dialogs must remain usable in either orientation. Primary layout must fit an 800 × 360 CSS-pixel viewport, with an additional check at 740 × 320 for system-bar differences. The actual Redmi viewport is recorded during installation.
 
 Visual direction: dark charcoal background, clear numeric typography, restrained cyan for climate/connectivity, warm amber for usage, and the selected light colour as the RGB accent. Use system fonts, bundled icons, subtle borders, and short state transitions. Do not ship CDN dependencies, video backgrounds, continuous animation, large chart libraries, or heavy blur.
 
 The landscape screen has a slim header with clock and independent laptop/controller status; two usage cards; a climate card with large temperature/humidity values; a lighting card; and a compact notification strip. Secondary light controls, longer usage bucket lists, settings, and notification detail use an on-demand sheet rather than shrinking primary text.
 
-Usage cards display **used** percentage with an unambiguous label, actual window length, reset countdown, and last-report age. Additional Codex buckets remain reachable without truncating their identity. Unknown is represented by an em dash/message, never `0%`. Above-limit percentages remain visible numerically; visual fill clamps to its track. Countdown reaching zero shows “Reset due; waiting for update.”
+Usage cards display **used** percentage with an unambiguous label, actual window length, reset countdown, and last-report age. Additional Codex buckets remain reachable without truncating their identity. Unknown is represented by a clear message, never `0%`. Above-limit percentages remain visible numerically; visual fill clamps to its track. Countdown reaching zero shows “Reset due; waiting for update.”
 
 Light controls show confirmed state and a separate pending/unconfirmed marker. A power button sends an explicit `0` or `1`, never a retryable toggle. Colour changes use six presets or a compact custom RGB/hex editor. Brightness range is 1–100; mode range is 0–8; speed range is 1–100; timer range is 0–720 minutes. Sensorless operation still allows normal lighting modes; Thermo can be selected with a clear missing-sensor indicator.
 

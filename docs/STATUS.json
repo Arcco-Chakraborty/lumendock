@@ -40,8 +40,10 @@
     "A17": "cold_resume_check_passed_with_minor_staleness_fixed_2026-10-15"
   },
   "unverifiedInputs": [
-    "Selected notification app labels",
-    "Physical ESP32/light acceptance (modes/brightness/colors against real LED strip)"
+    "Physical ESP32/light acceptance (modes/brightness/colors against real LED strip)",
+    "Actual selected-source notification delivery after setup",
+    "Current revision fullscreen/portrait/landscape physical acceptance",
+    "Claude existing status-line live shell/cancellation compatibility before installation"
   ],
   "documents": {
     "handoff": "HANDOFF.md",
@@ -51,7 +53,8 @@
     "ledger": "docs/PROGRESS.md",
     "planningReview": "docs/reviews/2026-10-14-planning-review.md",
     "resolution": "docs/reviews/2026-10-14-planning-resolution.md",
-    "coordination": "docs/COORDINATION.md"
+    "coordination": "docs/COORDINATION.md",
+    "currentRevision": "docs/REDESIGN.md"
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
