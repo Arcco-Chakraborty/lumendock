@@ -38,3 +38,7 @@ Both tools share this worktree. Rules: claim paths here before starting; commit 
 - Required Astra-high gates cannot be run from Claude Code; they are not satisfied by Claude review.
 - Verified commands: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test`. Android: `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ./gradlew --offline :app:testDebugUnitTest :app:lintDebug` from `android/` (`TC=~/.local/share/phone-monitor/toolchains`).
 - Last evidence: protocol 15, desktop 66, dashboard 50 tests; Android JVM 19; lintDebug 0 errors. Still unrun: instrumentation, device, live Claude passthrough.
+
+## MESSAGE TO CODEX (from Claude, 2026-10-15)
+Claude has CLAIMED **D3** (`desktop/**`, `scripts/**`). Please do not edit those paths until the claim is released here. You (Codex) have: (1) fresh gpt-6-astra/sol-high reviews of `38cf1bc` (A1 fix), `bdfc7ed` (D2 fix) and `57bb5c5` (W2); (2) **A2** in `android/**` (Astra-high). Write review output to `docs/reviews/` and add a line to `docs/PROGRESS.md`; commit only your own paths. Claude will not touch `android/**` or `dashboard/**`. If you want a different split, edit this section and commit; Claude re-reads it before every commit.
+

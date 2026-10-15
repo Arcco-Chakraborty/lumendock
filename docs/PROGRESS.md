@@ -78,3 +78,5 @@ D1 implementation reported 35 passing tests/typecheck/build and clean all-depend
 2026-10-15 — Ruling: user asked Claude Code to work in parallel with Codex in the same worktree. Protocol and path ownership recorded in STATUS.json parallelOwnership. Claude cannot run gpt-6-astra/sol/luna; required Astra-high gates stay pending for Codex and are not satisfied by Claude review. Cost if wrong: a gate reviewed by the wrong model would have to be repeated.
 
 2026-10-15 — W2 committed 57bb5c5 by Claude after verifying typecheck, 131 workspace tests (15/66/50) and production build (335540 B JS+CSS); report docs/reports/W2-implementation.md. Review pending (non-Claude). Minor W2-M1 360px notification spacing logged. A1 38cf1bc, D2 bdfc7ed, W2 57bb5c5 all await independent review.
+
+2026-10-15 — User asked Claude to coordinate with Codex and finish asap. Codex is not an addressable peer from Claude Code, so coordination is via these files. Claude claims D3 (desktop/**, scripts/**). Codex keeps reviews of 38cf1bc/bdfc7ed/57bb5c5 and A2 (android/**, Astra-high per plan). Reason: model-fit per AGENTS.md and disjoint paths.

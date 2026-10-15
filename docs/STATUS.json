@@ -20,12 +20,12 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "Awaiting independent re-reviews: A1 fix 38cf1bc, D2 fix bdfc7ed, W2 57bb5c5",
+  "activeTask": "D3 desktop operation (Claude); reviews + A2 (Codex)",
   "nextAction": "Codex (gpt-6-astra/sol high): review 38cf1bc, bdfc7ed, 57bb5c5. Then A2 (android/**) and D3 (desktop/**). Claude available to claim A2 or D3 if Codex takes the other; record claim first.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "fix_round_1_committed_awaiting_rereview",
-    "D3": "planned",
+    "D3": "in_progress_claude",
     "A1": "fix_round_1_committed_awaiting_rereview",
     "A2": "planned",
     "A3": "planned",
@@ -51,8 +51,8 @@
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
     "protocol": "Claude Code and Codex now work in the same canonical worktree. One owner per path set; commit only your own paths (git add <paths>, never git add -A); re-run git status before each commit; announce claims here before starting.",
-    "claude": "none active; W2 committed. Free to claim A2 or D3.",
-    "codex": "independent re-reviews of 38cf1bc and bdfc7ed (gpt-6-astra high); then A2 (android/**) and D3 (desktop/**) as claimed",
+    "claude": "D3 (desktop/** and scripts/**; claimed 2026-10-15)",
+    "codex": "independent reviews of 38cf1bc, bdfc7ed, 57bb5c5; then A2 (android/**). Do not touch desktop/** or scripts/** while D3 is claimed.",
     "coordinator": "HANDOFF/STATUS/PROGRESS: append-only edits by whoever finishes a step; re-read before editing"
   },
   "evidence": {
