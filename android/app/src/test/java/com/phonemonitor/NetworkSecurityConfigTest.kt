@@ -21,14 +21,14 @@ class NetworkSecurityConfigTest {
         assertTrue(domains.all{ it.getAttribute("includeSubdomains")=="false" })
         assertEquals(2,domains.size)
     }
-    @Test fun manifestKeepsBackupOffAndLandscapeDefaultWithoutRecreatingOnRotation() {
+    @Test fun manifestKeepsBackupOffAndSensorRotationWithoutRecreatingOnRotation() {
         val ns="http://schemas.android.com/apk/res/android"
         val manifest=xml("src/main/AndroidManifest.xml")
         val app=manifest.children("application").single()
         assertEquals("false",app.getAttributeNS(ns,"allowBackup"))
         assertEquals("@xml/network_security_config",app.getAttributeNS(ns,"networkSecurityConfig"))
         val activity=app.children("activity").single()
-        assertEquals("sensorLandscape",activity.getAttributeNS(ns,"screenOrientation"))
+        assertEquals("sensor",activity.getAttributeNS(ns,"screenOrientation"))
         assertTrue(activity.getAttributeNS(ns,"configChanges").split('|').containsAll(listOf("orientation","screenSize","screenLayout","smallestScreenSize")))
     }
     @Test fun wifiPermissionsAreScopedByApiLevelAndNeverForLocation() {

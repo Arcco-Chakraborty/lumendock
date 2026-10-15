@@ -4,18 +4,17 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
-import android.content.pm.ActivityInfo
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.provider.Settings
 import android.text.InputFilter
 import android.text.InputType
-import android.view.OrientationEventListener
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -47,8 +46,7 @@ class MainActivity : Activity() {
     private lateinit var pairingFlow:HubPairingFlow
     /** Pairing I/O only; the thread exits when idle, and onDestroy shuts the pool down. */
     private val pairingWorker=ThreadPoolExecutor(0,1,1,TimeUnit.SECONDS,LinkedBlockingQueue(1))
-    private val orientationPolicy=OrientationPolicy()
-    private var orientationListener:OrientationEventListener?=null
+    private lateinit var dashboardWindow:DashboardWindow
     /** Activity-owned controller client and Wi-Fi selection: caches, outcomes and the request outlive renderers. */
     private lateinit var esp:EspClient
     private lateinit var wifi:WifiSession
@@ -59,8 +57,10 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        root=FrameLayout(this).apply { setBackgroundColor(Color.rgb(18,22,26)); fitsSystemWindows=true }
+        window.setBackgroundDrawable(ColorDrawable(Color.rgb(25,26,24)))
+        root=FrameLayout(this).apply { setBackgroundColor(Color.rgb(25,26,24)) }
         setContentView(root)
+        dashboardWindow=DashboardWindow(this,root) { setupDialog?.isShowing==true }
         // Session callbacks retain only a weak Activity reference and post bounded UI work.
         val owner=WeakReference(this)
         val ui=main
@@ -86,24 +86,12 @@ class MainActivity : Activity() {
                 override fun show(setupId:String,message:WifiSetupMessage) { ui.post { owner.get()?.showWifiMessage(setupId,message) } }
             })
         pairingFlow=HubPairingFlow(nativeSession,client::pair,{ pairingWorker.execute(it) },{ action -> ui.post { if(owner.get()?.isDestroyed==false) action() } })
-        orientationListener=object:OrientationEventListener(this) {
-            override fun onOrientationChanged(degrees:Int) {
-                val reading=if(degrees==ORIENTATION_UNKNOWN) OrientationPolicy.UNKNOWN else degrees
-                if(orientationPolicy.onReading(reading,SystemClock.elapsedRealtime())!=null) applyOrientationPolicy()
-            }
-        }
         createDashboard()
-    }
-    /** Manifest starts in sensorLandscape (landscape default); a deliberate portrait hold unlocks full rotation. */
-    private fun applyOrientationPolicy() {
-        requestedOrientation=if(orientationPolicy.mode==OrientationPolicy.Mode.LANDSCAPE_DEFAULT) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-            else ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
-        if(!orientationPolicy.needsSensor) orientationListener?.disable()
     }
     @SuppressLint("SetJavaScriptEnabled")
     private fun createDashboard() {
         if(isFinishing || isDestroyed) return
-        val view=WebView(this)
+        val view=WebView(this).apply { setBackgroundColor(Color.rgb(25,26,24)) }
         val assets=WebViewAssetLoader.Builder().addPathHandler("/assets/",WebViewAssetLoader.AssetsPathHandler(applicationContext)).build()
         view.settings.apply {
             javaScriptEnabled=true
@@ -324,7 +312,16 @@ class MainActivity : Activity() {
     override fun onStart() {
         super.onStart(); activityStarted=true; userLeaving=false
         laptop.resume(); esp.resume(); wifi.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
-        orientationListener?.let { if(orientationPolicy.needsSensor && it.canDetectOrientation()) it.enable() }
+    }
+    override fun onResume() { super.onResume(); dashboardWindow.onResume() }
+    override fun onPause() { dashboardWindow.onPause(); super.onPause() }
+    override fun onWindowFocusChanged(hasFocus:Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if(::dashboardWindow.isInitialized) dashboardWindow.onWindowFocusChanged(hasFocus)
+    }
+    override fun onConfigurationChanged(newConfig:Configuration) {
+        super.onConfigurationChanged(newConfig)
+        dashboardWindow.onConfigurationChanged()
     }
     override fun onUserLeaveHint() { userLeaving=true; super.onUserLeaveHint() }
     override fun onStop() {
@@ -333,12 +330,11 @@ class MainActivity : Activity() {
         lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings()
         // Only a matching OS approval pause keeps the foreground session; anything else releases hub requests.
         if(!nativeSession.foreground) { laptop.pause(); esp.pause(); wifi.pause() }
-        orientationListener?.disable()
         super.onStop()
     }
     override fun onDestroy() {
         setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close(); wifi.close(); esp.close()
-        pairingWorker.shutdownNow(); orientationListener?.disable()
+        pairingWorker.shutdownNow(); dashboardWindow.close()
         main.removeCallbacksAndMessages(null); super.onDestroy()
     }
     private companion object { const val WIFI_PERMISSION_REQUEST=4101 }
