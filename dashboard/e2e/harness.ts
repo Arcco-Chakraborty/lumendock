@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 export { expect };
 export const evidence = (name: string) =>
-  resolve(import.meta.dirname, "..", "evidence", `redesign/after-${name}.png`);
+  resolve(import.meta.dirname, "..", "evidence", `astra-redesign/${name}.png`);
 
 /**
  * Every test gets a page that records uncaught errors, console errors and every

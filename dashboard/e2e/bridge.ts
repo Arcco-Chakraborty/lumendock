@@ -42,6 +42,7 @@ export interface BridgeOptions {
   latencyMs?: number;
   /** Start with esp.set replies held until releaseHeld(). */
   holdSets?: boolean;
+  actionResult?: { success: boolean; message?: string };
 }
 
 export function fixtures(options: BridgeOptions = {}): Fixtures {
@@ -101,6 +102,7 @@ export interface BridgeLogEntry {
 export interface BridgeConfig extends Fixtures {
   latencyMs: number;
   holdSets: boolean;
+  actionResult: { success: boolean; message?: string };
 }
 
 // Runs inside the page. It must stay self-contained (no closures over Node values).
@@ -148,6 +150,9 @@ function installBridge(config: BridgeConfig): void {
         setTimeout(deliver, config.latencyMs);
       };
       switch (request.op) {
+        case "hub.action":
+          respond(config.actionResult);
+          break;
         case "hub.snapshot": {
           const hub = clone(model.hub);
           if (hub.data)
@@ -271,6 +276,7 @@ export async function installSyntheticNativeBridge(
     ...data,
     latencyMs: options.latencyMs ?? 5,
     holdSets: options.holdSets ?? false,
+    actionResult: options.actionResult ?? {success: true},
   });
   return data;
 }

@@ -98,23 +98,14 @@ export function LightCard({
         disabled={!ready || !data}
         aria-label={data?.power ? "Power off" : "Power on"}
         aria-pressed={data?.power ?? false}
-        style={data?.power ? { borderColor: `${data.hex}cc`, boxShadow: `0 0 18px ${data.hex}55`, textShadow: `0 0 12px ${data.hex}` } : undefined}
         onClick={() => data && send({ power: !data.power })}
       >
         {data ? (data.power ? "On" : "Off") : "Unknown"}
       </button>
       {data && (
-        <span
-          className={`light-color-chip${data.power ? " is-illuminated" : ""}`}
-          style={{
-            backgroundColor: data.hex,
-            boxShadow: data.power
-              ? `0 0 18px ${data.hex}, 0 0 32px ${data.hex}66, inset 0 0 4px rgba(255,255,255,0.7)`
-              : "none",
-          }}
-          title={`Color: ${data.hex}`}
-          aria-hidden="true"
-        />
+        <svg className="light-color-chip" width="24" height="24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill={data.hex} />
+        </svg>
       )}
       {!expanded && data && (
         <div className="dock-presets" role="group" aria-label="Quick colors">
@@ -124,19 +115,14 @@ export function LightCard({
               <button
                 key={name}
                 type="button"
-                tabIndex={-1}
                 className={`dock-preset-button${active ? " is-active" : ""}`}
                 disabled={!ready}
                 aria-label={`Quick color ${name}`}
                 onClick={() => send({ hex: value })}
               >
-                <span
-                  className="dock-preset-dot"
-                  style={{
-                    backgroundColor: value,
-                    boxShadow: active ? `0 0 12px ${value}, 0 0 2px #fff` : `0 0 4px ${value}44`,
-                  }}
-                />
+                <svg width="20" height="20" aria-hidden="true">
+                  <circle cx="10" cy="10" r="8" fill={value} />
+                </svg>
               </button>
             );
           })}
@@ -209,7 +195,6 @@ export function LightCard({
               <button
                 key={name}
                 disabled={!ready}
-                style={{ borderColor: `${value}66`, boxShadow: `0 0 10px ${value}22` }}
                 onClick={() => send({ hex: value })}
               >
                 <svg width="14" height="14" aria-hidden="true">

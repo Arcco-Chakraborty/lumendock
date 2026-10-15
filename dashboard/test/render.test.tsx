@@ -36,7 +36,7 @@ it("retains zero fractional above limit and unknown usage with due reset", () =>
     const html = render(
       <UsageCard source={usage(value)} laptopNowEpochMs={2000} />,
     );
-    expect(html).toContain(`${value}% used`);
+    expect(html.replace(/<[^>]*>/g, "")).toContain(`${value}% used`);
     expect(html).toContain("Reset due");
     expect(html).toContain("45 minutes");
     expect(html).toContain("Synthetic 45 minute bucket");

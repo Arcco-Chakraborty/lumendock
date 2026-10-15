@@ -8,34 +8,36 @@ function Row({
   row,
   now,
   threshold,
-  isClaude,
+  expanded,
 }: {
   row: UsageWindow;
   now: number | null;
   threshold: number;
-  isClaude?: boolean;
+  expanded: boolean;
 }) {
   const stale =
     row.reportedAtEpochMs === null ||
     now === null ||
     now - row.reportedAtEpochMs >= threshold;
-  const meterId = isClaude ? "claude-meter" : "codex-meter";
   return (
     <div className="quota-row">
       <div className="quota-label">
         <span className="quota-identity" title={row.label || row.windowId}>
           {row.label || row.windowId}
         </span>{" "}
-        <span className="quota-duration muted">
+        <span className="quota-duration muted" aria-label={row.windowDurationMins === null ? "Duration unknown" : `${row.windowDurationMins} minutes`}>
           {row.windowDurationMins === null
             ? "Duration unknown"
-            : `${row.windowDurationMins} minutes`}
+            : expanded ? `${row.windowDurationMins} minutes`
+            : row.windowDurationMins % 1440 === 0 ? `${row.windowDurationMins / 1440}d`
+            : row.windowDurationMins % 60 === 0 ? `${row.windowDurationMins / 60}h`
+            : `${row.windowDurationMins}m`}
         </span>
       </div>
       <div className="usage-value" aria-label={row.usedPercent === null ? "Unknown usage" : undefined}>
         {row.usedPercent === null
           ? "Unknown"
-          : `${row.usedPercent}% used`}
+          : <><span className="usage-number">{row.usedPercent}%</span>{" "}<span className="usage-unit">used</span></>}
       </div>
       <svg
         className="quota-meter"
@@ -48,23 +50,13 @@ function Row({
             : `${row.usedPercent}% used`
         }
       >
-        <defs>
-          <linearGradient id="claude-meter" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f97316" />
-            <stop offset="100%" stopColor="#fb923c" />
-          </linearGradient>
-          <linearGradient id="codex-meter" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#06b6d4" />
-          </linearGradient>
-        </defs>
-        <rect width="100" height="6" rx="3" fill="rgba(255, 255, 255, 0.08)" />
+        <rect className="quota-track" width="100" height="6" rx="1" />
         {row.usedPercent !== null && (
           <rect
             width={Math.max(0, Math.min(100, row.usedPercent))}
             height="6"
-            rx="3"
-            fill={`url(#${meterId})`}
+            rx="1"
+            className={`quota-fill${row.usedPercent >= 90 ? " is-high" : ""}`}
           />
         )}
       </svg>
@@ -75,7 +67,7 @@ function Row({
           )}
         </p>
         <p className="muted">
-          {stale ? "Stale · " : ""}
+          {stale ? "Stale, " : ""}
           {elapsedLabel(row.reportedAtEpochMs, now)}
         </p>
       </div>
@@ -119,7 +111,6 @@ export function UsageCard({
   }
   const rows = expanded ? source?.windows : source?.windows.slice(0, 1);
   const setupRequired = source?.provider === "claude" && source.state === "unsupported" && source.errorCode === "SOURCE_UNAVAILABLE";
-  const isClaude = (source?.provider ?? title.toLowerCase()) === "claude";
   return (
     <section
       className={`usage-card usage-${title.toLowerCase()}${expanded ? " usage-expanded" : ""}${!rows?.length ? " has-no-windows" : ""}`}
@@ -127,7 +118,6 @@ export function UsageCard({
     >
       <div className="card-heading">
         <h2>
-          <span className={`provider-dot dot-${title.toLowerCase()}`} aria-hidden="true" />
           {title}
         </h2>
         {source && (source.state !== "available" || source.stale) && (
@@ -153,7 +143,7 @@ export function UsageCard({
             onClick={onDetails}
             aria-label={`All ${title} windows`}
           >
-            View {source?.windows.length ?? 0}
+            {(source?.windows.length ?? 0) > 1 ? `View ${source!.windows.length}` : "Details"}
           </button>
         )}
       </div>
@@ -163,7 +153,7 @@ export function UsageCard({
           row={row}
           now={laptopNowEpochMs}
           threshold={threshold}
-          isClaude={isClaude}
+          expanded={expanded}
         />
       ))}
       {!rows?.length && <div className="quota-empty"><p className="empty-quota" aria-label="Unknown usage">{expanded ? "Unknown usage" : "Unknown"}</p><p className="muted">{guidance}</p></div>}

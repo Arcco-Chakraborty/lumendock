@@ -109,7 +109,7 @@ test.describe("production bundle (A13/A14)", () => {
         ),
         "no vertical scroll needed at landscape",
       ).toBe(false);
-      await page.screenshot({ path: evidence(`${viewport.name}-ready`) });
+      await page.screenshot({animations:"disabled", path: evidence(`${viewport.name}-ready`) });
       expect(await clippingProblems(page)).toEqual([]);
       expect(await controlProblems(page)).toEqual([]);
       expect(await overlapProblems(page), "controls must not cover text").toEqual([]);
@@ -157,7 +157,7 @@ test.describe("production bundle (A13/A14)", () => {
         "text below 14 CSS px",
       ).toEqual([]);
       expect(Math.min(...sizes.numbers)).toBeGreaterThanOrEqual(32);
-      await page.screenshot({ path: evidence(`${viewport.name}-ready`) });
+      await page.screenshot({animations:"disabled", path: evidence(`${viewport.name}-ready`) });
     });
   }
 
@@ -167,11 +167,11 @@ test.describe("production bundle (A13/A14)", () => {
     expect(await clippingProblems(page, true)).toEqual([]);
     expect(await controlProblems(page, "body", { allowVerticalScroll: true })).toEqual([]);
     expect(await overlapProblems(page)).toEqual([]);
-    await page.screenshot({ path: evidence("360x800-portrait"), fullPage: true });
+    await page.screenshot({animations:"disabled", path: evidence("360x800-portrait"), fullPage: true });
     await page.getByRole("button", { name: /open settings/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     expect(await controlProblems(page, "dialog", { allowVerticalScroll: true })).toEqual([]);
-    await page.screenshot({ path: evidence("360x800-settings") });
+    await page.screenshot({animations:"disabled", path: evidence("360x800-settings") });
   });
 
   for (const [name, viewport] of [
@@ -203,7 +203,7 @@ test.describe("production bundle (A13/A14)", () => {
       const close = page.getByRole("button", { name: /close sheet/i });
       await close.scrollIntoViewIfNeeded();
       await expect(close).toBeInViewport();
-      await page.screenshot({ path: evidence(`${name}-text130-settings`) });
+      await page.screenshot({animations:"disabled", path: evidence(`${name}-text130-settings`) });
     });
   }
 
@@ -244,12 +244,14 @@ test.describe("production bundle (A13/A14)", () => {
     // Document order of the primary controls.
     await page.locator("body").click({ position: { x: 1, y: 1 } });
     const order: string[] = [];
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 7; i += 1) {
       await page.keyboard.press("Tab");
       order.push(await focused());
     }
     expect(order).toEqual([
+      "Monitor",
       "Open settings",
+      "Hide bar",
       "Room history",
       "All Claude windows",
       "All Codex windows",
@@ -309,7 +311,7 @@ test.describe("production bundle (A13/A14)", () => {
     await settings.click();
     await page.getByRole("button", { name: /close sheet/i }).click();
     await expect(settings).toBeFocused();
-    await page.screenshot({ path: evidence("focus-ring-800x360") });
+    await page.screenshot({animations:"disabled", path: evidence("focus-ring-800x360") });
   });
 
   test("data refresh does not move focus or close an open sheet", async ({ page }) => {
@@ -359,7 +361,7 @@ test.describe("production bundle (A13/A14)", () => {
     await expect(link(page, "Laptop", "disconnected")).toBeVisible();
     await expect(link(page, "Controller", "disconnected")).toBeVisible();
     await expect(page.getByText(/Synthetic demo/)).toHaveCount(0);
-    await page.screenshot({ path: evidence("800x360-no-bridge") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-no-bridge") });
   });
 });
 
@@ -372,7 +374,7 @@ test.describe("independent link loss", () => {
     await expect(power(page)).toBeEnabled();
     await page.getByRole("tab", { name: /monitor/i }).click();
     await expect(page.getByText("24.5").first()).toBeVisible();
-    await page.screenshot({ path: evidence("740x320-usb-down") });
+    await page.screenshot({animations:"disabled", path: evidence("740x320-usb-down") });
     // The light really works while the laptop path is down.
     await page.getByRole("tab", { name: /deck/i }).click();
     await power(page).click();
@@ -388,7 +390,7 @@ test.describe("independent link loss", () => {
     await expect(page.getByRole("button", { name: /all claude windows/i })).toBeEnabled();
     await page.getByRole("tab", { name: /deck/i }).click();
     await expect(power(page)).toBeDisabled();
-    await page.screenshot({ path: evidence("740x320-esp-down") });
+    await page.screenshot({animations:"disabled", path: evidence("740x320-esp-down") });
   });
 
   test("a link that drops later is marked down while the other path keeps updating", async ({
@@ -411,7 +413,7 @@ test.describe("independent link loss", () => {
     // The last quota is retained with its own report age instead of being blanked.
     await expect(page.getByText("17.25% used").first()).toBeVisible();
     await expect(page.getByText(/\d+[smh] ago/).first()).toBeVisible();
-    await page.screenshot({ path: evidence("800x360-usb-dropped") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-usb-dropped") });
     // Now the controller drops; laptop path recovers.
     await setBridgeSlot(page, "hub", data.hub);
     await setBridgeSlot(page, "esp", {
@@ -451,7 +453,7 @@ test.describe("content rules", () => {
     await expect(list).toContainText('<img src=x onerror="window.__xss=1">');
     expect(await page.locator("main img, main script, main b, main i").count()).toBe(0);
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
-    await page.screenshot({ path: evidence("800x360-notification-markup") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-notification-markup") });
   });
 
   test("usage above 100% and nonstandard Codex bucket durations stay visible", async ({
@@ -476,7 +478,7 @@ test.describe("content rules", () => {
     // Primary card shows the first bucket honestly: over 100%, not clamped or hidden.
     await expect(page.getByText("120% used")).toBeVisible();
     expect(await clippingProblems(page)).toEqual([]);
-    await page.screenshot({ path: evidence("800x360-over-limit") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-over-limit") });
     await page.getByRole("button", { name: /all codex windows/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("45 minutes")).toBeVisible();
@@ -485,7 +487,7 @@ test.describe("content rules", () => {
     await expect(dialog.getByText("0% used", { exact: true })).toBeVisible();
     await expect(dialog.getByText("33.333% used")).toBeVisible();
     await expect(dialog.getByText("Synthetic custom bucket")).toBeVisible();
-    await page.screenshot({ path: evidence("800x360-codex-windows") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-codex-windows") });
   });
 });
 
@@ -506,7 +508,7 @@ test.describe("light control writes (bridge log)", () => {
     await page.waitForTimeout(600);
     expect(writes(await bridgeLog(page)), "only the first write is on the wire").toHaveLength(1);
     expect(await bridgeCall<number>(page, "heldCount")).toBe(1);
-    await page.screenshot({ path: evidence("800x360-light-pending") });
+    await page.screenshot({animations:"disabled", path: evidence("800x360-light-pending") });
     await bridgeCall(page, "holdSets", false);
     await expect.poll(async () => writes(await bridgeLog(page)).length).toBe(2);
     await page.waitForTimeout(400);
@@ -556,7 +558,7 @@ test.describe("final-review fixes", () => {
       expect(await clippingProblems(page)).toEqual([]);
       expect(await controlProblems(page)).toEqual([]);
       expect(await overlapProblems(page), "controls must not cover text").toEqual([]);
-      await page.screenshot({ path: evidence(`${viewport.name}-unpaired`) });
+      await page.screenshot({animations:"disabled", path: evidence(`${viewport.name}-unpaired`) });
     });
   }
   test("an unpaired phone says so and offers pairing on the main screen", async ({ page }) => {
@@ -634,7 +636,7 @@ test.describe("instrument display revision", () => {
       expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(false);
       expect(await controlProblems(page)).toEqual([]);
       expect(await page.locator(".clock").evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(72);
-      await page.screenshot({path:evidence(`${viewport.name}-composition`)});
+      await page.screenshot({animations:"disabled",path:evidence(`${viewport.name}-composition`)});
     });
   }
   test("local time works offline and an incorrect phone date does not drive quota reset", async ({page}) => {
@@ -667,7 +669,7 @@ test.describe("instrument display revision", () => {
       expect(await clippingProblems(page)).toEqual([]);
       expect(await controlProblems(page)).toEqual([]);
       expect(await overlapProblems(page)).toEqual([]);
-      await page.screenshot({path:evidence(`${viewport.name}-setup`)});
+      await page.screenshot({animations:"disabled",path:evidence(`${viewport.name}-setup`)});
       await page.getByRole("button",{name:"All Claude windows"}).click();
       await expect(page.getByRole("dialog").getByText("Set up Claude capture on the laptop.").first()).toBeVisible();
     });
@@ -693,5 +695,5 @@ test("missing room readings leave compact honest guidance and visible light cont
   expect(await controlProblems(page)).toEqual([]);
   expect(await overlapProblems(page)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(false);
-  await page.screenshot({path:evidence("740x320-room-unavailable")});
+  await page.screenshot({animations:"disabled",path:evidence("740x320-room-unavailable")});
 });

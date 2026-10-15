@@ -1,11 +1,11 @@
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 
 export const SUPPORTED_ACTIONS = [
   'open_claude',
   'open_chatgpt',
   'open_chrome',
   'open_whatsapp',
-  'open_spotify',
+  'open_terminal',
   'media_prev',
   'media_play_pause',
   'media_next',
@@ -15,6 +15,34 @@ export const SUPPORTED_ACTIONS = [
 ] as const;
 
 export type SupportedAction = typeof SUPPORTED_ACTIONS[number];
+
+type Spawner = (command: string, args: string[]) => {
+  once(event: 'spawn' | 'error', listener: () => void): unknown;
+  unref(): void;
+};
+const detached: Spawner = (command, args) =>
+  spawn(command, args, { detached: true, stdio: 'ignore', cwd: process.env.HOME });
+
+// A terminal stays open, so it is started detached: waiting for it to exit would
+// hold the phone's request open. Candidates are tried in order until one starts.
+export const TERMINALS: ReadonlyArray<readonly [string, string[]]> = [
+  ['ptyxis', ['--new-window']],
+  ['gnome-terminal', ['--window']],
+  ['kgx', []],
+  ['x-terminal-emulator', []],
+];
+
+export async function openTerminal(start: Spawner = detached): Promise<{ success: boolean; message: string }> {
+  for (const [command, args] of TERMINALS) {
+    const started = await new Promise<boolean>((done) => {
+      const child = start(command, args);
+      child.once('spawn', () => { child.unref(); done(true); });
+      child.once('error', () => done(false));
+    });
+    if (started) return { success: true, message: 'Opening Terminal' };
+  }
+  return { success: false, message: 'No terminal found' };
+}
 
 export function executeAction(action: string): Promise<{ success: boolean; message?: string }> {
   return new Promise((resolve) => {
@@ -42,10 +70,8 @@ export function executeAction(action: string): Promise<{ success: boolean; messa
           }
         );
         break;
-      case 'open_spotify':
-        exec('/snap/bin/spotify || xdg-open spotify: || spotify', (err) => {
-          resolve({ success: !err, message: err ? err.message : 'Opening Spotify' });
-        });
+      case 'open_terminal':
+        void openTerminal().then(resolve);
         break;
       case 'media_play_pause':
         exec(

@@ -51,7 +51,7 @@ function LinkStatus({
     <span
       className={`link-status ${connected ? "is-connected" : "is-offline"}`}
     >
-      <span aria-hidden="true">{connected ? "●" : "○"}</span> {name} {label}
+      <span className="lamp" aria-hidden="true" /> {name} {label}
     </span>
   );
 }
@@ -91,11 +91,23 @@ export function App({
   const [view, setView] = useState<"monitor" | "deck">("monitor");
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [dockOpen, setDockOpen] = useState(true);
+  const dockRef = useRef<HTMLElement>(null);
+  const dockPointerInside = useRef(false);
+  const focusHandle = useRef(false);
+  const focusDock = useRef(false);
   const autoDropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resetAutoDropTimer = useCallback(() => {
     if (autoDropTimerRef.current) clearTimeout(autoDropTimerRef.current);
     autoDropTimerRef.current = setTimeout(() => {
+      // Keyboard focus and modal return targets remain available. A completed
+      // touch interaction may time out, transferring its focus to the handle.
+      const dockHasFocus = dockRef.current?.contains(document.activeElement);
+      if (dockPointerInside.current || (dockHasFocus && document.activeElement?.matches(":focus-visible")) || document.querySelector("dialog[open]")) {
+        resetAutoDropTimer();
+        return;
+      }
+      focusHandle.current = Boolean(dockHasFocus);
       setDockOpen(false);
     }, 8000);
   }, []);
@@ -111,11 +123,21 @@ export function App({
     };
   }, [dockOpen, resetAutoDropTimer]);
 
-  const prevHubState = useRef(`${snapshot.hub.state}:${snapshot.hub.errorCode}`);
-  const prevEspState = useRef(`${snapshot.esp.state}:${snapshot.esp.errorCode}`);
   useEffect(() => {
-    const hubKey = `${snapshot.hub.state}:${snapshot.hub.errorCode}`;
-    const espKey = `${snapshot.esp.state}:${snapshot.esp.errorCode}`;
+    if (!dockOpen && focusHandle.current) {
+      document.querySelector<HTMLButtonElement>(".dock-trigger-pill")?.focus();
+      focusHandle.current = false;
+    } else if (dockOpen && focusDock.current) {
+      dockRef.current?.querySelector<HTMLButtonElement>("[aria-selected=true]")?.focus();
+      focusDock.current = false;
+    }
+  }, [dockOpen]);
+
+  const prevHubState = useRef(`${snapshot.hub.state}:${snapshot.hub.errorCode}:${snapshot.hub.stale}:${unpaired}`);
+  const prevEspState = useRef(`${snapshot.esp.state}:${snapshot.esp.errorCode}:${snapshot.esp.stale}`);
+  useEffect(() => {
+    const hubKey = `${snapshot.hub.state}:${snapshot.hub.errorCode}:${snapshot.hub.stale}:${unpaired}`;
+    const espKey = `${snapshot.esp.state}:${snapshot.esp.errorCode}:${snapshot.esp.stale}`;
     if (prevHubState.current !== hubKey || prevEspState.current !== espKey) {
       prevHubState.current = hubKey;
       prevEspState.current = espKey;
@@ -125,8 +147,11 @@ export function App({
   }, [
     snapshot.hub.state,
     snapshot.hub.errorCode,
+    snapshot.hub.stale,
+    unpaired,
     snapshot.esp.state,
     snapshot.esp.errorCode,
+    snapshot.esp.stale,
     resetAutoDropTimer,
   ]);
 
@@ -189,10 +214,13 @@ export function App({
     <main className="dashboard">
       <footer
         className={`bottom-dock ${dockOpen ? "is-open" : "is-collapsed"}`}
-        role="toolbar"
+        ref={dockRef}
         aria-label="Navigation and status"
-        onMouseEnter={resetAutoDropTimer}
-        onTouchStart={resetAutoDropTimer}
+        onPointerEnter={(event) => { if (event.pointerType === "mouse") dockPointerInside.current = true; }}
+        onPointerLeave={() => { dockPointerInside.current = false; resetAutoDropTimer(); }}
+        onPointerDown={resetAutoDropTimer}
+        onFocus={resetAutoDropTimer}
+        onBlur={resetAutoDropTimer}
       >
         <div className="connections">
           <LinkStatus name="Laptop" link={snapshot.hub} unpaired={unpaired} />
@@ -204,30 +232,42 @@ export function App({
             </span>
           )}
         </div>
-        <div className="view-switcher" role="tablist" aria-label="Views">
+        <div className="view-switcher" role="tablist" aria-label="Views"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const next = event.key === "Home" ? "monitor" : event.key === "End" ? "deck" : view === "monitor" ? "deck" : "monitor";
+            setView(next);
+            dockRef.current?.querySelector<HTMLButtonElement>(`#${next}-tab`)?.focus();
+            resetAutoDropTimer();
+          }}>
           <button
             type="button"
             role="tab"
+            id="monitor-tab"
+            aria-controls="monitor-panel"
             aria-selected={view === "monitor"}
             className={`view-tab${view === "monitor" ? " is-active" : ""}`}
             onClick={() => {
               setView("monitor");
               resetAutoDropTimer();
             }}
-            tabIndex={-1}
+            tabIndex={view === "monitor" ? 0 : -1}
           >
             Monitor
           </button>
           <button
             type="button"
             role="tab"
+            id="deck-tab"
+            aria-controls="deck-panel"
             aria-selected={view === "deck"}
             className={`view-tab${view === "deck" ? " is-active" : ""}`}
             onClick={() => {
               setView("deck");
               resetAutoDropTimer();
             }}
-            tabIndex={-1}
+            tabIndex={view === "deck" ? 0 : -1}
           >
             Deck
           </button>
@@ -257,8 +297,11 @@ export function App({
             type="button"
             className="dock-collapse-button"
             aria-label="Hide bar"
-            tabIndex={-1}
-            onClick={() => setDockOpen(false)}
+            onClick={() => {
+              focusHandle.current = true;
+              dockPointerInside.current = false;
+              setDockOpen(false);
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
@@ -271,7 +314,7 @@ export function App({
           type="button"
           className="dock-trigger-pill"
           aria-label="Open menu / status"
-          onClick={() => setDockOpen(true)}
+          onClick={() => { focusDock.current = true; setDockOpen(true); }}
         >
           <span className="dock-trigger-handle" aria-hidden="true" />
         </button>
@@ -289,7 +332,7 @@ export function App({
       {import.meta.env.DEV && demo && <span className="demo-label">Synthetic demo</span>}
       {view === "monitor" ? (
         <>
-          <div className="main-grid">
+          <div className="main-grid" id="monitor-panel" role="tabpanel" aria-labelledby="monitor-tab">
             <div className="clock-room">
               <section className="local-clock" aria-label="Clock and date">
                 <time className="clock" aria-label="Local time" dateTime={localNow.toISOString()}>

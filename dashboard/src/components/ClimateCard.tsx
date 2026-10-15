@@ -108,7 +108,7 @@ export function ClimateCard({
           : !ok
             ? "Sensor unavailable. Lighting still works."
             : snapshot.stale
-              ? "Controller disconnected. Readings may be old."
+              ? "Readings may be old."
               : "Temperature and humidity"}
       </p>}
       {onHistory && (
