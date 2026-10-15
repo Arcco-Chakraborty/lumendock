@@ -20,13 +20,13 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "D2 collectors, A1 Android host, W2 dashboard features in parallel",
-  "nextAction": "Finish parallel desktop D2, Android A1 and dashboard W1; serialize commits and independent task reviews",
+  "activeTask": "A1 and D2 independent Astra-high reviews; W2 dashboard feature implementation",
+  "nextAction": "Resolve A1/D2 reviews; advance to A2 and D3; finish W2 and its review; hardware remains deferred",
   "implementationTasks": {
     "D1": "complete",
-    "D2": "in_progress",
+    "D2": "review_pending",
     "D3": "planned",
-    "A1": "in_progress",
+    "A1": "review_pending",
     "A2": "planned",
     "A3": "planned",
     "W1": "complete",
@@ -50,10 +50,10 @@
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
-    "D1": "desktop/**, packages/protocol/**, D1 bootstrap files (freeze shared deps)",
-    "A1": "android/**, scripts/build.mjs",
-    "W1": "dashboard/**, frontend lockfile; root scripts coordinated",
-    "coordinator": "HANDOFF.md, docs/STATUS.json, docs/PROGRESS.md, reviews, serialized commits"
+    "A1": "Android review; original owner handles findings only",
+    "D2": "Desktop review; original owner handles findings only",
+    "W2": "dashboard/**; root deps coordinated",
+    "coordinator": "HANDOFF/STATUS/PROGRESS/review exports; serialized commits"
   },
   "evidence": {
     "D1": {
@@ -75,6 +75,24 @@
       "jsCssBytes": 313542,
       "review": "approved with two minor follow-ups",
       "reviewReport": "docs/reviews/W1-review.md"
+    },
+    "A1": {
+      "commit": "4a88b40ba278086620ca66a457783bf96b5e275a",
+      "report": "docs/reports/A1-implementation.md",
+      "jvmTestsPassed": 11,
+      "lint": "0 errors; 7 documented warnings pending review",
+      "diagnosticProductionInstrumentationApk": "compiled",
+      "instrumentationExecution": "unrun",
+      "review": "Astra high in progress"
+    },
+    "D2": {
+      "commit": "00dd183173aecaf049e72b7428837d8a053c0b6f",
+      "report": "docs/reports/D2-implementation.md",
+      "desktopTestsPassed": 59,
+      "typecheck": "passed",
+      "build": "passed",
+      "review": "Astra high in progress",
+      "livePassthroughCompatibility": "unverified; installation gated"
     }
   },
   "openImplementationFindings": [],
