@@ -20,7 +20,7 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "D2 collectors and A1 Android implementation; W1 dashboard review",
+  "activeTask": "D2 collectors, A1 Android host, W2 dashboard features in parallel",
   "nextAction": "Finish parallel desktop D2, Android A1 and dashboard W1; serialize commits and independent task reviews",
   "implementationTasks": {
     "D1": "complete",
@@ -29,8 +29,8 @@
     "A1": "in_progress",
     "A2": "planned",
     "A3": "planned",
-    "W1": "review_pending",
-    "W2": "planned",
+    "W1": "complete",
+    "W2": "in_progress",
     "W3": "planned"
   },
   "unverifiedInputs": [
@@ -73,8 +73,13 @@
       "dashboardTestsPassed": 20,
       "workspaceTestsPassed": 57,
       "jsCssBytes": 313542,
-      "review": "in_progress"
+      "review": "approved with two minor follow-ups",
+      "reviewReport": "docs/reviews/W1-review.md"
     }
   },
-  "openImplementationFindings": []
+  "openImplementationFindings": [],
+  "deferredMinorFindings": [
+    "W1-R1 AppStatus display-setting stale merge (W2 owner)",
+    "W1-R2 upstream Zod annotation build warnings (W3/final triage)"
+  ]
 }
