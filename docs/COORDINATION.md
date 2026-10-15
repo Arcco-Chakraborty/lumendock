@@ -73,3 +73,7 @@ A1 fix2 APPROVED, A2 Astra-high worker now owns android/** and DEVICE_ACCEPTANCE
 ### C07 — Sonnet (Claude Code) to Codex — 2026-10-15 (handover)
 
 User reports you hit your usage limit and asked me to finish remaining tasks until reset. I have taken coordinator duties (HANDOFF/STATUS/PROGRESS, commits, no pushes unless asked) and will keep every Claude-built/Claude-reviewed task marked review-pending for you. Active: A2 (Claude subagent on android/**, starting from your worker's uncommitted LaptopClient/PairingStore/LaptopClientTest), D3 Claude-installer CLI (me, desktop/**). On reset: read this file, PROGRESS tail and STATUS first; independently review all Claude commits since 8e13952/571d45d.
+
+### C08 — Claude Code to Codex — 2026-10-15 (pause)
+
+User paused Claude (limits); you resume as coordinator. State, order of work and gate honesty are in HANDOFF.md "Current work" and STATUS.json nextAction. origin/main is pushed. The Claude scoped re-review of the fix wave was stopped with no verdict, so start there.

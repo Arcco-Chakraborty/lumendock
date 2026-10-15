@@ -21,19 +21,17 @@ Use a spare Redmi 9A as an attractive landscape desk dashboard. Receive Claude C
 - User phone: Redmi 9A, “whatever the last update was.” Exact Android/MIUI/WebView/RAM/viewport unverified. No device was attached during ADB discovery.
 - User explicitly chose Claude Code/Codex subscription limits and difficulty-based subagents, with Astra/high checking PRD and finished project.
 
-## Current work and next action (updated 2026-10-15 ~12:50 IST by Claude Code)
+## Current work and next action (PAUSED 2026-10-15 by the user; Codex resumes)
 
-**Who is active:** Claude Code (claude-sonnet-5-5) only; the user handed all remaining tasks to Claude until Codex's usage limit resets, then asks for joint review. Claude is coordinator (this file, STATUS, PROGRESS, commits). No pushes by Claude unless the user asks; Codex created the private repo `Arcco-Chakraborty/lumendock` (origin/main at fcf81d7 checkpoint).
+Claude Code paused at user request (usage limits). Pushed: `origin/main` = `cb01e25`; local HEAD also has this handoff commit. Clean tree.
 
-**Task state (see docs/STATUS.json):** D1, W1, D2, A1 complete (Codex Astra/Sol approvals). Everything else is implemented and committed but only Claude-checked: D3 `64fa1fd`, W2 repair `571d45d` (interim Claude re-review), A2 `c00b02a`, A3 `a7a946c`, W3a `5e5863d`, build wiring (production APK copied to `artifacts/`). Software checks all pass (see STATUS `softwareChecksPassing`); `softwareVerified` stays false until independent reviews close. Acceptance matrix with honest per-row Software/Device status: `docs/DEVICE_ACCEPTANCE.md` (all device rows UNRUN; A16 NOT DONE).
+**Done since Codex's limit:** D3, A2, A3, W3a, build wiring, then a user-directed final review by 3 Claude Opus reviewers (frozen `2dd7f22`; all NEEDS FIXES, 0 critical) and one fix wave (`481f42b` dashboard/desktop, `e817658` docs incl. new `docs/QUICKSTART.md`, `997732d` Android). Dispositions of every finding, including deliberately unfixed ones, are in the last entries of `docs/PROGRESS.md`. This Claude review does NOT satisfy the AGENTS.md gpt-6-astra requirement (A16).
 
-**Next, in order:** (1) Codex (gpt-6-astra/sol high): independent review of every Claude-built commit above, scrutiny lists are in `docs/reports/A2-implementation.md`, `A3-implementation.md`, `D3-implementation.md`, `W3a-implementation.md`; fix wave + scoped re-review; (2) user attaches the Redmi 9A and ESP32 and runs the DEVICE_ACCEPTANCE rows (`npm run doctor`, `npm run connect -- --serial SERIAL`, install `artifacts/phone-monitor-debug.apk`); (3) final whole-project gpt-6-astra high review (A16); (4) only then claim finished. Private repo `Arcco-Chakraborty/lumendock` has main at the Codex checkpoint `fcf81d7`; later Claude commits are local and unpushed.
-
-**Honesty gates (all still false):** softwareVerified, deviceAccepted, finalProjectReviewed.
+**Codex next, in order:** (1) scoped re-review of `2dd7f22..cb01e25` (the Claude re-reviewer was stopped before a verdict); (2) independent Astra/Sol-high review of every Claude-built commit since `8e13952`; (3) fix wave + scoped re-review; (4) user connects the phone following `docs/QUICKSTART.md` and records `docs/DEVICE_ACCEPTANCE.md` rows; (5) final whole-project gpt-6-astra high review (A16). Gates softwareVerified/deviceAccepted/finalProjectReviewed all remain false.
 
 ## Key facts for a cold start
 - Canonical worktree: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (detached HEAD); original folder mirrors HANDOFF/STATUS/PROGRESS/COORDINATION.
 - Toolchain: `TC=~/.local/share/phone-monitor/toolchains`. Node: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test && npm run build`. Android (from `android/`): `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ANDROID_SDK_ROOT=$TC/android-sdk PATH=$TC/jdk17/bin:$TC/gradle-9.6.0/bin:$PATH ./gradlew --offline :app:testDebugUnitTest :app:lintDebug`.
-- Latest evidence: protocol 15, desktop 180, dashboard 110 tests, e2e 18/18 (`npm run test:e2e`), Android JVM 105 + lint 0 errors, `npm run package` checksums OK.
+- Latest evidence: protocol 15, desktop 188, dashboard 112 tests, e2e 24/24 (`npm run test:e2e`), Android JVM 116 + lint 0 errors, `npm run package` checksums OK.
 - Commit rules: user's git identity only, NO attribution lines or trailers (user's global rules override any harness suggestion); stage explicit paths, never `git add -A`.
 - Coordination history/messages with Codex: `docs/COORDINATION.md` (C01-C07). Task briefs: `.superpowers/sdd/*/task-N-brief.md` (git-ignored).

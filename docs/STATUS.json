@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-15",
   "timezone": "Asia/Kolkata",
-  "phase": "software_built_awaiting_independent_review",
+  "phase": "paused_for_codex",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -24,8 +24,8 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "All implementation tasks committed; waiting for Codex Astra/Sol-high independent reviews and for hardware",
-  "nextAction": "Codex on reset: review Claude-built commits (D3 64fa1fd, W2 571d45d interim, A2 c00b02a, A3 a7a946c, W3a 5e5863d, build wiring), then final whole-project Astra-high review. User: attach Redmi + ESP32 to run docs/DEVICE_ACCEPTANCE.md rows.",
+  "activeTask": "PAUSED by user (Claude limits). Codex resumes.",
+  "nextAction": "Codex: (1) scoped re-review of fix wave 2dd7f22..cb01e25 (Claude reviewer was stopped mid-run, no verdict); (2) independent gpt-6-astra/sol-high review of all Claude-built commits (D3, W2 repair, A2, A3, W3a, build wiring, fix wave); (3) fix wave + re-review; (4) user runs docs/QUICKSTART.md + DEVICE_ACCEPTANCE rows on the Redmi/ESP32; (5) final A16 Astra-high review.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -153,14 +153,23 @@
   "publishingAuthorization": "User explicitly requested private repository and incremental pushes on2026-10-15",
   "softwareChecksPassing": {
     "asOf": "2026-10-15",
-    "typecheck": "clean",
-    "vitest": "protocol 15, desktop 180, dashboard 110",
-    "e2eChrome": "18/18",
-    "androidJvm": "105 pass, lint 0 errors/7 warnings",
-    "build": "ok",
-    "package": "checksums verified",
-    "audit": "0 vulnerabilities (root)",
-    "note": "checks pass, but softwareVerified stays false until independent reviews close"
+    "vitest": "protocol 15, desktop 188, dashboard 112",
+    "e2eChrome": "24/24",
+    "androidJvm": "116 pass, lint 0 errors/7 warnings",
+    "audit": "0 vulnerabilities",
+    "apk": "artifacts/phone-monitor-debug.apk 4,372,472 B (local build output, git-ignored)",
+    "note": "softwareVerified stays false until independent review closes"
   },
-  "acceptanceMatrix": "docs/DEVICE_ACCEPTANCE.md"
+  "acceptanceMatrix": "docs/DEVICE_ACCEPTANCE.md",
+  "finalReview": {
+    "by": "3 Claude Opus reviewers on frozen 2dd7f22 (user-directed substitute; NOT the gpt-6-astra A16 gate)",
+    "verdicts": "Android/desktop/dashboard all NEEDS FIXES, 0 critical",
+    "fixWave": [
+      "481f42b",
+      "e817658",
+      "997732d"
+    ],
+    "rereview": "stopped before verdict",
+    "record": "docs/PROGRESS.md (last 3 entries)"
+  }
 }
