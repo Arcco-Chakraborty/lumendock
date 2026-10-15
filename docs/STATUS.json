@@ -20,8 +20,8 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "W2 dashboard feature completion (Claude); A1/D2 fix-round scoped Astra-high re-reviews (Codex)",
-  "nextAction": "Codex: scoped re-review of 38cf1bc (A1) and bdfc7ed (D2); then A2/D3. Claude: finish/verify W2 in dashboard/**, then request fresh review.",
+  "activeTask": "Awaiting independent re-reviews: A1 fix 38cf1bc, D2 fix bdfc7ed, W2 57bb5c5",
+  "nextAction": "Codex (gpt-6-astra/sol high): review 38cf1bc, bdfc7ed, 57bb5c5. Then A2 (android/**) and D3 (desktop/**). Claude available to claim A2 or D3 if Codex takes the other; record claim first.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "fix_round_1_committed_awaiting_rereview",
@@ -30,7 +30,7 @@
     "A2": "planned",
     "A3": "planned",
     "W1": "complete",
-    "W2": "in_progress",
+    "W2": "implemented_awaiting_review",
     "W3": "planned"
   },
   "unverifiedInputs": [
@@ -51,7 +51,7 @@
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
     "protocol": "Claude Code and Codex now work in the same canonical worktree. One owner per path set; commit only your own paths (git add <paths>, never git add -A); re-run git status before each commit; announce claims here before starting.",
-    "claude": "dashboard/** (W2 completion), plus any task explicitly claimed here",
+    "claude": "none active; W2 committed. Free to claim A2 or D3.",
     "codex": "independent re-reviews of 38cf1bc and bdfc7ed (gpt-6-astra high); then A2 (android/**) and D3 (desktop/**) as claimed",
     "coordinator": "HANDOFF/STATUS/PROGRESS: append-only edits by whoever finishes a step; re-read before editing"
   },
@@ -97,6 +97,17 @@
       "livePassthroughCompatibility": "unverified; installation gated",
       "reviewReport": "docs/reviews/D2-review.md",
       "fixCommit": "bdfc7ed"
+    },
+    "W2": {
+      "commit": "57bb5c5",
+      "report": "docs/reports/W2-implementation.md",
+      "dashboardTestsPassed": 50,
+      "workspaceTestsPassed": 131,
+      "jsCssBytes": 335540,
+      "review": "pending, must be non-Claude",
+      "minorFollowUps": [
+        "W2-M1 360px notification strip spacing"
+      ]
     }
   },
   "openImplementationFindings": [

@@ -1,6 +1,6 @@
 # Phone Monitor — live handoff
 
-Updated: 2026-10-15 (Asia/Kolkata). Current phase: A1/D2 fix rounds committed (38cf1bc, bdfc7ed) awaiting re-review; W2 implementation (dashboard/**) uncommitted and in progress. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
+Updated: 2026-10-15 (Asia/Kolkata). Current phase: A1/D2 fix rounds committed (38cf1bc, bdfc7ed) awaiting re-review; W2 committed 57bb5c5; A1/D2/W2 all await independent review. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
 
 ## Objective
 
@@ -33,8 +33,8 @@ Read docs/STATUS.json and docs/PROGRESS.md here before resuming; the coordinator
 
 Both tools share this worktree. Rules: claim paths here before starting; commit only your own paths with `git add <paths>` (never `-A`); re-check `git status` first; no attribution trailers; hardware stays deferred.
 
-- **Claude Code:** finishing W2 in `dashboard/**` (components/lib/tests exist, uncommitted; typecheck, 50 tests and build pass; needs plan Step 5 checks and report `docs/reports/W2-implementation.md`, then a fresh review).
-- **Codex (requested):** gpt-6-astra high scoped re-reviews of A1 fix `38cf1bc` (A1-R1/R2/R3; check `LifecycleReplyDelivery`, `NativeSession.activityStopReason`) and D2 fix `bdfc7ed` (D2-R1/R2). Claude authored the A1 fix, so Claude must not review it. After approval: A2 (`android/**`) and D3 (`desktop/**`).
+- **Claude Code:** W2 done and committed (`57bb5c5`, report `docs/reports/W2-implementation.md`); no active claim, free to take A2 or D3 once claimed here.
+- **Codex (requested):** gpt-6-astra high scoped re-reviews of A1 fix `38cf1bc` (A1-R1/R2/R3; check `LifecycleReplyDelivery`, `NativeSession.activityStopReason`) D2 fix `bdfc7ed` (D2-R1/R2), and W2 `57bb5c5`. Claude authored the A1 fix, so Claude must not review it. After approval: A2 (`android/**`) and D3 (`desktop/**`).
 - Required Astra-high gates cannot be run from Claude Code; they are not satisfied by Claude review.
 - Verified commands: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test`. Android: `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ./gradlew --offline :app:testDebugUnitTest :app:lintDebug` from `android/` (`TC=~/.local/share/phone-monitor/toolchains`).
 - Last evidence: protocol 15, desktop 66, dashboard 50 tests; Android JVM 19; lintDebug 0 errors. Still unrun: instrumentation, device, live Claude passthrough.
