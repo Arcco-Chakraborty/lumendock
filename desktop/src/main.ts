@@ -5,6 +5,7 @@ import { HubStore } from './store.js';
 import { buildHub } from './server.js';
 import { HubCollectors } from './collectors/index.js';
 import { NotificationCollector } from './collectors/notifications.js';
+import { HostCollector } from './collectors/host.js';
 import { AllowlistSync } from './notification-sync.js';
 import { runNotificationsCommand } from './notifications-cli.js';
 import { resolveCodexPath } from './codex-path.js';
@@ -22,22 +23,25 @@ if (args[0] === 'notifications') {
   let allowlist: string[] = [];
   try { allowlist = listNotificationApps(tokenStore.directory); } catch { allowlist = []; }
   const store = new HubStore({notificationAllowlist:allowlist});
-  const app = buildHub({store,pairing,tokenStore,clock});
+  const host = new HostCollector({store});
+  // Refresh media/mic/DND right after a Deck key so its lit state follows quickly.
+  const app = buildHub({store,pairing,tokenStore,clock,afterAction:()=>void host.poll()});
   const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})}});
   const notifications = new NotificationCollector({store,clock});
   const allowlistSync = new AllowlistSync({configDir:tokenStore.directory,apply:async labels=>{store.setNotificationAllowlist(labels);await notifications.start(labels);}});
-  const stop = () => { pairing.close(); allowlistSync.stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };
+  const stop = () => { pairing.close(); allowlistSync.stop(); host.stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };
   process.once('SIGINT',stop); process.once('SIGTERM',stop);
   try {
     tokenStore.read();
     await app.listen({host:'127.0.0.1',port:8765});
     await collectors.start();
+    host.start();
     await allowlistSync.start();
     if (args.includes('--pair')) console.log(`Pairing code: ${pairing.open(clock.nowMs())} (expires in 120 seconds)`);
     console.log('Phone Monitor hub listening on 127.0.0.1:8765');
   } catch {
     console.error('Hub startup failed. Check private configuration and port 8765 availability.');
-    allowlistSync.stop();
+    allowlistSync.stop(); host.stop();
     await Promise.all([notifications.stop(),collectors.stop()]);
     await app.close(); process.exitCode = 1;
   }

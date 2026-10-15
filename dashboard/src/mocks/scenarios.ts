@@ -5,7 +5,7 @@ import {
   type EspSnapshot,
 } from "@phone-monitor/protocol";
 import type { HubLink } from "../store.js";
-import hubJson from "../../../packages/protocol/fixtures/hub-ready.json";
+import hubJson from "../../../packages/protocol/fixtures/hub-host.json";
 import espJson from "../../../packages/protocol/fixtures/esp-link-ready.json";
 export function scenario(mode: string | null): {
   hub: HubLink;

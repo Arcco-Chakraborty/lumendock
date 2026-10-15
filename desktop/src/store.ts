@@ -1,4 +1,4 @@
-import { HubSnapshotSchema, LIMITS, SelectedNotificationSchema, UsageObservationSchema, type ErrorCode, type HubSnapshot, type Provider, type SelectedNotification, type UsageSource } from '@phone-monitor/protocol';
+import { HostStateSchema, HubSnapshotSchema, LIMITS, SelectedNotificationSchema, UsageObservationSchema, type ErrorCode, type HostState, type HubSnapshot, type Provider, type SelectedNotification, type UsageSource } from '@phone-monitor/protocol';
 
 const emptySource = (provider: Provider): UsageSource => ({provider,source:provider === 'claude' ? 'claude_statusline' : 'codex_app_server',state:'awaiting_data',observedAtEpochMs:null,lastSuccessAtEpochMs:null,stale:true,windows:[],errorCode:null});
 export interface StoreOptions {initialSnapshot?: HubSnapshot; notificationAllowlist?: readonly string[]}
@@ -7,6 +7,7 @@ export class HubStore {
   private readonly allowlist: Set<string>;
   private notifications: HubSnapshot['notifications'];
   private lastPhoneActivity: number | null = null;
+  private host: HostState | null = null;
   constructor(options: StoreOptions = {}) {
     const initial = options.initialSnapshot ? HubSnapshotSchema.parse(options.initialSnapshot) : null;
     this.usage = initial ? structuredClone(initial.usage) : {claude:emptySource('claude'),codex:emptySource('codex')};
@@ -50,6 +51,11 @@ export class HubStore {
     if (!this.allowlist.size) {this.notifications.state = 'disabled'; this.notifications.errorCode = null;}
     else if (this.notifications.state === 'disabled') this.notifications.state = 'unavailable';
   }
+  setHost(input: unknown): boolean {
+    const parsed = HostStateSchema.safeParse(input);
+    if (parsed.success) this.host = parsed.data;
+    return parsed.success;
+  }
   markPhoneActivity(monotonicMs: number): void { this.lastPhoneActivity = monotonicMs; }
   isPhoneActive(monotonicMs: number): boolean { return this.lastPhoneActivity !== null && monotonicMs >= this.lastPhoneActivity && monotonicMs-this.lastPhoneActivity < 10000; }
   snapshot(nowMs: number): HubSnapshot {
@@ -64,7 +70,7 @@ export class HubStore {
     // Expired notifications never reach a response and never persist on disk.
     this.notifications.items = this.notifications.items.filter(n=>n.expiresAtEpochMs > nowMs);
     const items: SelectedNotification[] = structuredClone(this.notifications.items);
-    const result: HubSnapshot = {v:1,serverNowEpochMs:nowMs,usage,notifications:{...this.notifications,items}};
+    const result: HubSnapshot = {v:1,serverNowEpochMs:nowMs,usage,notifications:{...this.notifications,items},...(this.host ? {host:structuredClone(this.host)} : {})};
     while(Buffer.byteLength(JSON.stringify(result),'utf8') > LIMITS.hubBytes && items.length) items.shift();
     return HubSnapshotSchema.parse(result);
   }

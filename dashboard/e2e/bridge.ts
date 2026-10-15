@@ -50,7 +50,7 @@ export function fixtures(options: BridgeOptions = {}): Fixtures {
     state: "connected",
     ageMs: 0,
     stale: false,
-    data: fixture("hub-ready.json"),
+    data: fixture("hub-host.json"),
     errorCode: null,
   });
   const esp = EspSnapshotSchema.parse(fixture("esp-link-ready.json"));

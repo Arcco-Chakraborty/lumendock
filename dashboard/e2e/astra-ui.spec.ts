@@ -94,13 +94,13 @@ test("dock waits for keyboard focus, hides after idle and wakes without stealing
 test("Deck sends only fixed actions and reports safe request feedback", async ({page}) => {
   await open(page,740,320,{actionResult:{success:true,message:"synthetic backend stderr must not appear"}});
   await page.getByRole("tab",{name:"Deck",exact:true}).click();
-  const keys = ["Open Claude","Open ChatGPT","Open Chrome","Open WhatsApp","Open Terminal","Previous track","Play or pause","Next track","Volume down","Toggle mute","Volume up"];
+  const keys = ["Open Claude","Open ChatGPT","Open Chrome","Open WhatsApp","Open Terminal","Previous track","Play or pause","Next track","Volume down","Toggle mute","Volume up","Toggle microphone","Toggle Do Not Disturb","Lock laptop","Open screenshot tool"];
   for (const key of keys) {
     await page.getByRole("button",{name:key,exact:true}).click();
     await expect(page.getByRole("status")).toContainText("request sent");
   }
   expect((await bridgeLog(page)).filter(x=>x.op === "hub.action").map(x=>x.args)).toEqual([
-    "open_claude","open_chatgpt","open_chrome","open_whatsapp","open_terminal","media_prev","media_play_pause","media_next","volume_down","media_mute","volume_up"
+    "open_claude","open_chatgpt","open_chrome","open_whatsapp","open_terminal","media_prev","media_play_pause","media_next","volume_down","media_mute","volume_up","mic_mute","dnd_toggle","lock_screen","screenshot"
   ].map(action=>({action})));
   await expect(page.getByText("synthetic backend stderr must not appear")).toHaveCount(0);
   expect(await overlapProblems(page)).toEqual([]);
@@ -118,6 +118,8 @@ test("failed actions cannot display backend error payloads", async ({page}) => {
 test("light shortcuts stay pending until acknowledged and survive an unconfirmed reply", async ({page}) => {
   const data = await open(page,800,360,{holdSets:true});
   await page.getByRole("tab",{name:"Deck",exact:true}).click();
+  // The open bar overlays the bottom Lamp row; hide it as a user would.
+  await page.getByRole("button",{name:"Hide bar"}).click();
   await page.getByRole("button",{name:"Warm lamp",exact:true}).click();
   await expect(page.getByRole("status")).toHaveText("Warm light: pending");
   await expect.poll(async () => (await bridgeLog(page)).filter(x=>x.op === "esp.set").length).toBe(1);
@@ -129,6 +131,8 @@ test("light shortcuts stay pending until acknowledged and survive an unconfirmed
   await setBridgeSlot(page,"esp",data.esp);
   await bridgeCall(page,"releaseOne");
   await expect(page.getByRole("status")).toHaveText("White light: unconfirmed; open light controls to retry");
+  // The controller dropping out woke the bar again.
+  await page.getByRole("button",{name:"Hide bar"}).click();
   await page.getByRole("button",{name:"Light controls"}).click();
   await expect(page.getByRole("button",{name:"Retry light change"})).toBeVisible();
 });
@@ -207,3 +211,29 @@ for (const [width, height, shown] of [[800,360,2],[740,320,2],[360,800,3]] as co
     await page.screenshot({animations:"disabled",path:evidence(`${width}x${height}-alerts`)});
   });
 }
+
+test("a new WhatsApp alert pulses the lamp green and the setting turns it off", async ({page}) => {
+  // Midday, so quiet hours never apply; timers still run normally.
+  await page.clock.setFixedTime(new Date(2026, 9, 15, 12, 0));
+  const data = await open(page, 800, 360);
+  const pulses = async () => (await bridgeLog(page)).filter(x => x.op === "esp.set").map(x => (x.args as {patch: Record<string, unknown>}).patch);
+  const base = data.hub.data!.notifications.items[0]!;
+  const add = async (id: string, appId: string) => {
+    data.hub.data!.notifications.items.push({...base, id, appId, title: "Synthetic signal alert"});
+    await setBridgeSlot(page, "hub", data.hub);
+  };
+  await add("synthetic-wa-1", "WhatsApp");
+  await expect.poll(pulses, {timeout: 6000}).toContainEqual({power: true, mode: 1, speed: 85, bright: 100, hex: "#25D366"});
+  await expect.poll(async () => (await pulses()).length, {timeout: 9000}).toBe(2);
+  expect((await pulses())[1]).toMatchObject({power: true, mode: 0});
+
+  await page.getByRole("button", {name: "Open settings"}).click();
+  await page.getByLabel("Pulse green for WhatsApp messages").uncheck();
+  expect(await controlProblems(page, "dialog", {allowVerticalScroll: true})).toEqual([]);
+  await page.getByRole("dialog").getByText("Lamp signals").scrollIntoViewIfNeeded();
+  await page.screenshot({animations: "disabled", path: evidence("800x360-lamp-signal-settings")});
+  await page.getByRole("button", {name: "Close sheet"}).click();
+  await add("synthetic-wa-2", "WhatsApp");
+  await page.waitForTimeout(3000);
+  expect(await pulses()).toHaveLength(2);
+});

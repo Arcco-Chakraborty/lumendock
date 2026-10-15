@@ -343,8 +343,10 @@ test.describe("production bundle (A13/A14)", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("button", { name: /close sheet/i }).click();
     await page.getByRole("tab", { name: /deck/i }).click();
+    await page.getByRole("button", { name: "Hide bar" }).click();
     await power(page).click();
     await expect(page.getByRole("button", { name: "Power on" })).toBeVisible();
+    await page.getByRole("button", { name: "Open menu / status" }).click();
     await page.getByRole("tab", { name: /monitor/i }).click();
     await context.setOffline(false);
     // The shell never requested anything beyond its own origin (also asserted at teardown).
@@ -498,6 +500,7 @@ test.describe("light control writes (bridge log)", () => {
     await openDashboard(page, { width: 800, height: 360 }, { holdSets: true });
     await connected(page);
     await page.getByRole("tab", { name: /deck/i }).click();
+    await page.getByRole("button", { name: "Hide bar" }).click();
     await page.getByRole("button", { name: /light controls/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("button", { name: "Red" })).toBeEnabled();
@@ -532,6 +535,7 @@ test.describe("light control writes (bridge log)", () => {
     await openDashboard(page, { width: 800, height: 360 });
     await connected(page);
     await page.getByRole("tab", { name: /deck/i }).click();
+    await page.getByRole("button", { name: "Hide bar" }).click();
     await page.getByRole("button", { name: /light controls/i }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/sleep timer/i).fill("45");

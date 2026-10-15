@@ -190,6 +190,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .dock-trigger-pill:active:enabled { transform: none; box-shadow: none; }
 .dock-trigger-handle { width: 56px; height: 5px; border-radius: 3px; background: #3a454c; }
 .dock-trigger-pill:hover .dock-trigger-handle { background: var(--ink-2); }
+.dock-trigger-feedback { max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 1.2; color: var(--ink); }
 .deck-feedback { flex-basis: 100%; font-size: 14px; color: var(--ink); line-height: 1.25; overflow-wrap: anywhere; }
 .deck-feedback-dot { display: none; }
 
@@ -200,8 +201,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .deck-grid { display: grid; gap: 10px; min-width: 0; }
 .deck-grid-apps, .deck-grid-light { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .deck-grid-media { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.deck-grid-system { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+/* Now playing reads like a small display window beside the transport keys. */
+.now-playing { grid-column: span 3; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 6px 14px; border-radius: 10px; background: var(--well); box-shadow: inset 0 2px 6px #000000cc, inset 0 0 0 1px var(--well-edge); }
+.now-playing-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }
+.now-playing-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--ink-2); }
+.now-playing-volume { font-size: 14px; color: var(--signal); }
+.now-playing.is-idle .now-playing-meta { white-space: normal; }
 .deck-key {
-  min-width: 44px; min-height: 72px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; padding: 8px 4px;
+  min-width: 44px; min-height: 64px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; padding: 8px 4px;
   background: linear-gradient(var(--cap-top), var(--cap)); color: var(--cap-ink); border-radius: 10px;
   box-shadow: 0 4px 0 var(--cap-edge), inset 0 1px 0 #ffffff12, inset 0 0 0 1px var(--cap-rim);
 }
@@ -216,9 +224,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .deck-key-play:hover:enabled { background: linear-gradient(#7de9f7, #3fdaf0); }
 .deck-key-play:active:enabled { box-shadow: 0 0 0 var(--signal-edge), inset 0 1px 0 #ffffff59; }
 .deck-lamp-dot { flex-shrink: 0; border-radius: 50%; box-shadow: 0 0 0 2px #ffffff1f; }
-.deck-key-lamp-toggle { position: relative; }
-.deck-key-lamp-toggle::after { content: ""; position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: #2c353b; }
-.deck-key-lamp-toggle.is-on::after { background: var(--signal); box-shadow: 0 0 8px var(--signal); }
+.deck-key-led { position: relative; }
+/* Toggle keys carry a small status LED: cyan when on, red when muted. */
+.deck-key-led::after { content: ""; position: absolute; top: 9px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: #2c353b; }
+.deck-key-led.is-on::after { background: var(--signal); box-shadow: 0 0 8px var(--signal); }
+.deck-key-led.is-alert::after { background: var(--hot); box-shadow: 0 0 8px var(--hot); }
 .deck-key-palette { background: var(--dark-cap); color: var(--ink-2); box-shadow: 0 4px 0 var(--dark-cap-edge), inset 0 0 0 1px var(--cap-rim); }
 .deck-key-palette:hover:enabled { background: var(--dark-cap-hover); }
 .deck-key-palette:active:enabled { box-shadow: 0 0 0 var(--dark-cap-edge), inset 0 0 0 1px var(--cap-rim); }
@@ -240,6 +250,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .usage-expanded .quota-meta { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
 .sheet .climate-card { padding: 0 14px 14px; }
 .settings-actions { display: grid; gap: 12px; margin-top: 18px; }
+.signal-settings { border: 0; border-top: 1px solid var(--rule); margin: 22px 0 0; padding: 16px 0 0; min-width: 0; }
+.signal-settings legend { padding: 0; font-size: 18px; font-weight: 600; }
+.signal-settings .setting-toggle { margin-top: 6px; min-height: 48px; }
+.signal-settings > button { margin-top: 12px; }
 .setting-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; margin-top: 16px; }
 .setting-toggle input { width: 44px; height: 44px; flex-shrink: 0; accent-color: var(--signal); }
 .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
@@ -289,7 +303,9 @@ select { margin-left: auto; }
   .bottom-dock { left: 14px; right: 14px; bottom: 6px; }
   .deck-container { gap: 8px; }
   .deck-section { grid-template-columns: 54px minmax(0, 1fr); gap: 10px; }
-  .deck-key { min-height: 64px; }
+  .deck-key { min-height: 56px; padding: 5px 4px; gap: 4px; }
+  .deck-app { padding: 7px 8px 5px 10px; }
+  .now-playing { padding: 4px 12px; }
   .deck-grid { gap: 8px; }
 }
 
@@ -318,6 +334,8 @@ select { margin-left: auto; }
   .deck-grid-apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .deck-grid-apps .deck-key:last-child { grid-column: 1 / -1; }
   .deck-grid-media { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .now-playing { grid-column: 1 / -1; min-height: 64px; }
+  .deck-grid-system { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .deck-grid-light { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .deck-key { min-height: 68px; }
   .deck-app { flex-direction: row; align-items: center; }

@@ -48,6 +48,7 @@ internal class FakeHubTransport:HubTransport {
     }
 }
 internal fun hubFixture()=LaptopClientTest::class.java.getResource("/hub-ready.json")!!.readText()
+internal fun hubHostFixture()=LaptopClientTest::class.java.getResource("/hub-host.json")!!.readText()
 internal const val AUTH_REQUIRED_BODY="""{"v":1,"error":{"code":"AUTH_REQUIRED"}}"""
 
 class LaptopClientTest {

@@ -83,8 +83,16 @@ object ProtocolValidator {
     private fun notification(e:JsonElement?):Boolean = obj(e,"id appId title body receivedAtEpochMs expiresAtEpochMs") { o ->
         str(o["id"],80,true) && str(o["appId"],80,true) && str(o["title"],100) && str(o["body"],280) && int(o["receivedAtEpochMs"]) && int(o["expiresAtEpochMs"]) && (o["expiresAtEpochMs"].asLong-o["receivedAtEpochMs"].asLong) in 1..1800000
     }
-    private fun hub(e:JsonElement?):Boolean = obj(e,"v serverNowEpochMs usage notifications") { o ->
-        int(o["v"],1,1) && int(o["serverNowEpochMs"]) && obj(o["usage"],"claude codex"){usage(it["claude"],"claude") && usage(it["codex"],"codex")} && obj(o["notifications"],"state errorCode items"){one(it["state"],"disabled","available","unavailable") && error(it["errorCode"]) && arr(it["items"],100){n->notification(n)}} && budget(o,262144)
+    // Optional laptop state for the Deck; mirrors HostStateSchema in packages/protocol.
+    private fun media(e:JsonElement?):Boolean = obj(e,"player status title artist") { m ->
+        str(m["player"],40) && one(m["status"],"playing","paused","stopped") && str(m["title"],120) && str(m["artist"],120)
+    }
+    private fun host(e:JsonElement?):Boolean = obj(e,"media volumePercent muted micMuted doNotDisturb") { h ->
+        nullable(h["media"]){media(it)} && nullable(h["volumePercent"]){int(it,0,150)} &&
+            nullable(h["muted"]){bool(it)} && nullable(h["micMuted"]){bool(it)} && nullable(h["doNotDisturb"]){bool(it)}
+    }
+    private fun hub(e:JsonElement?):Boolean = obj(e,"v serverNowEpochMs usage notifications","host") { o ->
+        (o["host"]==null || host(o["host"])) && int(o["v"],1,1) && int(o["serverNowEpochMs"]) && obj(o["usage"],"claude codex"){usage(it["claude"],"claude") && usage(it["codex"],"codex")} && obj(o["notifications"],"state errorCode items"){one(it["state"],"disabled","available","unavailable") && error(it["errorCode"]) && arr(it["items"],100){n->notification(n)}} && budget(o,262144)
     }
     private fun command(e:JsonElement?, kind:String?=null):Boolean = obj(e,"generation kind outcome state errorCode") { o ->
         int(o["generation"],1) && one(o["kind"],*(kind?.let{arrayOf(it)} ?: arrayOf("state","timer"))) && one(o["outcome"],"pending","confirmed","unconfirmed","cancelled","superseded") && nullable(o["state"]){esp(it)} && error(o["errorCode"]) && (o["outcome"].asString!="confirmed" || !o["state"].isJsonNull)

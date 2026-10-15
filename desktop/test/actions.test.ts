@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { SUPPORTED_ACTIONS, TERMINALS, openTerminal } from '../src/actions.js';
+import { SUPPORTED_ACTIONS, TERMINALS, openTerminal, systemAction } from '../src/actions.js';
 
 // Fake spawner only: these tests never start a real terminal.
 function fakeSpawner(available: string[]) {
@@ -33,5 +33,46 @@ describe('open_terminal', () => {
   it('reports failure when no terminal exists', async () => {
     const { start } = fakeSpawner([]);
     await expect(openTerminal(start)).resolves.toEqual({ success: false, message: 'No terminal found' });
+  });
+});
+
+describe('laptop system keys', () => {
+  const recorder = (outputs: Record<string, string> = {}, fail = false) => {
+    const calls: string[] = [];
+    const run = async (command: string, args: string[]) => {
+      const line = [command, ...args].join(' ');
+      calls.push(line);
+      if (fail) throw new Error('synthetic failure');
+      return outputs[line] ?? '';
+    };
+    return { run, calls };
+  };
+  it('lists the four new fixed actions', () => {
+    for (const id of ['mic_mute', 'dnd_toggle', 'lock_screen', 'screenshot']) expect(SUPPORTED_ACTIONS).toContain(id);
+  });
+  it('toggles the default microphone and locks the session with fixed commands', async () => {
+    const { run, calls } = recorder();
+    await expect(systemAction('mic_mute', run)).resolves.toMatchObject({ success: true });
+    await expect(systemAction('lock_screen', run)).resolves.toMatchObject({ success: true });
+    expect(calls).toEqual(['wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle', 'loginctl lock-session']);
+  });
+  it('flips Do Not Disturb from the current banner setting', async () => {
+    const on = recorder({ 'gsettings get org.gnome.desktop.notifications show-banners': 'true\n' });
+    await systemAction('dnd_toggle', on.run);
+    expect(on.calls[1]).toBe('gsettings set org.gnome.desktop.notifications show-banners false');
+    const off = recorder({ 'gsettings get org.gnome.desktop.notifications show-banners': 'false\n' });
+    await systemAction('dnd_toggle', off.run);
+    expect(off.calls[1]).toBe('gsettings set org.gnome.desktop.notifications show-banners true');
+  });
+  it('opens the interactive screenshot portal', async () => {
+    const { run, calls } = recorder();
+    await systemAction('screenshot', run);
+    expect(calls[0]).toContain('org.freedesktop.portal.Screenshot.Screenshot');
+    expect(calls[0]).toContain("{'interactive': <true>}");
+  });
+  it('reports failure without leaking command output and ignores unknown ids', async () => {
+    const { run } = recorder({}, true);
+    await expect(systemAction('mic_mute', run)).resolves.toEqual({ success: false, message: 'Action failed' });
+    await expect(systemAction('rm_rf', run)).resolves.toBeNull();
   });
 });

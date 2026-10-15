@@ -14,6 +14,13 @@ describe('wire boundaries', () => {
     expect(AppStatusSchema.safeParse(fixture('app-status')).success).toBe(true);
     expect(EspSnapshotSchema.safeParse(fixture('esp-link-ready')).success).toBe(true);
   });
+  it('accepts optional laptop host state and rejects malformed host fields', () => {
+    const host = fixture('hub-host');
+    expect(HubSnapshotSchema.safeParse(host).success).toBe(true);
+    expect(HubSnapshotSchema.safeParse({...host, host:{...host.host, media:null, volumePercent:null, muted:null, micMuted:null, doNotDisturb:null}}).success).toBe(true);
+    for (const bad of [{volumePercent:151}, {volumePercent:4.5}, {micMuted:'yes'}, {media:{...host.host.media, status:'buffering'}}, {media:{...host.host.media, title:'x'.repeat(121)}}, {extra:true}])
+      expect(HubSnapshotSchema.safeParse({...host, host:{...host.host, ...bad}}).success).toBe(false);
+  });
   it('keeps absent usage distinct from zero and preserves fractional/above-limit percentages', () => {
     const source = fixtureHub().usage.claude;
     for (const value of [null, 0, 17.25, 120]) {

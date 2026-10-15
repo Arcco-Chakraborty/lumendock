@@ -6,9 +6,9 @@ import { HubStore } from './store.js';
 import { executeAction } from './actions.js';
 
 export interface HubClock {nowMs():number; monotonicMs():number}
-export interface HubOptions {store:HubStore; pairing:PairingSession; tokenStore:TokenStore; clock:HubClock}
+export interface HubOptions {store:HubStore; pairing:PairingSession; tokenStore:TokenStore; clock:HubClock; afterAction?:()=>void}
 const badPayload = {v:1,error:{code:'BAD_PAYLOAD'}};
-export function buildHub({store,pairing,tokenStore,clock}: HubOptions): FastifyInstance {
+export function buildHub({store,pairing,tokenStore,clock,afterAction}: HubOptions): FastifyInstance {
   // No request logging: authorization, pairing, query strings and notification
   // payloads must never reach an access log.
   const app = Fastify({logger:false,bodyLimit:16*1024});
@@ -55,6 +55,7 @@ export function buildHub({store,pairing,tokenStore,clock}: HubOptions): FastifyI
     const body = request.body as {action?: string} | undefined;
     if (!body || typeof body.action !== 'string' || !body.action) return reply.code(400).send(badPayload);
     const result = await executeAction(body.action);
+    afterAction?.();
     store.markPhoneActivity(clock.monotonicMs());
     return {v:1,ok:true,data:result};
   });

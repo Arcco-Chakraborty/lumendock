@@ -16,6 +16,7 @@ import { NotificationStrip } from "./components/NotificationStrip.js";
 import { SettingsSheet } from "./components/SettingsSheet.js";
 import { DeckView } from "./components/DeckView.js";
 import { LightIntentController } from "./lib/lightIntent.js";
+import { LampSignaller, SignalDetector, inQuietHours, loadSignalPrefs, saveSignalPrefs, type SignalPrefs } from "./lib/lampSignals.js";
 
 export interface AppProps {
   store: DashboardStore;
@@ -155,12 +156,8 @@ export function App({
     resetAutoDropTimer,
   ]);
 
-  useEffect(() => {
-    if (actionFeedback) {
-      setDockOpen(true);
-      resetAutoDropTimer();
-    }
-  }, [actionFeedback, resetAutoDropTimer]);
+  // Key feedback does not wake the bar: an open bar would cover the bottom key row
+  // being pressed. While the bar is hidden, feedback shows in the bottom edge strip.
   const controller = useMemo(
     () =>
       adapter
@@ -171,6 +168,20 @@ export function App({
     [adapter],
   );
   useEffect(() => () => controller?.dispose(), [controller]);
+  // Lamp signals: new Claude/Codex/WhatsApp alerts and quota resets pulse the lamp.
+  const [signalPrefs, setSignalPrefs] = useState<SignalPrefs>(loadSignalPrefs);
+  const changeSignalPrefs = useCallback((next: SignalPrefs) => {
+    setSignalPrefs(next);
+    saveSignalPrefs(next);
+  }, []);
+  const signaller = useMemo(() => (controller ? new LampSignaller(controller) : null), [controller]);
+  const detector = useRef(new SignalDetector());
+  const hubData = snapshot.hub.data;
+  useEffect(() => {
+    const kinds = detector.current.observe(hubData).filter((kind) => signalPrefs[kind]);
+    if (!kinds.length || (signalPrefs.quietHours && inQuietHours(new Date()))) return;
+    void signaller?.fire(kinds[0]!);
+  }, [hubData, signaller, signalPrefs]);
   useEffect(() => {
     if (snapshot.app?.webViewSupported !== false && snapshot.app)
       controller?.initialize(snapshot.app.nextCommandGeneration);
@@ -225,7 +236,7 @@ export function App({
         <div className="connections">
           <LinkStatus name="Laptop" link={snapshot.hub} unpaired={unpaired} />
           <LinkStatus name="Controller" link={snapshot.esp} />
-          {actionFeedback && (
+          {actionFeedback && dockOpen && (
             <span className="deck-feedback" role="status" aria-live="polite">
               <span className="deck-feedback-dot" aria-hidden="true" />
               <span>{actionFeedback}</span>
@@ -316,7 +327,11 @@ export function App({
           aria-label="Open menu / status"
           onClick={() => { focusDock.current = true; setDockOpen(true); }}
         >
-          <span className="dock-trigger-handle" aria-hidden="true" />
+          {actionFeedback ? (
+            <span className="dock-trigger-feedback" role="status" aria-live="polite">{actionFeedback}</span>
+          ) : (
+            <span className="dock-trigger-handle" aria-hidden="true" />
+          )}
         </button>
       )}
       {snapshot.app?.webViewSupported === false && (
@@ -405,6 +420,7 @@ export function App({
         <DeckView
           store={store}
           laptopConnected={snapshot.hub.state === "connected" && !snapshot.hub.stale && !unpaired}
+          host={snapshot.hub.data?.host}
           esp={snapshot.esp}
           controller={controller}
           onOpenLights={() => setSheet("lights")}
@@ -444,6 +460,11 @@ export function App({
             <SettingsSheet
               store={store}
               adapter={adapter}
+              signals={{
+                prefs: signalPrefs,
+                onChange: changeSignalPrefs,
+                onTest: signaller ? () => void signaller.fire("agent", true) : undefined,
+              }}
               nativeAvailable={
                 (nativeAvailable || demo) &&
                 snapshot.app?.webViewSupported !== false

@@ -1,4 +1,5 @@
 import { exec, spawn } from 'node:child_process';
+import { execRunner, type HostRunner } from './collectors/host.js';
 
 export const SUPPORTED_ACTIONS = [
   'open_claude',
@@ -12,6 +13,10 @@ export const SUPPORTED_ACTIONS = [
   'media_mute',
   'volume_down',
   'volume_up',
+  'mic_mute',
+  'dnd_toggle',
+  'lock_screen',
+  'screenshot',
 ] as const;
 
 export type SupportedAction = typeof SUPPORTED_ACTIONS[number];
@@ -42,6 +47,26 @@ export async function openTerminal(start: Spawner = detached): Promise<{ success
     if (started) return { success: true, message: 'Opening Terminal' };
   }
   return { success: false, message: 'No terminal found' };
+}
+
+const SYSTEM_ACTIONS: Record<string, {label: string; run: (run: HostRunner) => Promise<unknown>}> = {
+  mic_mute: {label: 'Microphone toggled', run: run => run('wpctl', ['set-mute', '@DEFAULT_AUDIO_SOURCE@', 'toggle'])},
+  dnd_toggle: {label: 'Do Not Disturb toggled', run: async run => {
+    const banners = (await run('gsettings', ['get', 'org.gnome.desktop.notifications', 'show-banners'])).trim();
+    await run('gsettings', ['set', 'org.gnome.desktop.notifications', 'show-banners', banners === 'false' ? 'true' : 'false']);
+  }},
+  lock_screen: {label: 'Locking screen', run: run => run('loginctl', ['lock-session'])},
+  // GNOME only lets its own tools capture silently; the portal opens the system screenshot UI.
+  screenshot: {label: 'Opening screenshot', run: run => run('gdbus', ['call', '--session', '--dest', 'org.freedesktop.portal.Desktop',
+    '--object-path', '/org/freedesktop/portal/desktop', '--method', 'org.freedesktop.portal.Screenshot.Screenshot', '', "{'interactive': <true>}"])},
+};
+
+/** Laptop system keys: fixed commands only, never a shell. */
+export async function systemAction(action: string, run: HostRunner = execRunner): Promise<{success: boolean; message: string} | null> {
+  const entry = SYSTEM_ACTIONS[action];
+  if (!entry) return null;
+  try { await entry.run(run); return {success: true, message: entry.label}; }
+  catch { return {success: false, message: 'Action failed'}; }
 }
 
 export function executeAction(action: string): Promise<{ success: boolean; message?: string }> {
@@ -107,7 +132,7 @@ export function executeAction(action: string): Promise<{ success: boolean; messa
         });
         break;
       default:
-        resolve({ success: false, message: `Unknown action: ${action}` });
+        void systemAction(action).then(result => resolve(result ?? { success: false, message: `Unknown action: ${action}` }));
     }
   });
 }

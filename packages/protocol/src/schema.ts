@@ -46,7 +46,14 @@ export const SelectedNotificationSchema = z.strictObject({
   id:identifier,appId:identifier,title:bounded(100),body:bounded(280),receivedAtEpochMs:epochMs,expiresAtEpochMs:epochMs,
 }).refine(n => n.expiresAtEpochMs > n.receivedAtEpochMs && n.expiresAtEpochMs - n.receivedAtEpochMs <= LIMITS.notificationTtlMs,'Invalid notification lifetime');
 const notifications = z.strictObject({state:z.enum(['disabled','available','unavailable']),errorCode,items:z.array(SelectedNotificationSchema).max(LIMITS.notifications)});
-const hubObject = z.strictObject({v:z.literal(1),serverNowEpochMs:epochMs,usage:z.strictObject({claude:UsageSourceSchema,codex:UsageSourceSchema}),notifications});
+// Laptop state for the Deck: what is playing and the audio/notification toggles.
+// Every field is nullable because each comes from a separate, optional desktop tool.
+export const HostMediaSchema = z.strictObject({player:bounded(40),status:z.enum(['playing','paused','stopped']),title:bounded(120),artist:bounded(120)});
+export const HostStateSchema = z.strictObject({
+  media:HostMediaSchema.nullable(),volumePercent:safeInt.max(150).nullable(),muted:z.boolean().nullable(),
+  micMuted:z.boolean().nullable(),doNotDisturb:z.boolean().nullable(),
+});
+const hubObject = z.strictObject({v:z.literal(1),serverNowEpochMs:epochMs,usage:z.strictObject({claude:UsageSourceSchema,codex:UsageSourceSchema}),notifications,host:HostStateSchema.optional()});
 export const HubSnapshotSchema = withByteBudget(hubObject.refine(h => h.usage.claude.provider === 'claude' && h.usage.codex.provider === 'codex','Usage provider mismatch'),LIMITS.hubBytes);
 export const EspStateSchema = z.strictObject({
   power:z.boolean(),hex:z.string().regex(/^#[0-9A-F]{6}$/),bright:safeInt.min(1).max(100),mode:safeInt.max(8),speed:safeInt.min(1).max(100),
@@ -118,6 +125,8 @@ export type UsageWindow = z.infer<typeof UsageWindowSchema>;
 export type UsageSource = z.infer<typeof UsageSourceSchema>;
 export type SelectedNotification = z.infer<typeof SelectedNotificationSchema>;
 export type HubSnapshot = z.infer<typeof HubSnapshotSchema>;
+export type HostState = z.infer<typeof HostStateSchema>;
+export type HostMedia = z.infer<typeof HostMediaSchema>;
 export type EspState = z.infer<typeof EspStateSchema>;
 export type EspHistory = z.infer<typeof EspHistorySchema>;
 export type LightPatch = z.infer<typeof LightPatchSchema>;

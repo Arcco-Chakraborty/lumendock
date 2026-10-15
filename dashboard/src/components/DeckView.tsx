@@ -1,11 +1,12 @@
 import { useRef, useEffect, useSyncExternalStore } from "react";
 import type { DashboardStore } from "../store.js";
-import type { EspSnapshot, LightPatch } from "@phone-monitor/protocol";
+import type { EspSnapshot, HostState, LightPatch } from "@phone-monitor/protocol";
 import type { LightIntentController, IntentSnapshot } from "../lib/lightIntent.js";
 
 interface DeckViewProps {
   store: DashboardStore;
   laptopConnected: boolean;
+  host?: HostState | undefined;
   esp: EspSnapshot;
   controller: LightIntentController | null;
   onOpenLights?: () => void;
@@ -15,15 +16,27 @@ const apps = [
   ["open_claude", "Claude"], ["open_chatgpt", "ChatGPT"],
   ["open_chrome", "Chrome"], ["open_whatsapp", "WhatsApp"], ["open_terminal", "Terminal"],
 ] as const;
-const media = [
-  ["media_prev", "Previous", "Previous track", "M6 5v14M18 5l-9 7 9 7V5Z"],
-  ["media_play_pause", "Play / pause", "Play or pause", "m4 5 9 7-9 7V5ZM17 5v14M21 5v14"],
-  ["media_next", "Next", "Next track", "M18 5v14M6 5l9 7-9 7V5Z"],
-  ["volume_down", "−5%", "Volume down", "M6 8H2v8h4l6 4V4L6 8ZM17 12h6"],
-  ["media_mute", "Mute", "Toggle mute", "M6 8H2v8h4l6 4V4L6 8ZM17 9l6 6m0-6-6 6"],
-  ["volume_up", "+5%", "Volume up", "M6 8H2v8h4l6 4V4L6 8ZM17 12h6m-3-3v6"],
-] as const;
-type ActionId = (typeof apps)[number][0] | (typeof media)[number][0];
+const ICON = {
+  prev: "M6 5v14M18 5l-9 7 9 7V5Z",
+  play: "m7 5 12 7-12 7V5Z",
+  pause: "M8 5v14M16 5v14",
+  playPause: "m4 5 9 7-9 7V5ZM17 5v14M21 5v14",
+  next: "M18 5v14M6 5l9 7-9 7V5Z",
+  volDown: "M6 8H2v8h4l6 4V4L6 8ZM17 12h6",
+  mute: "M6 8H2v8h4l6 4V4L6 8ZM17 9l6 6m0-6-6 6",
+  volUp: "M6 8H2v8h4l6 4V4L6 8ZM17 12h6m-3-3v6",
+  mic: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5 11a7 7 0 0 0 14 0M12 18v3",
+  dnd: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM7 12h10",
+  lock: "M6 11h12v10H6V11ZM8 11V8a4 4 0 0 1 8 0v3",
+  capture: "M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0",
+  power: "M12 3v9M7 5a8 8 0 1 0 10 0",
+  controls: "M3 7h18M3 17h18M8 3v8M16 13v8",
+} as const;
+type ActionId =
+  | (typeof apps)[number][0]
+  | "media_prev" | "media_play_pause" | "media_next"
+  | "volume_down" | "media_mute" | "volume_up"
+  | "mic_mute" | "dnd_toggle" | "lock_screen" | "screenshot";
 const presets = [["Warm", "#FFB454"], ["White", "#FFFFFF"], ["Cyan", "#00F0FF"]] as const;
 const empty: IntentSnapshot = {desired:null, confirmed:null, stateOutcome:null, timerOutcome:null, queued:0, ready:false};
 const noop = () => () => {};
@@ -32,7 +45,7 @@ const getEmpty = () => empty;
 function Icon({path}: {path: string}) {
   return <svg className="deck-media-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={path} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
-export function DeckView({ store, laptopConnected, esp, controller, onOpenLights, onFeedback }: DeckViewProps) {
+export function DeckView({ store, laptopConnected, host, esp, controller, onOpenLights, onFeedback }: DeckViewProps) {
   const intent = useSyncExternalStore(controller?.subscribe ?? noop, controller?.snapshot ?? getEmpty, controller?.snapshot ?? getEmpty);
   const data = intent.desired ?? esp.data;
   const mounted = useRef(true);
@@ -78,6 +91,18 @@ export function DeckView({ store, laptopConnected, esp, controller, onOpenLights
       if (request === latest.current) feedback(`${label}: not queued. Check controller connection.`);
     }
   };
+  // Laptop state is only trusted while the laptop link is live.
+  const live = laptopConnected ? host : undefined;
+  const media = live?.media ?? null;
+  const playing = media?.status === "playing";
+  const key = (id: ActionId, label: string, accessible: string, path: string, extra: {className?: string; pressed?: boolean | null | undefined} = {}) => (
+    <button key={id} type="button"
+      className={`deck-key${extra.className ? ` ${extra.className}` : ""}`}
+      onClick={() => void trigger(id, accessible)} aria-label={accessible}
+      aria-pressed={extra.pressed === undefined || extra.pressed === null ? undefined : extra.pressed}>
+      <Icon path={path} /><span className="deck-key-title">{label}</span>
+    </button>
+  );
   return (
     <div className="deck-container" id="deck-panel" role="tabpanel" aria-labelledby="deck-tab">
       <section className="deck-section" aria-label="Application launchers">
@@ -89,12 +114,31 @@ export function DeckView({ store, laptopConnected, esp, controller, onOpenLights
           </button>)}
         </div>
       </section>
-      <section className="deck-section" aria-label="Media and audio">
-        <h2 className="deck-section-title">Audio</h2>
+      <section className="deck-section" aria-label="Media">
+        <h2 className="deck-section-title">Media</h2>
         <div className="deck-grid deck-grid-media">
-          {media.map(([id, label, accessible, path]) => <button key={id} type="button" className={`deck-key${id === "media_play_pause" ? " deck-key-play" : ""}`} onClick={() => void trigger(id, accessible)} aria-label={accessible}>
-            <Icon path={path} /><span className="deck-key-title">{label}</span>
-          </button>)}
+          <div className={`now-playing${media ? "" : " is-idle"}`}>
+            {media ? <>
+              <strong className="now-playing-title">{media.title || "Untitled"}</strong>
+              <span className="now-playing-meta">{[media.artist, media.player].filter(Boolean).join(", ")}</span>
+            </> : <span className="now-playing-meta">{laptopConnected ? "Nothing playing on the laptop" : "Connect laptop to see what is playing"}</span>}
+            {live?.volumePercent != null && <span className="now-playing-volume">Volume {live.volumePercent}%{live.muted ? ", muted" : ""}</span>}
+          </div>
+          {key("media_prev", "Previous", "Previous track", ICON.prev)}
+          {key("media_play_pause", media ? (playing ? "Pause" : "Play") : "Play / pause", "Play or pause", media ? (playing ? ICON.pause : ICON.play) : ICON.playPause, {className: "deck-key-play"})}
+          {key("media_next", "Next", "Next track", ICON.next)}
+        </div>
+      </section>
+      <section className="deck-section" aria-label="Sound and laptop">
+        <h2 className="deck-section-title">System</h2>
+        <div className="deck-grid deck-grid-system">
+          {key("volume_down", "−5%", "Volume down", ICON.volDown)}
+          {key("media_mute", live?.muted ? "Muted" : "Mute", "Toggle mute", ICON.mute, {className: `deck-key-led${live?.muted ? " is-alert" : ""}`, pressed: live?.muted})}
+          {key("volume_up", "+5%", "Volume up", ICON.volUp)}
+          {key("mic_mute", live?.micMuted ? "Mic off" : "Mic", "Toggle microphone", ICON.mic, {className: `deck-key-led${live?.micMuted ? " is-alert" : ""}`, pressed: live?.micMuted})}
+          {key("dnd_toggle", "DND", "Toggle Do Not Disturb", ICON.dnd, {className: `deck-key-led${live?.doNotDisturb ? " is-on" : ""}`, pressed: live?.doNotDisturb})}
+          {key("lock_screen", "Lock", "Lock laptop", ICON.lock)}
+          {key("screenshot", "Capture", "Open screenshot tool", ICON.capture)}
         </div>
       </section>
       <section className="deck-section" aria-label="Lighting shortcuts">
@@ -103,11 +147,11 @@ export function DeckView({ store, laptopConnected, esp, controller, onOpenLights
           {presets.map(([label, hex]) => <button key={hex} type="button" className="deck-key" disabled={!intent.ready} onClick={() => void sendLight({hex, power:true}, `${label} light`)} aria-label={`${label} lamp`}>
             <svg width="24" height="24" className="deck-lamp-dot" aria-hidden="true"><circle cx="12" cy="12" r="8" fill={hex} /></svg><span className="deck-key-title">{label}</span>
           </button>)}
-          <button type="button" className={`deck-key deck-key-lamp-toggle${data?.power ? " is-on" : ""}`} disabled={!intent.ready || !data} onClick={() => data && void sendLight({power:!data.power}, data.power ? "Lamp off" : "Lamp on")} aria-label={data?.power ? "Power off" : "Power on"} aria-pressed={data?.power ?? false}>
-            <Icon path="M12 3v9M7 5a8 8 0 1 0 10 0" /><span className="deck-key-title">{data?.power ? "Turn off" : "Turn on"}</span>
+          <button type="button" className={`deck-key deck-key-led deck-key-lamp-toggle${data?.power ? " is-on" : ""}`} disabled={!intent.ready || !data} onClick={() => data && void sendLight({power:!data.power}, data.power ? "Lamp off" : "Lamp on")} aria-label={data?.power ? "Power off" : "Power on"} aria-pressed={data?.power ?? false}>
+            <Icon path={ICON.power} /><span className="deck-key-title">{data?.power ? "Turn off" : "Turn on"}</span>
           </button>
           <button type="button" className="deck-key deck-key-palette" onClick={onOpenLights} aria-label="Light controls">
-            <Icon path="M3 7h18M3 17h18M8 3v8M16 13v8" /><span className="deck-key-title">Controls</span>
+            <Icon path={ICON.controls} /><span className="deck-key-title">Controls</span>
           </button>
         </div>
       </section>

@@ -3,6 +3,7 @@ import type { SetupState } from "@phone-monitor/protocol";
 import type { DeviceAdapter } from "../device.js";
 import { DeviceError } from "../device.js";
 import type { DashboardStore } from "../store.js";
+import type { SignalPrefs } from "../lib/lampSignals.js";
 function setupMessage(name: string, value: SetupState) {
   if (value.state === "in_progress")
     return `${name}: Finish setup in the phone dialog. This display will update when it completes.`;
@@ -15,14 +16,22 @@ function setupMessage(name: string, value: SetupState) {
       : `${name} setup failed. Check the connection and try again.`;
   return null;
 }
+const SIGNAL_OPTIONS: Array<[keyof SignalPrefs, string]> = [
+  ["agent", "Pulse cyan when Claude or Codex needs you"],
+  ["whatsapp", "Pulse green for WhatsApp messages"],
+  ["quota", "Pulse white when a used-up quota resets"],
+  ["quietHours", "No signals from 11 PM to 8 AM"],
+];
 export function SettingsSheet({
   store,
   adapter,
   nativeAvailable,
+  signals,
 }: {
   store: DashboardStore;
   adapter?: DeviceAdapter | undefined;
   nativeAvailable: boolean;
+  signals?: { prefs: SignalPrefs; onChange: (prefs: SignalPrefs) => void; onTest?: (() => void) | undefined } | undefined;
 }) {
   const snapshot = useSyncExternalStore(
     store.subscribe,
@@ -147,6 +156,25 @@ export function SettingsSheet({
             />
           </label>
         </>
+      )}
+      {signals && (
+        <fieldset className="signal-settings">
+          <legend>Lamp signals</legend>
+          <p className="muted">The lamp pulses for a few seconds, then goes back to how it was.</p>
+          {SIGNAL_OPTIONS.map(([key, label]) => (
+            <label key={key} className="setting-toggle">
+              <span>{label}</span>
+              <input
+                type="checkbox"
+                checked={signals.prefs[key]}
+                onChange={(event) => signals.onChange({ ...signals.prefs, [key]: event.target.checked })}
+              />
+            </label>
+          ))}
+          <button disabled={!signals.onTest} onClick={() => signals.onTest?.()}>
+            Try a signal
+          </button>
+        </fieldset>
       )}
       {!app && <p role="status">Reading phone settings…</p>}
       {(error || snapshot.appError) && (
