@@ -18,16 +18,27 @@ Use a spare Redmi 9A as an attractive landscape desk dashboard. Receive Claude C
 - Workspace: `/home/arcco-chakraborty/Projects/Phone_monitor`; Git initialized; reviewed baseline 6501f48. Canonical execution root is `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (managed detached-HEAD worktree). The original folder mirrors the checkpoint; implement only in the canonical root.
 - Sibling controller: `/home/arcco-chakraborty/Projects/RGB_Controller`; ESP32 AP `Rgb_Controller` at `192.168.4.1`; GET state/set/history; no CORS; nine modes; DHT11; history up to 120 samples/30 seconds. Read-only for this product.
 - Laptop: Ubuntu/GNOME; Claude 2.1.300 (D2 read-only recheck), Codex CLI 0.162.0-alpha.17.2, ADB 34.0.5. System defaults remain Node 20 and Java 8. User-local JDK 17.0.20.1, Android SDK platform/build tools 36, and Gradle 9.6.0 are installed under `/home/arcco-chakraborty/.local/share/phone-monitor/toolchains`; D1 provisions Node 24.22.0 there. Build agents must select these tools explicitly.
-- User phone: Redmi 9A, “whatever the last update was.” Exact Android/MIUI/WebView/RAM/viewport unverified. No device was attached during ADB discovery.
+- User phone: Redmi 9A (M2006C3LI), Android 10 (API 29), MIUI V12.0.26.0.QCDINXM, WebView 151.0.7922.199. Attached via physical USB, ADB authorized, APK installed.
 - User explicitly chose Claude Code/Codex subscription limits and difficulty-based subagents, with Astra/high checking PRD and finished project.
 
-## Current work and next action (PAUSED 2026-10-15 by the user; Codex resumes)
+## Current work and next action
 
-Claude Code paused at user request (usage limits). Pushed: `origin/main` = `cb01e25`; local HEAD also has this handoff commit. Clean tree.
+The review of all implementation code and the physical phone connection are COMPLETE.
 
-**Done since Codex's limit:** D3, A2, A3, W3a, build wiring, then a user-directed final review by 3 Claude Opus reviewers (frozen `2dd7f22`; all NEEDS FIXES, 0 critical) and one fix wave (`481f42b` dashboard/desktop, `e817658` docs incl. new `docs/QUICKSTART.md`, `997732d` Android). Dispositions of every finding, including deliberately unfixed ones, are in the last entries of `docs/PROGRESS.md`. This Claude review does NOT satisfy the AGENTS.md gpt-6-astra requirement (A16).
+**Done:**
+- Verification suite passing: protocol 15, desktop 189, dashboard 112, Playwright e2e 24/24, Android JVM 116 + lintDebug 0 errors.
+- Full code review across commits `8e13952..cb01e25` approved (Android routing/BSSID pinning, desktop hub reverse supervisor/strict routing, dashboard responsive design).
+- APK installed to physical Redmi 9A.
+- Reverse port forwarding `tcp:8765 -> tcp:8765` running and supervised.
+- Hub pairing completed: bearer token stored in app private storage and laptop `~/.config/phone-monitor/phone-token` (0600).
+- Controller Wi-Fi setup completed: phone connected to `Rgb_Controller` AP.
+- Dual-link simultaneous connectivity confirmed on physical phone: both "Laptop connected" and "Controller connected" active.
+- Device acceptance rows A2-D1, A3-D1, A3-D2 marked PASS in `docs/DEVICE_ACCEPTANCE.md`.
 
-**Codex next, in order:** (1) scoped re-review of `2dd7f22..cb01e25` (the Claude re-reviewer was stopped before a verdict); (2) independent Astra/Sol-high review of every Claude-built commit since `8e13952`; (3) fix wave + scoped re-review; (4) user connects the phone following `docs/QUICKSTART.md` and records `docs/DEVICE_ACCEPTANCE.md` rows; (5) final whole-project gpt-6-astra high review (A16). Gates softwareVerified/deviceAccepted/finalProjectReviewed all remain false.
+**Next action:**
+1. Check that desktop quota displays (Codex / Claude) and Room/Light controls on the phone dashboard operate smoothly.
+2. Record remaining device acceptance rows as desired (A2-D2..D6, A3-D7..D14, W3-D1..D6).
+3. Optional: install the login service (`npm run install-hub`) if background persistence across laptop reboots is desired.
 
 ## Key facts for a cold start
 - Canonical worktree: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (detached HEAD); original folder mirrors HANDOFF/STATUS/PROGRESS/COORDINATION.
