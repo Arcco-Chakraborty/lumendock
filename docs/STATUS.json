@@ -20,13 +20,13 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "A1 lifecycle fixes, D2 recovery fixes, W2 dashboard feature implementation in parallel",
-  "nextAction": "Resolve A1/D2 reviews; advance to A2 and D3; finish W2 and its review; hardware remains deferred",
+  "activeTask": "W2 dashboard feature completion (Claude); A1/D2 fix-round scoped Astra-high re-reviews (Codex)",
+  "nextAction": "Codex: scoped re-review of 38cf1bc (A1) and bdfc7ed (D2); then A2/D3. Claude: finish/verify W2 in dashboard/**, then request fresh review.",
   "implementationTasks": {
     "D1": "complete",
-    "D2": "fix_round_1",
+    "D2": "fix_round_1_committed_awaiting_rereview",
     "D3": "planned",
-    "A1": "fix_round_1",
+    "A1": "fix_round_1_committed_awaiting_rereview",
     "A2": "planned",
     "A3": "planned",
     "W1": "complete",
@@ -50,10 +50,10 @@
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
-    "A1": "Android review; original owner handles findings only",
-    "D2": "Desktop review; original owner handles findings only",
-    "W2": "dashboard/**; root deps coordinated",
-    "coordinator": "HANDOFF/STATUS/PROGRESS/review exports; serialized commits"
+    "protocol": "Claude Code and Codex now work in the same canonical worktree. One owner per path set; commit only your own paths (git add <paths>, never git add -A); re-run git status before each commit; announce claims here before starting.",
+    "claude": "dashboard/** (W2 completion), plus any task explicitly claimed here",
+    "codex": "independent re-reviews of 38cf1bc and bdfc7ed (gpt-6-astra high); then A2 (android/**) and D3 (desktop/**) as claimed",
+    "coordinator": "HANDOFF/STATUS/PROGRESS: append-only edits by whoever finishes a step; re-read before editing"
   },
   "evidence": {
     "D1": {
@@ -79,34 +79,34 @@
     "A1": {
       "commit": "4a88b40ba278086620ca66a457783bf96b5e275a",
       "report": "docs/reports/A1-implementation.md",
-      "jvmTestsPassed": 11,
-      "lint": "0 errors; 7 documented warnings pending review",
+      "jvmTestsPassed": 19,
+      "lint": "0 errors after fix round (lintDebug BUILD SUCCESSFUL)",
       "diagnosticProductionInstrumentationApk": "compiled",
       "instrumentationExecution": "unrun",
       "review": "needs fixes; round1 active",
-      "reviewReport": "docs/reviews/A1-review.md"
+      "reviewReport": "docs/reviews/A1-review.md",
+      "fixCommit": "38cf1bc"
     },
     "D2": {
       "commit": "00dd183173aecaf049e72b7428837d8a053c0b6f",
       "report": "docs/reports/D2-implementation.md",
-      "desktopTestsPassed": 59,
+      "desktopTestsPassed": 66,
       "typecheck": "passed",
       "build": "passed",
       "review": "needs fixes; round1 active",
       "livePassthroughCompatibility": "unverified; installation gated",
-      "reviewReport": "docs/reviews/D2-review.md"
+      "reviewReport": "docs/reviews/D2-review.md",
+      "fixCommit": "bdfc7ed"
     }
   },
   "openImplementationFindings": [
-    "A1-R1 approval vs background classification",
-    "A1-R2 stopped renderer request boundary",
-    "A1-R3 queued reply lifecycle race",
-    "D2-R1 install/uninstall interrupted transaction recovery",
-    "D2-R2 Codex stop/start pending version probe"
+    "A1-R1/R2/R3 fixed in 38cf1bc; awaiting independent scoped re-review (author was Claude, so reviewer must be Codex)",
+    "D2-R1/R2 fixed in bdfc7ed; awaiting independent scoped re-review"
   ],
   "deferredMinorFindings": [
     "W1-R1 AppStatus display-setting stale merge (W2 owner)",
     "W1-R2 upstream Zod annotation build warnings (W3/final triage)",
     "A1-R4 landscape-default policy (next native task/final triage)"
-  ]
+  ],
+  "reviewerCapabilityNote": "Claude Code session cannot run gpt-6-astra/sol/luna. Claude work is recorded as claude-sonnet-5-5. Required Astra-high gates (task re-reviews, final project review) must run in Codex; they are not satisfied by Claude review."
 }

@@ -23,7 +23,7 @@ This is a new local project. Product implementation starts only after the user r
 
 Use subagents selected by difficulty. Mechanical, completely specified work: `gpt-6-luna` medium. Integration/UI/desktop work: `gpt-6.1-sol` high. Android routing/lifecycle/trust work: `gpt-6-astra` high. The final PRD/plan pass and final finished-project pass must use **`gpt-6-astra` with `high` reasoning effort**, as the user explicitly requested. Do not silently substitute another model or claim that review occurred if the current harness cannot run it.
 
-Read-only independent investigations may run in parallel. Shared-tree implementation is sequential, with one owner per task and a fresh reviewer. Keep task briefs narrow, report concrete evidence, and preserve applicable constraints. Runtime tools/model aliases can differ in another harness; verify capabilities while retaining the required review gates.
+The user explicitly requested parallel subagents on 2026-10-15. Independent implementation tracks may run concurrently with disjoint file ownership; serialize shared-file edits and commits, retain one owner per task, and use a fresh independent reviewer for each task. Read-only investigations/reviews may also run in parallel. Keep task briefs narrow, report concrete evidence, and preserve applicable constraints. Runtime tools/model aliases can differ in another harness; verify capabilities while retaining the required review gates.
 
 Do not create model inference merely to test quota capture. Do not read provider auth files, tokens, transcripts, account emails, or private session logs. Do not send messages to people or external accounts as part of monitoring.
 

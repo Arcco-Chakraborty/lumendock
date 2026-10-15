@@ -50,7 +50,7 @@ Root build outputs go to ignored `artifacts/`; packaged Android assets are gener
 | 2 | [D2: Claude/Codex collectors](2026-10-14-desktop-hub.md#task-2-claude-and-codex-collectors) | D1 | Real supported collectors with reversible settings setup |
 | 3 | [D3: Notifications and operation](2026-10-14-desktop-hub.md#task-3-notification-capture-and-desktop-operation) | D1, D2 | Allowlisted stream, USB launcher, user-service installer |
 | 4 | [A1: Trusted WebView and bridge](2026-10-14-android-companion.md#task-1-packaged-webview-and-restricted-bridge) | D1 | Buildable diagnostic APK, private asset origin, blocked unsafe messages |
-| 5 | [A2: USB client and pairing](2026-10-14-android-companion.md#task-2-usb-hub-client-and-reconnection) | A1, D1, D3 | Native paired loopback hub access and independent reconnect |
+| 5 | [A2: USB client and pairing](2026-10-14-android-companion.md#task-2-usb-hub-client-and-reconnection) | A1, D1; D3 for USB setup integration | Native paired loopback hub access and independent reconnect |
 | 6 | [A3: Wi-Fi controller integration](2026-10-14-android-companion.md#task-3-explicit-wi-fi-esp32-access-and-controls) | A1, A2 | Native per-network ESP state/history/serialized intents |
 | 7 | Hardware routing checkpoint | A2, A3 | Redmi reaches hub and controller simultaneously; no firmware change |
 | 8 | [W1: Dashboard shell/adapter](2026-10-14-dashboard.md#task-1-dashboard-shell-and-device-adapter) | D1, A1 contract | Lightweight UI shell with labelled fixture mode |
@@ -58,18 +58,18 @@ Root build outputs go to ignored `artifacts/`; packaged Android assets are gener
 | 10 | [W3: Packaging and acceptance](2026-10-14-dashboard.md#task-3-packaging-accessibility-and-integrated-acceptance) | D3, A3, W2 | APK/package, setup docs, automated evidence and physical acceptance |
 | 11 | Final whole-project Astra-high review and scoped fix/re-review | W3 | Final tree checked against PRD and evidence; blocking findings resolved |
 
-Read-only research, fixture design, and review can run concurrently. Shared-tree implementation is sequential. If hardware is unavailable at checkpoint 7, record A02/A05–A07/A12/A15 as unrun and continue the browser/mock-verifiable UI work. Defer claims of hardware compatibility and the release gate; do not block independent software work or silently mark the checkpoint passed.
+User execution update (2026-10-15): run desktop, Android and dashboard tracks in parallel after D1 freezes the shared contract. Keep ownership disjoint, serialize shared root edits and commits, and review exact per-task checkpoint ranges. Desktop follows D1→D2→D3; native follows A1→A2→A3; UI follows W1→W2. A2 can implement/test the D1 HTTP contract before D3 USB launcher integration; W2 can consume the D1/A3 intent contract before A3 runtime completion. W3 waits for completed D3/A3/W2 and joins the tracks. Read-only research/reviews may run concurrently. If hardware is unavailable at checkpoint 7, record A02/A05–A07/A12/A15 as unrun and continue the browser/mock-verifiable UI work. Defer claims of hardware compatibility and the release gate; do not block independent software work or silently mark the checkpoint passed.
 
 ### Step 0: Concrete execution setup
 
-- [ ] Read approved PRD/design/plans and this workspace's instructions; do not create an external project.
-- [ ] Check `git config --get user.name` and `git config --get user.email` without changing them. If missing, do not invent an identity; product work can proceed without commits until the user supplies it.
-- [ ] Initialize this fresh folder only with `git init -b feat/phone-monitor`; preserve all planning files. Write `.gitignore` for tool/build caches and secrets before adding files.
-- [ ] Commit the reviewed documents using the configured identity and a plain message such as `docs: define phone dashboard requirements and build plan`.
-- [ ] Apply `superpowers:using-git-worktrees`: inspect this chat's existing worktree artifacts, reuse a suitable one or create a managed worktree from the new feature branch. Use its returned path for all implementation. No remote/default branch exists yet; supply a valid local ref explicitly.
-- [ ] Record baseline SHA, execution root, plan paths, completed tasks, rulings, and check results in the main progress ledger. Each component plan also uses its own SDD brief/report/review workspace.
-- [ ] Read root HANDOFF.md/AGENTS.md and docs/STATUS.json/PROGRESS.md; preserve them and update executionRoot/branch/baseline and plan approval after verifying actual state. No agent may infer approval from a handoff request.
-- [ ] Read D1/A1 bootstrap requirements before provisioning Node/JDK/SDK into user-owned paths. A missing toolchain is a setup task, not evidence that the product architecture failed.
+- [x] Read approved PRD/design/plans and this workspace's instructions; do not create an external project.
+- [x] Check `git config --get user.name` and `git config --get user.email` without changing them. If missing, do not invent an identity; product work can proceed without commits until the user supplies it.
+- [x] Initialize this fresh folder only with `git init -b feat/phone-monitor`; preserve all planning files. Write `.gitignore` for tool/build caches and secrets before adding files.
+- [x] Commit the reviewed documents using the configured identity and a plain message such as `docs: define phone dashboard requirements and build plan`.
+- [x] Apply `superpowers:using-git-worktrees`: inspect this chat's existing worktree artifacts, reuse a suitable one or create a managed worktree from the new feature branch. Use its returned path for all implementation. No remote/default branch exists yet; supply a valid local ref explicitly.
+- [x] Record baseline SHA, execution root, plan paths, completed tasks, rulings, and check results in the main progress ledger. Each component plan also uses its own SDD brief/report/review workspace.
+- [x] Read root HANDOFF.md/AGENTS.md and docs/STATUS.json/PROGRESS.md; preserve them and update executionRoot/branch/baseline and plan approval after verifying actual state. No agent may infer approval from a handoff request.
+- [x] Read D1/A1 bootstrap requirements before provisioning Node/JDK/SDK into user-owned paths. A missing toolchain is a setup task, not evidence that the product architecture failed.
 
 ## Agent Assignments
 

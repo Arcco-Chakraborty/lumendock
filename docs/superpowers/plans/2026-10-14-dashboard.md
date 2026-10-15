@@ -46,7 +46,7 @@
 - Produces: createNativeAdapter(bridge,clock): DeviceAdapter; createMockAdapter(fixtures,clock): DeviceAdapter in dev/tests; DashboardStore.applyHub(link)/applyEsp(EspSnapshot)/applyAppStatus(AppStatus)/dispose(); reusable shell/status/settings slots. Request app.status once on startup/recreation, then every two seconds only while a native setup state is in_progress; a SetupResult acknowledgment alone does not mean paired/connected.
 - `DeviceAdapter.request<T>(op,args?)` enforces typed operation/args, max pending count 16, ten-second timeout, response ID/version/schema validation, and disposal. Unknown/stale callbacks cannot resolve unrelated requests.
 
-- [ ] **Step 1: Add frontend toolchain and failing adapter/store tests.** Pin React 19/Vite 7 and compatible testing dependencies with exact saves/lockfile. Vite `base:'./'`, `build.target:'es2018'`; build to `dashboard/dist`. Test request ID matching, unsupported/no bridge, malformed reply, expired request, dispose cleanup, at most one poll of each source, visibility pause/resume, and independent source failures.
+- [x] **Step 1: Add frontend toolchain and failing adapter/store tests.** Pin React 19/Vite 7 and compatible testing dependencies with exact saves/lockfile. Vite `base:'./'`, `build.target:'es2018'`; build to `dashboard/dist`. Test request ID matching, unsupported/no bridge, malformed reply, expired request, dispose cleanup, at most one poll of each source, visibility pause/resume, and independent source failures.
 
 ```ts
 it("does not discard controller state when the laptop fails", () => {
@@ -64,8 +64,8 @@ it("rejects pending requests on teardown", async () => {
 });
 ```
 
-- [ ] **Step 2: Run targeted failures.** `npm run test --workspace @phone-monitor/dashboard -- device.test.ts store.test.ts`. Missing imports are expected until implementation; fake bridge emulates actual postMessage replies, not network calls.
-- [ ] **Step 3: Implement request transport and independent store.** Serialize v/id/op/args; validate before bridge calls; cleanup timers/listeners exactly once; bound pending work. Poll hub every two seconds and ESP every three only while visible; preserve cached data on failures; on resume issue fresh reads. Inject clock so age/countdown tests do not depend on wall-clock sleeps. Production build fails or shows setup guidance if native bridge is absent; it never treats a query parameter as permission to simulate live data.
+- [x] **Step 2: Run targeted failures.** `npm run test --workspace @phone-monitor/dashboard -- device.test.ts store.test.ts`. Missing imports are expected until implementation; fake bridge emulates actual postMessage replies, not network calls.
+- [x] **Step 3: Implement request transport and independent store.** Serialize v/id/op/args; validate before bridge calls; cleanup timers/listeners exactly once; bound pending work. Poll hub every two seconds and ESP every three only while visible; preserve cached data on failures; on resume issue fresh reads. Inject clock so age/countdown tests do not depend on wall-clock sleeps. Production build fails or shows setup guidance if native bridge is absent; it never treats a query parameter as permission to simulate live data.
 
 ```ts
 bridge.postMessage(JSON.stringify({v:1,id,op,args:args ?? {}}));
@@ -73,9 +73,9 @@ bridge.postMessage(JSON.stringify({v:1,id,op,args:args ?? {}}));
 // A validated reply settles only the matching live request, then removes its timer.
 ```
 
-- [ ] **Step 4: Build the intentional visual shell.** Charcoal/cyan/amber palette, system numeric typography, three landscape columns, slim header, compact bottom notification strip, portrait stacking, and secondary sheets. Use compiled stylesheet classes/SVG presentation attributes rather than dynamically generated inline style tags that violate the packaged CSP. Provide useful absent-link/setup states without exposing technical implementation jargon in the main flow.
-- [ ] **Step 5: Verify adapter/lifecycle/layout scaffold.** Run frontend tests/typecheck/build. Load explicit development fixtures and confirm both independent disconnect states are understandable. Inspect bundle for CDN/dev-server URLs, account secrets, and accidental mock imports; verify dev mocks are tree-shaken from production. Record initial asset size.
-- [ ] **Step 6: Review and commit.** Sol reviews contract/state/CSP assumptions. Commit `feat: add lightweight dashboard shell and native adapter` after checks pass.
+- [x] **Step 4: Build the intentional visual shell.** Charcoal/cyan/amber palette, system numeric typography, three landscape columns, slim header, compact bottom notification strip, portrait stacking, and secondary sheets. Use compiled stylesheet classes/SVG presentation attributes rather than dynamically generated inline style tags that violate the packaged CSP. Provide useful absent-link/setup states without exposing technical implementation jargon in the main flow.
+- [x] **Step 5: Verify adapter/lifecycle/layout scaffold.** Run frontend tests/typecheck/build. Load explicit development fixtures and confirm both independent disconnect states are understandable. Inspect bundle for CDN/dev-server URLs, account secrets, and accidental mock imports; verify dev mocks are tree-shaken from production. Record initial asset size.
+- [x] **Step 6: Review and commit.** Sol reviews contract/state/CSP assumptions. Commit `feat: add lightweight dashboard shell and native adapter` after checks pass.
 
 ## Task 2: Usage, climate, light controls, and notifications
 

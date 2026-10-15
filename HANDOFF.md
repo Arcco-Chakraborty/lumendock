@@ -1,6 +1,6 @@
 # Phone Monitor — live handoff
 
-Updated: 2026-10-15 (Asia/Kolkata). Current phase: A1/D2 review fixes; W2 implementation. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
+Updated: 2026-10-15 (Asia/Kolkata). Current phase: A1/D2 fix rounds committed (38cf1bc, bdfc7ed) awaiting re-review; W2 implementation (dashboard/**) uncommitted and in progress. User explicitly approved the PRD/plan and requested the planned subagent build, live handoff, and final Astra/high project review.
 
 ## Objective
 
@@ -28,3 +28,13 @@ User approved implementation and requested software first; physical Redmi/ESP32 
 Canonical source and current evidence live in `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`. D1 full report records initial35 tests, then15/15 protocol regressions, typecheck/build, synthetic loopback smoke and zero audit findings; independent review is approved. Software/device/final-project gates remain false. Do not reinitialize Git, repeat completed planning, or modify the sibling firmware.
 
 Read docs/STATUS.json and docs/PROGRESS.md here before resuming; the coordinator mirrors these three checkpoint files to the original project folder after task/review boundaries.
+
+## Parallel work: Claude Code + Codex (2026-10-15)
+
+Both tools share this worktree. Rules: claim paths here before starting; commit only your own paths with `git add <paths>` (never `-A`); re-check `git status` first; no attribution trailers; hardware stays deferred.
+
+- **Claude Code:** finishing W2 in `dashboard/**` (components/lib/tests exist, uncommitted; typecheck, 50 tests and build pass; needs plan Step 5 checks and report `docs/reports/W2-implementation.md`, then a fresh review).
+- **Codex (requested):** gpt-6-astra high scoped re-reviews of A1 fix `38cf1bc` (A1-R1/R2/R3; check `LifecycleReplyDelivery`, `NativeSession.activityStopReason`) and D2 fix `bdfc7ed` (D2-R1/R2). Claude authored the A1 fix, so Claude must not review it. After approval: A2 (`android/**`) and D3 (`desktop/**`).
+- Required Astra-high gates cannot be run from Claude Code; they are not satisfied by Claude review.
+- Verified commands: `export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH; npm run typecheck && npm test`. Android: `JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk ./gradlew --offline :app:testDebugUnitTest :app:lintDebug` from `android/` (`TC=~/.local/share/phone-monitor/toolchains`).
+- Last evidence: protocol 15, desktop 66, dashboard 50 tests; Android JVM 19; lintDebug 0 errors. Still unrun: instrumentation, device, live Claude passthrough.

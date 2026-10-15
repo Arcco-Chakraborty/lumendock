@@ -44,13 +44,13 @@
 - Produces: `HubSnapshotSchema`, `LightPatchSchema`, `EspSnapshotSchema`, `AppStatusSchema`, operation-specific `BridgeRequestSchema`/reply-data schemas, exported protocol types; `buildHub({store,pairing,tokenStore,clock}): FastifyInstance`; `HubStore.snapshot(nowMs): HubSnapshot`; `PairingSession.open(nowMs): string`, `.exchange(code,nowMs): {token:string}`, `.close():void`; private `TokenStore.read/write`. Freeze every app operation's exact args/reply table from the design, including SetupResult/SetupState and per-generation ordinary/timer outcomes; create `app-status.json` and `esp-link-ready.json` synthetic fixtures.
 - Package names: `@phone-monitor/protocol`, `@phone-monitor/desktop`, later `@phone-monitor/dashboard`. Root scripts: `test`, `typecheck`, `build`, `verify`, `doctor`, `connect`, `package`; scripts may call Node orchestration rather than assume global shell tools.
 
-- [ ] **Step 1: Bootstrap the testable workspace.** Provision user-owned Node 24.22.0 from the official distribution/version manager without changing system/default Node. Add exact dependency pins and lockfile using `--save-exact` for `fastify@5`, `zod@4`, `typescript@5`, `vitest@5.0.4`, `tsx@4`, `vite@7`, and compatible Node types. Define `test: "vitest run"`, `typecheck: "tsc --noEmit"`, and `build: "tsc"` in applicable packages. Initialize fixtures with synthetic values only.
+- [x] **Step 1: Bootstrap the testable workspace.** Provision user-owned Node 24.22.0 from the official distribution/version manager without changing system/default Node. Add exact dependency pins and lockfile using `--save-exact` for `fastify@5`, `zod@4`, `typescript@5`, `vitest@5.0.4`, `tsx@4`, `vite@7`, and compatible Node types. Define `test: "vitest run"`, `typecheck: "tsc --noEmit"`, and `build: "tsc"` in applicable packages. Initialize fixtures with synthetic values only.
 
 ```json
 {"private":true,"workspaces":["packages/*","desktop","dashboard"],"engines":{"node":">=24 <25"}}
 ```
 
-- [ ] **Step 2: Write meaningful failing boundary tests.** Test a paired snapshot, unknown quotas, percentages 0/17.25/120, 13-digit millisecond reset rejection, malformed/oversized input, wrong protocol, route Host/Origin/auth rejection, and staleness under an injected clock.
+- [x] **Step 2: Write meaningful failing boundary tests.** Test a paired snapshot, unknown quotas, percentages 0/17.25/120, 13-digit millisecond reset rejection, malformed/oversized input, wrong protocol, route Host/Origin/auth rejection, and staleness under an injected clock.
 
 ```ts
 it("keeps absent usage distinct from zero", () => {
@@ -70,8 +70,8 @@ it("rejects unpaired requests without echoing auth", async () => {
 
 Fixture helpers `fixtureHub`, `fixtureWithClaude`, and `makeTestHub` belong to these test files and construct protocol-valid synthetic data; they are not external dependencies.
 
-- [ ] **Step 3: Run the specific failing tests.** `npm run test --workspace @phone-monitor/desktop -- server.test.ts pairing.test.ts` and the protocol schema tests. Expect missing implementation exports or wrong behavior; repair harness/dependency failures before interpreting them as product failures.
-- [ ] **Step 4: Implement schemas, store, pairing, and strict routes.** Use injected clocks; finite numbers/nulls; identifier and byte budgets. Generate code/token cryptographically, keep pairing closed by default, count total failed attempts, perform exchange atomically, and preserve the old token until replacement succeeds. Persist mode-0600 token in a mode-0700 app directory. Route handlers never serialize secret-bearing config.
+- [x] **Step 3: Run the specific failing tests.** `npm run test --workspace @phone-monitor/desktop -- server.test.ts pairing.test.ts` and the protocol schema tests. Expect missing implementation exports or wrong behavior; repair harness/dependency failures before interpreting them as product failures.
+- [x] **Step 4: Implement schemas, store, pairing, and strict routes.** Use injected clocks; finite numbers/nulls; identifier and byte budgets. Generate code/token cryptographically, keep pairing closed by default, count total failed attempts, perform exchange atomically, and preserve the old token until replacement succeeds. Persist mode-0600 token in a mode-0700 app directory. Route handlers never serialize secret-bearing config.
 
 ```ts
 const cryptoCode = randomInt(0, 100_000_000).toString().padStart(8, "0");
@@ -82,8 +82,8 @@ const requirePhone = (header: string | undefined) => tokenStore.matchesBearer(he
 
 Create `GET /healthz`, `GET /v1/snapshot`, and setup-only JSON `POST /v1/pair` exactly as the design specifies. Cap incoming JSON to 16 KiB; outgoing snapshot to 256 KiB; omit oldest notification records if necessary. No browser CORS or generic RPC. Bind in `main.ts`, not in tests.
 
-- [ ] **Step 5: Verify pairing and failures with exact assertions.** One successful exchange; concurrent exchanges produce only one token; five wrong codes close pairing; 120,000-ms expiry rejects; startup without `--pair` rejects; token file permissions; wrong/absent token 401; invalid Host/Origin rejected; transient collector error preserves prior data. Schemas reject mixed timer/state patches, invalid generation, wrong brightness/screen-on args, malformed setup states, and >62 Codex windows with an explicit source-capacity result rather than truncation. Run package tests and typecheck; use a fixture-only smoke client without account access.
-- [ ] **Step 6: Review and commit.** Report changed files, commands/results, and any concern. Fresh reviewer receives baseline-to-head diff and task brief. Commit plain message `feat: add paired desktop hub and shared protocol` only after review/covering checks pass.
+- [x] **Step 5: Verify pairing and failures with exact assertions.** One successful exchange; concurrent exchanges produce only one token; five wrong codes close pairing; 120,000-ms expiry rejects; startup without `--pair` rejects; token file permissions; wrong/absent token 401; invalid Host/Origin rejected; transient collector error preserves prior data. Schemas reject mixed timer/state patches, invalid generation, wrong brightness/screen-on args, malformed setup states, and >62 Codex windows with an explicit source-capacity result rather than truncation. Run package tests and typecheck; use a fixture-only smoke client without account access.
+- [x] **Step 6: Review and commit.** Report changed files, commands/results, and any concern. Fresh reviewer receives baseline-to-head diff and task brief. Commit plain message `feat: add paired desktop hub and shared protocol` only after review/covering checks pass.
 
 ## Task 2: Claude and Codex collectors
 
