@@ -243,3 +243,67 @@ it("retained earlier timer outcome cannot overwrite newer confirmed ordinary sta
   expect(c.snapshot().confirmed?.bright).toBe(88);
   c.dispose();
 });
+it("uses fresh observed fields and timer countdown with a retained confirmed state outcome", async () => {
+  const c = make();
+  void c.change({ bright: 25 });
+  c.release();
+  const result = {
+    ...outcome(10),
+    state: { ...sample().data!, bright: 25, timerSeconds: 0 },
+  };
+  writes[0]!.resolve(result);
+  await vi.advanceTimersByTimeAsync(0);
+  const fresh = sample();
+  fresh.data = { ...fresh.data!, bright: 50, timerSeconds: 120 };
+  fresh.commands.state = result;
+  c.applySnapshot(fresh);
+  expect(c.snapshot().desired?.bright).toBe(50);
+  expect(c.snapshot().confirmed?.bright).toBe(50);
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(120);
+  // A late duplicate command reply must not overwrite the newer observation either.
+  c.ack(result);
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(120);
+  c.applySnapshot({ ...fresh, data: { ...fresh.data!, timerSeconds: 117 } });
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(117);
+  expect(c.snapshot().stateOutcome).toBe("confirmed");
+  c.dispose();
+});
+it("prefers the fresh snapshot even when its retained confirmed outcome is first seen there", () => {
+  const c = make();
+  void c.change({ bright: 25 });
+  c.release();
+  const fresh = sample();
+  fresh.data = { ...fresh.data!, bright: 50, timerSeconds: 120 };
+  fresh.commands.state = {
+    ...outcome(10),
+    state: { ...sample().data!, bright: 25, timerSeconds: 0 },
+  };
+  c.applySnapshot(fresh);
+  expect(c.snapshot().confirmed?.bright).toBe(50);
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(120);
+  c.ack(fresh.commands.state);
+  expect(c.snapshot().confirmed?.bright).toBe(50);
+  c.dispose();
+});
+it("advances observed timer remaining without replaying retained timer confirmation", async () => {
+  const c = make();
+  void c.change({ timerMinutes: 5 });
+  c.release();
+  const result = {
+    ...outcome(10, "confirmed", "timer"),
+    state: { ...sample().data!, timerSeconds: 300 },
+  };
+  writes[0]!.resolve(result);
+  await vi.advanceTimersByTimeAsync(0);
+  const fresh = sample();
+  fresh.commands.timer = result;
+  fresh.data = { ...fresh.data!, timerSeconds: 270 };
+  c.applySnapshot(fresh);
+  c.ack(result);
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(270);
+  c.applySnapshot({ ...fresh, data: { ...fresh.data!, timerSeconds: 267 } });
+  expect(c.snapshot().confirmed?.timerSeconds).toBe(267);
+  expect(c.snapshot().timerOutcome).toBe("confirmed");
+  expect(writes).toHaveLength(1);
+  c.dispose();
+});

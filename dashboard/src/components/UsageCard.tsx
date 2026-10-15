@@ -20,8 +20,10 @@ function Row({
   return (
     <div className="quota-row">
       <div className="quota-label">
-        {row.label || row.windowId}{" "}
-        <span className="muted">
+        <span className="quota-identity" title={row.label || row.windowId}>
+          {row.label || row.windowId}
+        </span>{" "}
+        <span className="quota-duration muted">
           {row.windowDurationMins === null
             ? "Duration unknown"
             : `${row.windowDurationMins} minutes`}
@@ -52,15 +54,17 @@ function Row({
           />
         )}
       </svg>
-      <p className={stale ? "warning" : "muted"}>
-        {countdown(
-          now === null ? null : secondsUntilReset(row.resetsAtEpochSec, now),
-        )}
-      </p>
-      <p className="muted">
-        {stale ? "Stale · " : ""}
-        {elapsedLabel(row.reportedAtEpochMs, now)}
-      </p>
+      <div className="quota-meta">
+        <p className={stale ? "warning" : "muted"}>
+          {countdown(
+            now === null ? null : secondsUntilReset(row.resetsAtEpochSec, now),
+          )}
+        </p>
+        <p className="muted">
+          {stale ? "Stale · " : ""}
+          {elapsedLabel(row.reportedAtEpochMs, now)}
+        </p>
+      </div>
     </div>
   );
 }

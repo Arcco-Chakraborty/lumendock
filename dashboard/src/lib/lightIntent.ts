@@ -38,6 +38,10 @@ export class LightIntentController {
   } = { state: null, timer: null };
   private retryPatch: LightPatch | null = null;
   private confirmedGeneration = 0;
+  private consumed: Record<
+    "state" | "timer",
+    { generation: number; outcome: CommandResult["outcome"] } | null
+  > = { state: null, timer: null };
   private cached: IntentSnapshot | null = null;
   constructor(
     private readonly send: (
@@ -172,6 +176,18 @@ export class LightIntentController {
   ack(result: CommandResult) {
     if (this.disposed || result.generation !== this.current[result.kind])
       return;
+    const previous = this.consumed[result.kind];
+    if (
+      previous?.generation === result.generation &&
+      previous.outcome === result.outcome
+    )
+      return;
+    if (
+      previous?.generation === result.generation &&
+      previous.outcome === "confirmed" &&
+      result.outcome !== "confirmed"
+    )
+      return;
     if (
       this.outcomes[result.kind] === "confirmed" &&
       result.outcome !== "confirmed"
@@ -182,6 +198,10 @@ export class LightIntentController {
       this.outcomes[result.kind] !== "pending"
     )
       return;
+    this.consumed[result.kind] = {
+      generation: result.generation,
+      outcome: result.outcome,
+    };
     this.outcomes[result.kind] = result.outcome;
     if (result.state && result.generation >= this.confirmedGeneration) {
       this.confirmed = result.state;
@@ -234,6 +254,12 @@ export class LightIntentController {
       snapshot.commands.state?.generation ?? 0,
       snapshot.commands.timer?.generation ?? 0,
     );
+    // Outcomes describe command completion; snapshot.data is the newer observation.
+    // Consume transitions first so historical result.state cannot replace that sample.
+    for (const kind of ["state", "timer"] as const) {
+      const result = snapshot.commands[kind];
+      if (result) this.ack(result);
+    }
     if (snapshot.data) {
       // A bridge poll started before dispatch can arrive after its reply.
       if (observedGeneration >= this.confirmedGeneration)
@@ -247,10 +273,6 @@ export class LightIntentController {
           this.outcomes.state !== "pending")
       )
         this.desired = snapshot.data;
-    }
-    for (const kind of ["state", "timer"] as const) {
-      const result = snapshot.commands[kind];
-      if (result) this.ack(result);
     }
     if (!this.connected) {
       this.cancelQueue();

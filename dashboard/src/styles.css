@@ -456,11 +456,10 @@ h2 {
   content: "⋯";
   font-size: 24px;
 }
-.usage-card:not(.usage-expanded) .quota-label,
 .usage-card:not(.usage-expanded) .source-note {
   display: none;
 }
-.usage-card:not(.usage-expanded) .quota-row > p {
+.usage-card:not(.usage-expanded) .quota-meta > p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -638,7 +637,7 @@ select:focus-visible {
     margin: 0;
     line-height: 1.05;
   }
-  .usage-card:not(.usage-expanded) .quota-row > p {
+  .usage-card:not(.usage-expanded) .quota-meta > p {
     line-height: 1.2;
   }
   .climate-card,
@@ -727,6 +726,43 @@ select:focus-visible {
   justify-content: space-between;
   gap: 12px;
 }
-@media (max-width:649px) {
- .notification-preview .notification-source,.notification-preview strong {display:block;}
+@media (max-width: 649px) {
+  .notification-preview .notification-source,
+  .notification-preview strong {
+    display: block;
+  }
+}
+
+@media (min-width: 650px) {
+  .usage-card:not(.usage-expanded) .quota-label {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    line-height: 1.2;
+  }
+  .usage-card:not(.usage-expanded) .quota-identity {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .usage-card:not(.usage-expanded) .quota-duration {
+    flex-shrink: 0;
+  }
+  .usage-card:not(.usage-expanded) .quota-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .usage-card:not(.usage-expanded) .quota-meta > p {
+    min-width: 0;
+  }
+  .usage-card:not(.usage-expanded) .quota-meta > p:last-child {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 649px) {
+  .notification-preview strong {
+    margin-top: 3px;
+  }
 }
