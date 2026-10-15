@@ -12,6 +12,7 @@ coverage/
 local.properties
 *.jks
 *.keystore
+*.tsbuildinfo
 .env
 .env.*
 !.env.example

@@ -1,0 +1,60 @@
+{
+  "v": 1,
+  "serverNowEpochMs": 1791993600000,
+  "usage": {
+    "claude": {
+      "provider": "claude",
+      "source": "claude_statusline",
+      "state": "available",
+      "observedAtEpochMs": 1791993600000,
+      "lastSuccessAtEpochMs": 1791993600000,
+      "stale": false,
+      "windows": [
+        {
+          "bucketId": "synthetic-main",
+          "windowId": "synthetic-five-hour",
+          "label": "Synthetic five-hour",
+          "usedPercent": 17.25,
+          "windowDurationMins": 300,
+          "resetsAtEpochSec": 1792011600,
+          "reportedAtEpochMs": 1791993600000
+        }
+      ],
+      "errorCode": null
+    },
+    "codex": {
+      "provider": "codex",
+      "source": "codex_app_server",
+      "state": "available",
+      "observedAtEpochMs": 1791993600000,
+      "lastSuccessAtEpochMs": 1791993600000,
+      "stale": false,
+      "windows": [
+        {
+          "bucketId": "synthetic-main",
+          "windowId": "synthetic-five-hour",
+          "label": "Synthetic five-hour",
+          "usedPercent": 17.25,
+          "windowDurationMins": 300,
+          "resetsAtEpochSec": 1792011600,
+          "reportedAtEpochMs": 1791993600000
+        }
+      ],
+      "errorCode": null
+    }
+  },
+  "notifications": {
+    "state": "available",
+    "errorCode": null,
+    "items": [
+      {
+        "id": "synthetic-notice-1",
+        "appId": "Synthetic app",
+        "title": "Synthetic title",
+        "body": "Synthetic body",
+        "receivedAtEpochMs": 1791993600000,
+        "expiresAtEpochMs": 1791995400000
+      }
+    ]
+  }
+}

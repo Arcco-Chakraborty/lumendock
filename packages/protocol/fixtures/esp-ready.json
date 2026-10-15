@@ -1,0 +1,12 @@
+{
+  "power": true,
+  "hex": "#12ABEF",
+  "bright": 75,
+  "mode": 0,
+  "speed": 50,
+  "timerSeconds": 0,
+  "sensorOk": true,
+  "temperatureC": 24.5,
+  "humidityPercent": 55,
+  "uptimeSeconds": 1234
+}

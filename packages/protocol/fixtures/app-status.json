@@ -1,0 +1,20 @@
+{
+  "paired": true,
+  "webViewSupported": true,
+  "wifiMode": "app_request",
+  "setup": {
+    "hub": {
+      "setupId": null,
+      "state": "idle",
+      "errorCode": null
+    },
+    "esp": {
+      "setupId": null,
+      "state": "idle",
+      "errorCode": null
+    }
+  },
+  "screenOn": true,
+  "brightness": 0.6,
+  "nextCommandGeneration": 1
+}

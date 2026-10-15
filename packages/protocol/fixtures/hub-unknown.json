@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "serverNowEpochMs": 1791993600000,
+  "usage": {
+    "claude": {
+      "provider": "claude",
+      "source": "claude_statusline",
+      "state": "awaiting_data",
+      "observedAtEpochMs": null,
+      "lastSuccessAtEpochMs": null,
+      "stale": true,
+      "windows": [],
+      "errorCode": null
+    },
+    "codex": {
+      "provider": "codex",
+      "source": "codex_app_server",
+      "state": "awaiting_data",
+      "observedAtEpochMs": null,
+      "lastSuccessAtEpochMs": null,
+      "stale": true,
+      "windows": [],
+      "errorCode": null
+    }
+  },
+  "notifications": {
+    "state": "disabled",
+    "errorCode": null,
+    "items": []
+  }
+}

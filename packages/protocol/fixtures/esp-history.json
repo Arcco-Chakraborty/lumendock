@@ -1,0 +1,13 @@
+{
+  "intervalSeconds": 30,
+  "temperatureC": [
+    24.5,
+    null,
+    25
+  ],
+  "humidityPercent": [
+    55,
+    null,
+    56
+  ]
+}
