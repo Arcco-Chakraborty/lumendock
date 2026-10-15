@@ -42,7 +42,7 @@ interface Pending {method:'initialize'|'account/read'|'account/rateLimits/read';
 export class CodexCollector {
   private child:ChildProcessWithoutNullStreams|null=null;
   private running=false;private stopping:Promise<void>|null=null;
-  private retiring:Promise<void>|null=null;private verified=false;private probing=false;
+  private retiring:Promise<void>|null=null;private verified=false;private probing:number|null=null;
   private activityTimer:ReturnType<typeof setInterval>|null=null;private scheduledActive=false;
   private pending=new Map<number,Pending>();private sequence=0;private generation=0;
   private timer:ReturnType<typeof setTimeout>|null=null;private failures=0;
@@ -54,15 +54,15 @@ export class CodexCollector {
     await this.probeVersion();
   }
   private async probeVersion():Promise<void>{
-    if(this.probing||!this.running)return;this.probing=true;
-    const generation=++this.generation;
+    if(!this.running||this.probing===this.generation)return;
+    const generation=++this.generation;this.probing=generation;
     try {
       const version=await (this.options.verifyVersion??(()=>new Promise<string>((resolve,reject)=>execFile(this.options.codexPath??'codex',['--version'],{timeout:10000,maxBuffer:4096},(error,out)=>error?reject(error):resolve(out.trim())))))();
       if(!this.running||generation!==this.generation)return;
       if(version.trim()!==CODEX_COMPATIBLE_VERSION){this.verified=false;this.state('unsupported','UNSUPPORTED_SOURCE');return;}
       this.verified=true;this.connect();
     } catch {if(this.running&&generation===this.generation){this.verified=false;this.state('error','SOURCE_UNAVAILABLE');this.scheduleRestart();}}
-    finally{this.probing=false;}
+    finally{if(this.probing===generation)this.probing=null;}
   }
   private connect():void {
     if(!this.running||this.child||this.retiring)return;

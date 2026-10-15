@@ -96,3 +96,12 @@ it('requires the matching numeric handshake ID before sending initialized or acc
  child.stdout.write('{"id":"1","result":{}}\n');expect(child.requests.map(r=>r.method)).toEqual(['initialize']);
  child.stdout.write('{"id":1,"result":{}}\n');expect(child.requests.map(r=>r.method)).toEqual(['initialize','initialized','account/read']);expect(child.requests[1]).toEqual({method:'initialized'});await c.stop();
 });
+
+it('retires an obsolete version probe and starts exactly one replacement after stop/start',async()=>{
+ let resolveOld!:(value:string)=>void,resolveNew!:(value:string)=>void;let probes=0,spawns=0;
+ const old=new Promise<string>(resolve=>resolveOld=resolve),replacement=new Promise<string>(resolve=>resolveNew=resolve);
+ const c=new CodexCollector({store:new HubStore(),verifyVersion:()=>++probes===1?old:replacement,spawn:()=>{spawns++;return new FakeChild() as any;}});
+ const firstStart=c.start();await c.stop();const secondStart=c.start();expect(probes).toBe(2);
+ resolveOld('codex-cli 0.162.0-alpha.17.2');await firstStart;expect(spawns).toBe(0);c.retry();expect(probes).toBe(2);
+ resolveNew('codex-cli 0.162.0-alpha.17.2');await secondStart;expect(spawns).toBe(1);c.retry();expect(spawns).toBe(1);await c.stop();
+});

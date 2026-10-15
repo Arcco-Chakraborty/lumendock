@@ -10,7 +10,7 @@ export interface InstallOptions {
   overrideSettingsPaths?:readonly string[];
 }
 export interface ClaudeInstallation {
-  v:1;settingsPath:string;wrapperPath:string;nodePath:string;previousStatusLine:unknown;hadStatusLine:boolean;
+  v:1;phase:'install_pending'|'installed'|'uninstall_pending';settingsPath:string;wrapperPath:string;nodePath:string;previousStatusLine:unknown;hadStatusLine:boolean;
   installedStatusLine:Record<string,unknown>;previousCommand:string|null;previousShell:string|null;compatibility:ClaudeCompatibility|null;
 }
 const object=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw Error('INVALID_SETTINGS');return v as Record<string,unknown>;};
@@ -22,7 +22,23 @@ export function readClaudeInstallation(configDir:string):ClaudeInstallation|null
   const data=object(raw);
   if(data.v!==1||typeof data.settingsPath!=='string'||typeof data.wrapperPath!=='string'||typeof data.nodePath!=='string'||typeof data.hadStatusLine!=='boolean'||!(data.previousCommand===null||typeof data.previousCommand==='string')||!(data.previousShell===null||typeof data.previousShell==='string'))throw Error('BAD_INSTALLATION_RECORD');
   object(data.installedStatusLine);
-  return data as unknown as ClaudeInstallation;
+  if(data.phase!==undefined&&!['install_pending','installed','uninstall_pending'].includes(String(data.phase)))throw Error('BAD_INSTALLATION_RECORD');
+  return {...data,phase:data.phase??'installed'} as unknown as ClaudeInstallation;
+}
+function matchesOriginal(settings:Record<string,unknown>,record:ClaudeInstallation):boolean {
+  return Object.hasOwn(settings,'statusLine')===record.hadStatusLine&&(!record.hadStatusLine||equal(settings.statusLine,record.previousStatusLine));
+}
+function saveRecord(configDir:string,record:ClaudeInstallation):void {atomicWrite(join(configDir,'claude-install.json'),JSON.stringify(record));}
+function writeSettings(settingsPath:string,bytes:Buffer|null,settings:Record<string,unknown>):void {
+  const latest=existsSync(settingsPath)?readOwnedFile(settingsPath,1024*1024):null;
+  if(!equal(bytes?.toString('base64')??null,latest?.toString('base64')??null))throw Error('SETTINGS_CHANGED');
+  atomicWrite(settingsPath,`${JSON.stringify(settings,null,2)}\n`,bytes?lstatSync(settingsPath).mode&0o777:0o600);
+}
+function activate(record:ClaudeInstallation,configDir:string,bytes:Buffer|null,settings:Record<string,unknown>):void {
+  // The pending record must be readable before the command is activated.
+  // Recovery distinguishes either side of the atomic settings commit.
+  writeSettings(record.settingsPath,bytes,{...settings,statusLine:record.installedStatusLine});
+  saveRecord(configDir,{...record,phase:'installed'});
 }
 export function diagnoseClaudeOverrides(paths:readonly string[]):string[] {
   const diagnostics:string[]=[];
@@ -42,8 +58,18 @@ export async function installClaudeStatusLine(options:InstallOptions):Promise<{c
     const settings=bytes?object(JSON.parse(bytes.toString('utf8'))):{};
     const record=readClaudeInstallation(options.configDir);
     if(record){
-      if(record.settingsPath!==resolve(options.settingsPath)||record.wrapperPath!==options.wrapperPath||record.nodePath!==options.nodePath||!equal(settings.statusLine,record.installedStatusLine))throw Error('STATUSLINE_OWNERSHIP_CONFLICT');
-      return {changed:false,diagnostics:diagnoseClaudeOverrides(options.overrideSettingsPaths??[])};
+      if(record.settingsPath!==resolve(options.settingsPath)||record.wrapperPath!==options.wrapperPath||record.nodePath!==options.nodePath)throw Error('STATUSLINE_OWNERSHIP_CONFLICT');
+      if(equal(settings.statusLine,record.installedStatusLine)){
+        if(record.phase!=='installed')saveRecord(options.configDir,{...record,phase:'installed'});
+        return {changed:false,diagnostics:diagnoseClaudeOverrides(options.overrideSettingsPaths??[])};
+      }
+      if(record.phase==='installed'||!matchesOriginal(settings,record))throw Error('STATUSLINE_OWNERSHIP_CONFLICT');
+      if(record.phase==='install_pending'){
+        activate(record,options.configDir,bytes,settings);
+        return {changed:true,diagnostics:diagnoseClaudeOverrides(options.overrideSettingsPaths??[])};
+      }
+      // A completed interrupted uninstall can be retired before a new install.
+      unlinkSync(join(options.configDir,'claude-install.json'));
     }
     const hadStatusLine=Object.hasOwn(settings,'statusLine');const before=hadStatusLine?object(settings.statusLine):null;
     if(before&&(before.type!=='command'||typeof before.command!=='string'))throw Error('UNSUPPORTED_STATUSLINE');
@@ -56,14 +82,10 @@ export async function installClaudeStatusLine(options:InstallOptions):Promise<{c
       accessSync(options.previousShell,constants.X_OK);
     }
     const installed={...(before??{type:'command'}),command:`exec ${shellQuote(options.nodePath)} ${shellQuote(options.wrapperPath)} --config-dir ${shellQuote(options.configDir)}`};
-    const install:ClaudeInstallation={v:1,settingsPath:resolve(options.settingsPath),wrapperPath:options.wrapperPath,nodePath:options.nodePath,hadStatusLine,previousStatusLine:settings.statusLine??null,installedStatusLine:installed,previousCommand:previousCommand??null,previousShell:previousCommand!==undefined?options.previousShell!:null,compatibility:previousCommand!==undefined?options.compatibility!:null};
+    const install:ClaudeInstallation={v:1,phase:'install_pending',settingsPath:resolve(options.settingsPath),wrapperPath:options.wrapperPath,nodePath:options.nodePath,hadStatusLine,previousStatusLine:settings.statusLine??null,installedStatusLine:installed,previousCommand:previousCommand??null,previousShell:previousCommand!==undefined?options.previousShell!:null,compatibility:previousCommand!==undefined?options.compatibility!:null};
     if(bytes)atomicWrite(join(options.configDir,'claude-settings.backup'),bytes);
-    atomicWrite(join(options.configDir,'claude-install.json'),JSON.stringify(install));
-    // Cooperating writers hold the lock; the compare also detects edits by a
-    // non-cooperating writer before our atomic commit.
-    const latest=existsSync(options.settingsPath)?readOwnedFile(options.settingsPath,1024*1024):null;
-    if(!equal(bytes?.toString('base64')??null,latest?.toString('base64')??null))throw Error('SETTINGS_CHANGED');
-    atomicWrite(options.settingsPath,`${JSON.stringify({...settings,statusLine:installed},null,2)}\n`,bytes?lstatSync(options.settingsPath).mode&0o777:0o600);
+    saveRecord(options.configDir,install);
+    activate(install,options.configDir,bytes,settings);
     return {changed:true,diagnostics:diagnoseClaudeOverrides(options.overrideSettingsPaths??[])};
   }));
 }
@@ -72,11 +94,14 @@ export async function uninstallClaudeStatusLine(options:{settingsPath:string;con
   return withLock(join(options.configDir,'claude-installer.lock'),()=>withLock(`${options.settingsPath}.phone-monitor.lock`,()=>{
     const record=readClaudeInstallation(options.configDir);if(!record)return {changed:false};
     if(record.settingsPath!==resolve(options.settingsPath))throw Error('STATUSLINE_OWNERSHIP_CONFLICT');
-    const bytes=readOwnedFile(options.settingsPath,1024*1024);const settings=object(JSON.parse(bytes.toString('utf8')));
+    const bytes=existsSync(options.settingsPath)?readOwnedFile(options.settingsPath,1024*1024):null;const settings=bytes?object(JSON.parse(bytes.toString('utf8'))):{};
+    if(record.phase!=='installed'&&matchesOriginal(settings,record)){
+      unlinkSync(join(options.configDir,'claude-install.json'));return {changed:false};
+    }
     if(!equal(settings.statusLine,record.installedStatusLine))throw Error('STATUSLINE_OWNERSHIP_CONFLICT');
+    saveRecord(options.configDir,{...record,phase:'uninstall_pending'});
     if(record.hadStatusLine)settings.statusLine=record.previousStatusLine;else delete settings.statusLine;
-    if(!readOwnedFile(options.settingsPath,1024*1024).equals(bytes))throw Error('SETTINGS_CHANGED');
-    atomicWrite(options.settingsPath,`${JSON.stringify(settings,null,2)}\n`,lstatSync(options.settingsPath).mode&0o777);
+    writeSettings(options.settingsPath,bytes,settings);
     unlinkSync(join(options.configDir,'claude-install.json'));
     return {changed:true};
   }));
