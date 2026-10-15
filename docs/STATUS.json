@@ -18,23 +18,23 @@
     "remoteUrl": "https://github.com/Arcco-Chakraborty/lumendock.git",
     "remoteVisibility": "private",
     "remoteBranch": "main",
-    "lastPushedSha": "beb85d025d5496ed6324aedacff483b5aee25d9f"
+    "lastPushedSha": "fcf81d74aef977392d19380b4c4ddcb39810b90c"
   },
   "softwareVerified": false,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "Sonnet D3 desktop; Astra A1 callback repair; Sol W2 observation/presentation fixes",
-  "nextAction": "Finish A1/W2 repairs and scoped reviews; complete/review Sonnet D3; then Astra A2/A3 and W3 packaging",
+  "activeTask": "Claude is sole active agent (Codex at usage limit): A2 (subagent, android/**), D3 Claude-install CLI (Claude, desktop/**), W2 re-review pending",
+  "nextAction": "Claude: finish D3 CLI + commit D3; A2 via subagent then A3; W2 repair re-review; W3. When Codex resets: independent Astra/Sol-high re-review of everything Claude built.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
     "D3": "in_progress_sonnet",
-    "A1": "fix_round_2",
-    "A2": "planned",
+    "A1": "complete",
+    "A2": "in_progress_claude_subagent",
     "A3": "planned",
     "W1": "complete",
-    "W2": "fix_round_1",
+    "W2": "fix_round_1_committed_awaiting_rereview",
     "W3": "planned"
   },
   "unverifiedInputs": [
@@ -55,11 +55,12 @@
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
-    "coordinator": "HANDOFF/STATUS/PROGRESS/review exports, serialized commits and private GitHub pushes",
+    "coordinator": "Claude Code (sole active agent while Codex is at its usage limit); Codex resumes coordinator role on reset",
     "sonnet": "D3 desktop/** plus D3-specific scripts, root CLI registration, docs/SETUP/TESTING and D3 reports; ACK C02",
-    "a1_worker": "android/** narrow A1-R6 repair, then fresh re-review",
-    "w2_worker": "dashboard/** W2-R1/R2 repairs, then fresh re-review",
-    "android_next": "A2/A3 reserved for Astra-high after A1 gate"
+    "a1_worker": "A2: Claude subagent owns android/** (LaptopClient/PairingStore partial files from the dead Codex worker are the starting point)",
+    "w2_worker": "W2 source frozen571d45d for scoped re-review",
+    "android_next": "A2/A3 reserved for Astra-high after A1 gate",
+    "notification_validation": "private isolated D-Bus wire probe only .superpowers/validation; no product edits"
   },
   "evidence": {
     "D1": {
@@ -83,14 +84,14 @@
       "reviewReport": "docs/reviews/W1-review.md"
     },
     "A1": {
-      "commit": "4a88b40ba278086620ca66a457783bf96b5e275a",
+      "commit": "8e13952e7baed6e6579b10376bee11f45cdf195e",
       "report": "docs/reports/A1-implementation.md",
-      "jvmTestsPassed": 19,
+      "jvmTestsPassed": 20,
       "lint": "0 errors after fix round (lintDebug BUILD SUCCESSFUL)",
       "diagnosticProductionInstrumentationApk": "compiled",
       "instrumentationExecution": "unrun",
-      "review": "R1/R2/R3 addressed; new R6 requires narrow fix round2",
-      "reviewReport": "docs/reviews/A1-rereview-1.md",
+      "review": "approved after2 fix rounds; R1/R2/R3/R6 addressed",
+      "reviewReport": "docs/reviews/A1-rereview-2.md",
       "fixCommit": "38cf1bc"
     },
     "D2": {
@@ -107,26 +108,25 @@
     "W2": {
       "commit": "57bb5c5",
       "report": "docs/reports/W2-implementation.md",
-      "dashboardTestsPassed": 50,
+      "dashboardTestsPassed": 53,
       "workspaceTestsPassed": 131,
-      "jsCssBytes": 335540,
-      "review": "needs fixes W2-R1/R2; round1 active",
+      "jsCssBytes": 336555,
+      "review": "fix1 scoped re-review in_progress",
       "minorFollowUps": [
         "W2-M1 360px notification strip spacing"
       ],
-      "reviewReport": "docs/reviews/W2-review.md"
+      "reviewReport": "docs/reviews/W2-review.md",
+      "fixCommit": "571d45d244a410bac37340d38264afc1f50ed011"
     }
   },
   "openImplementationFindings": [
-    "A1-R6 old queued delivery erases newer same-ID cancellation callback",
-    "W2-R1 retained command result overwrites fresh observation",
-    "W2-R2 landscape quota cards hide actual duration/server identity"
+    "W2-R1/R2 repairs571d45d awaiting scoped re-review"
   ],
   "deferredMinorFindings": [
     "W1-R2 upstream Zod annotation build warnings (W3/final triage)",
     "A1-R4 landscape-default policy (A2/final triage)",
     "W2-M1 refresh narrow notification spacing screenshot (W2/W3)"
   ],
-  "reviewerCapabilityNote": "Claude Code session cannot run gpt-6-astra/sol/luna. Claude work is recorded as claude-sonnet-5-5. Required Astra-high gates (task re-reviews, final project review) must run in Codex; they are not satisfied by Claude review.",
+  "reviewerCapabilityNote": "All work after Codex hit its limit is by claude-sonnet-5-5 / Claude subagents and is NOT independently reviewed by the required gpt-6 models. Every Claude-built or Claude-reviewed task needs a Codex Astra/Sol-high review on reset before gates close.",
   "publishingAuthorization": "User explicitly requested private repository and incremental pushes on2026-10-15"
 }
