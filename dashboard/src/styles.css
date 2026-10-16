@@ -233,6 +233,43 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .deck-key-palette:hover:enabled { background: var(--dark-cap-hover); }
 .deck-key-palette:active:enabled { box-shadow: 0 0 0 var(--dark-cap-edge), inset 0 0 0 1px var(--cap-rim); }
 
+/* Laptop: three recessed instrument panels with live readouts. */
+.laptop-container { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 2px 0 4px; }
+.laptop-container.is-empty { display: grid; place-items: center; }
+.laptop-empty { color: var(--ink-2); font-size: 16px; text-align: center; max-width: 30em; }
+.vital-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.vital-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 8px 14px 12px; border-radius: 14px; background: var(--well); box-shadow: inset 0 2px 6px #000000cc, inset 0 0 0 1px var(--well-edge); }
+.vital-stack > .vital-panel { flex: 1; }
+.vital-heading { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.vital-heading h2 { font-size: 17px; font-weight: 600; flex-shrink: 0; }
+.vital-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--ink-2); }
+.vital-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.vital-readout { display: flex; flex-direction: column; min-width: 0; }
+.vital-label { font-size: 14px; color: var(--ink-2); }
+.vital-value { font-size: 40px; font-weight: 400; font-stretch: 62%; line-height: 1.02; white-space: nowrap; }
+.vital-unit { font-size: 16px; font-stretch: 100%; color: var(--ink-2); margin-left: 3px; }
+.vital-readout.is-warm .vital-value, .vital-rows .is-warm, .vital-meta .is-warm { color: var(--lamp-warn); }
+.vital-readout.is-hot .vital-value, .vital-rows .is-hot, .vital-meta .is-hot { color: var(--hot); }
+.thread-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; height: 30px; }
+.thread-bar { width: 100%; height: 100%; display: block; }
+.thread-track { fill: #151b1f; }
+.thread-fill { fill: var(--signal); }
+/* The load chart takes the panel's spare height. */
+.vital-chart { position: relative; flex: 1; min-height: 34px; border-bottom: 1px solid var(--well-line); }
+.vital-chart-caption { position: absolute; top: 0; left: 0; font-size: 14px; line-height: 1.2; color: var(--ink-2); }
+.vital-spark { position: absolute; left: 0; right: 0; bottom: 2px; top: 20px; width: 100%; height: calc(100% - 22px); display: block; }
+.vital-spark polyline { stroke: var(--signal); stroke-width: 1.5; stroke-linejoin: round; }
+.vital-meter { width: 100%; height: 6px; display: block; }
+.vital-meta { display: flex; flex-wrap: wrap; gap: 0 12px; font-size: 14px; color: var(--ink-2); margin-top: auto; }
+.vital-igpu { padding-top: 6px; border-top: 1px solid var(--well-line); }
+.vital-rows { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 14px; }
+.vital-rows > div { display: flex; justify-content: space-between; gap: 10px; }
+.vital-rows dt { color: var(--ink-2); }
+.vital-rows dd { margin: 0; text-align: right; }
+.vital-asleep { display: flex; flex-direction: column; gap: 4px; flex: 1; justify-content: center; }
+.vital-asleep .vital-value { color: var(--ink-2); }
+.vital-asleep .muted { font-size: 14px; }
+
 .setup-banner { color: var(--lamp-warn); padding-bottom: 8px; }
 .demo-label { color: var(--lamp-warn); }
 .pair-card { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10px; padding: 14px; }
@@ -304,6 +341,11 @@ select { margin-left: auto; }
   .deck-container { gap: 8px; }
   .deck-section { grid-template-columns: 54px minmax(0, 1fr); gap: 10px; }
   .deck-key { min-height: 56px; padding: 5px 4px; gap: 4px; }
+  .laptop-container { gap: 10px; }
+  .vital-panel { gap: 5px; padding: 5px 12px 8px; }
+  .vital-stack { gap: 8px; }
+  .vital-value { font-size: 34px; }
+  .thread-bars { height: 22px; }
   .deck-app { padding: 7px 8px 5px 10px; }
   .now-playing { padding: 4px 12px; }
   .deck-grid { gap: 8px; }
@@ -341,6 +383,8 @@ select { margin-left: auto; }
   .deck-app { flex-direction: row; align-items: center; }
   .launch-mark { align-self: center; }
   .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .laptop-container { display: flex; flex-direction: column; gap: 14px; }
+  .vital-chart { flex: none; height: 64px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

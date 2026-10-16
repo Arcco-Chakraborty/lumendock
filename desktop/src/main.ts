@@ -6,6 +6,7 @@ import { buildHub } from './server.js';
 import { HubCollectors } from './collectors/index.js';
 import { NotificationCollector } from './collectors/notifications.js';
 import { HostCollector } from './collectors/host.js';
+import { VitalsReader } from './collectors/vitals.js';
 import { AllowlistSync } from './notification-sync.js';
 import { runNotificationsCommand } from './notifications-cli.js';
 import { resolveCodexPath } from './codex-path.js';
@@ -23,7 +24,8 @@ if (args[0] === 'notifications') {
   let allowlist: string[] = [];
   try { allowlist = listNotificationApps(tokenStore.directory); } catch { allowlist = []; }
   const store = new HubStore({notificationAllowlist:allowlist});
-  const host = new HostCollector({store});
+  // Vitals are read only while the phone is polling, so an idle hub stays quiet.
+  const host = new HostCollector({store,vitals:{reader:new VitalsReader(),active:()=>store.isPhoneActive(clock.monotonicMs())}});
   // Refresh media/mic/DND right after a Deck key so its lit state follows quickly.
   const app = buildHub({store,pairing,tokenStore,clock,afterAction:()=>void host.poll()});
   const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})}});

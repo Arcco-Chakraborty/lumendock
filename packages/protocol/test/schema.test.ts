@@ -21,6 +21,19 @@ describe('wire boundaries', () => {
     for (const bad of [{volumePercent:151}, {volumePercent:4.5}, {micMuted:'yes'}, {media:{...host.host.media, status:'buffering'}}, {media:{...host.host.media, title:'x'.repeat(121)}}, {extra:true}])
       expect(HubSnapshotSchema.safeParse({...host, host:{...host.host, ...bad}}).success).toBe(false);
   });
+  it('accepts laptop vitals with missing parts and rejects out-of-range readings', () => {
+    const base = fixture('hub-host');
+    const withVitals = (patch: Record<string, unknown>) => ({...base, host:{...base.host, vitals:{...base.host.vitals, ...patch}}});
+    expect(HubSnapshotSchema.safeParse(base).success).toBe(true);
+    expect(HubSnapshotSchema.safeParse({...base, host:{...base.host, vitals:null}}).success).toBe(true);
+    expect(HubSnapshotSchema.safeParse(withVitals({cpu:null, gpu:null, igpu:null, memory:null, power:null, storageTempC:null})).success).toBe(true);
+    expect(HubSnapshotSchema.safeParse(withVitals({gpu:{...base.host.vitals.gpu, state:'asleep', usagePercent:null, tempC:null, powerW:null}})).success).toBe(true);
+    for (const bad of [
+      {cpu:{...base.host.vitals.cpu, usagePercent:101}}, {cpu:{...base.host.vitals.cpu, tempC:500}},
+      {cpu:{...base.host.vitals.cpu, threadUsage:new Array(129).fill(1)}}, {gpu:{...base.host.vitals.gpu, state:'busy'}},
+      {power:{...base.host.vitals.power, source:'solar'}}, {memory:{...base.host.vitals.memory, usedBytes:-1}}, {fans:[]},
+    ]) expect(HubSnapshotSchema.safeParse(withVitals(bad)).success).toBe(false);
+  });
   it('keeps absent usage distinct from zero and preserves fractional/above-limit percentages', () => {
     const source = fixtureHub().usage.claude;
     for (const value of [null, 0, 17.25, 120]) {

@@ -17,7 +17,7 @@ npm run build
 npm run doctor
 ```
 
-Get the phone app: download `lumendock-1.0.0.apk` from the [latest release](https://github.com/Arcco-Chakraborty/lumendock/releases/latest) into `artifacts/`, or build it yourself with `node scripts/build.mjs --release` (your own key) or `node scripts/build.mjs` (debug).
+Get the phone app: download `lumendock-<version>.apk` from the [latest release](https://github.com/Arcco-Chakraborty/lumendock/releases/latest) into `artifacts/`, or build it yourself with `node scripts/build.mjs --release` (your own key) or `node scripts/build.mjs` (debug).
 
 ## 1. Prepare the phone (once)
 
@@ -32,7 +32,7 @@ Get the phone app: download `lumendock-1.0.0.apk` from the [latest release](http
 ```sh
 npm run doctor                 # must list 1 authorized physical USB device
 adb devices -l                 # copy the serial yourself; never paste it into tracked files
-adb -s SERIAL install -r artifacts/lumendock-1.0.0.apk
+adb -s SERIAL install -r artifacts/lumendock-<version>.apk
 ```
 
 If the phone asks to confirm the install, tap **Install**. `INSTALL_FAILED_USER_RESTRICTED` means "Install via USB" is still off. `INSTALL_FAILED_UPDATE_INCOMPATIBLE` means a build signed with a different key is installed (for example, a debug build). Uninstall that first with `adb -s SERIAL uninstall com.phonemonitor`; you then pair again and rejoin the lamp Wi-Fi.

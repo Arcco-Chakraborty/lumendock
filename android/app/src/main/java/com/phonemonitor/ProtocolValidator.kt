@@ -87,9 +87,28 @@ object ProtocolValidator {
     private fun media(e:JsonElement?):Boolean = obj(e,"player status title artist") { m ->
         str(m["player"],40) && one(m["status"],"playing","paused","stopped") && str(m["title"],120) && str(m["artist"],120)
     }
-    private fun host(e:JsonElement?):Boolean = obj(e,"media volumePercent muted micMuted doNotDisturb") { h ->
+    private fun temp(e:JsonElement?)=nullable(e){num(it,-50.0,200.0)}
+    private fun pct(e:JsonElement?)=nullable(e){num(it,0.0,100.0)}
+    private fun watts(e:JsonElement?)=nullable(e){num(it,0.0,2000.0)}
+    private fun mhz(e:JsonElement?)=nullable(e){int(it,0,20000)}
+    // Mirrors HostVitalsSchema in packages/protocol.
+    private fun vitals(e:JsonElement?):Boolean = obj(e,"cpu gpu igpu memory power storageTempC") { v ->
+        nullable(v["cpu"]){ c -> obj(c,"name usagePercent threadUsage tempC clockMhz powerW"){ o ->
+            str(o["name"],80) && pct(o["usagePercent"]) && arr(o["threadUsage"],128){num(it,0.0,100.0)} && temp(o["tempC"]) && mhz(o["clockMhz"]) && watts(o["powerW"]) } } &&
+        nullable(v["gpu"]){ g -> obj(g,"name state usagePercent tempC hotspotC powerW memoryUsedMb memoryTotalMb clockMhz"){ o ->
+            str(o["name"],80) && one(o["state"],"active","asleep") && pct(o["usagePercent"]) && temp(o["tempC"]) && temp(o["hotspotC"]) &&
+                watts(o["powerW"]) && nullable(o["memoryUsedMb"]){int(it)} && nullable(o["memoryTotalMb"]){int(it)} && mhz(o["clockMhz"]) } } &&
+        nullable(v["igpu"]){ g -> obj(g,"usagePercent tempC"){ o -> pct(o["usagePercent"]) && temp(o["tempC"]) } } &&
+        nullable(v["memory"]){ m -> obj(m,"usedBytes totalBytes swapUsedBytes swapTotalBytes"){ o ->
+            int(o["usedBytes"]) && int(o["totalBytes"]) && int(o["swapUsedBytes"]) && int(o["swapTotalBytes"]) } } &&
+        nullable(v["power"]){ p -> obj(p,"source batteryPercent charging watts minutesLeft"){ o ->
+            one(o["source"],"ac","battery","unknown") && pct(o["batteryPercent"]) && nullable(o["charging"]){bool(it)} && watts(o["watts"]) && nullable(o["minutesLeft"]){int(it,0,100000)} } } &&
+        temp(v["storageTempC"])
+    }
+    private fun host(e:JsonElement?):Boolean = obj(e,"media volumePercent muted micMuted doNotDisturb","vitals") { h ->
         nullable(h["media"]){media(it)} && nullable(h["volumePercent"]){int(it,0,150)} &&
-            nullable(h["muted"]){bool(it)} && nullable(h["micMuted"]){bool(it)} && nullable(h["doNotDisturb"]){bool(it)}
+            nullable(h["muted"]){bool(it)} && nullable(h["micMuted"]){bool(it)} && nullable(h["doNotDisturb"]){bool(it)} &&
+            (h["vitals"]==null || nullable(h["vitals"]){vitals(it)})
     }
     private fun hub(e:JsonElement?):Boolean = obj(e,"v serverNowEpochMs usage notifications","host") { o ->
         (o["host"]==null || host(o["host"])) && int(o["v"],1,1) && int(o["serverNowEpochMs"]) && obj(o["usage"],"claude codex"){usage(it["claude"],"claude") && usage(it["codex"],"codex")} && obj(o["notifications"],"state errorCode items"){one(it["state"],"disabled","available","unavailable") && error(it["errorCode"]) && arr(it["items"],100){n->notification(n)}} && budget(o,262144)

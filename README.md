@@ -28,6 +28,10 @@ Turn a spare Android phone into a desk display for your laptop. Over USB it show
 
 Toggle keys carry a small status light: red while the mic or sound is muted, cyan while Do Not Disturb or the lamp is on.
 
+**Laptop** shows the laptop's vitals: CPU load per thread, temperature, clock and package power with a three-minute load chart; GPU load, temperature, power, memory and clock (an idle hybrid-graphics GPU shows as asleep and is never woken to read it); memory and swap; and battery, power draw, time left and SSD temperature. Temperatures turn amber from 75°C and red from 85°C.
+
+![Laptop screen: CPU, GPU, memory and power](docs/images/laptop.png)
+
 **Lamp signals.** The lamp pulses for a few seconds and then goes back to how it was:
 
 - cyan when Claude or Codex sends an alert,
@@ -36,7 +40,7 @@ Toggle keys carry a small status light: red while the mic or sound is muted, cya
 
 Each signal can be switched off, and quiet hours (11 PM to 8 AM) are on by default.
 
-**Control bar.** A bar at the bottom switches between Monitor and Deck, shows the laptop and lamp connection, and opens settings. It hides after eight seconds like an auto-hiding taskbar; tap the bottom edge to bring it back.
+**Control bar.** A bar at the bottom switches between Monitor, Deck and Laptop, shows the laptop and lamp connection, and opens settings. It hides after eight seconds like an auto-hiding taskbar; tap the bottom edge to bring it back.
 
 The layout adapts to landscape and portrait, honours the system text size and reduced motion, and keeps keys at least 44 px (the full-width bottom edge strip is the one thinner target).
 
@@ -51,6 +55,7 @@ The layout adapts to landscape and portrait, honours the system text size and re
  │ · Claude usage (status line)  │          │ validates every message  │ point   │ temperature and      │
  │ · selected notifications      │          │ drives lamp + signals    │         │ humidity sensor      │
  │ · media, volume, mic, DND     │          └──────────────────────────┘         └──────────────────────┘
+ │ · CPU, GPU, memory, power     │
  │ · fixed Deck actions          │
  └───────────────────────────────┘
 ```
@@ -74,7 +79,7 @@ The phone reaches the laptop only through `adb reverse` over the USB cable, so t
 
 ## Install
 
-1. **Phone app.** Download `lumendock-1.0.0.apk` from the [latest release](https://github.com/Arcco-Chakraborty/lumendock/releases/latest) and check its SHA-256 against the release notes. Every release is signed with the same LumenDock key; its certificate SHA-256 is
+1. **Phone app.** Download `lumendock-<version>.apk` from the [latest release](https://github.com/Arcco-Chakraborty/lumendock/releases/latest) and check its SHA-256 against the release notes. Every release is signed with the same LumenDock key; its certificate SHA-256 is
    `59:5F:8A:A4:BE:43:BA:D2:CB:E5:32:AC:06:A9:E8:11:D0:B1:F8:EB:81:F4:D8:D6:8B:76:A1:1C:67:F6:39:33`.
 2. **Laptop hub.**
    ```sh
@@ -123,7 +128,7 @@ Android unit tests and lint run as part of `scripts/build.mjs`. The tests use fa
 
 ## Status and limitations
 
-Version 1.0.0 is in daily use on a Redmi 9A with the RGB_Controller lamp. Known limits:
+Version 1.1.0 is in daily use on a Redmi 9A with the RGB_Controller lamp. Known limits:
 
 - Laptop features target Linux with GNOME. The Deck's system keys rely on `wpctl`, `gsettings`, `loginctl` and the desktop screenshot portal. GNOME only allows its own tools to take silent screenshots, so the screenshot key opens the screenshot tool instead.
 - Notifications are captured from the freedesktop `Notify` call. Apps that use GNOME's own notification API or the portal are not seen.

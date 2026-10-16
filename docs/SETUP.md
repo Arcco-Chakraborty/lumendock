@@ -29,7 +29,7 @@ VERIFIED (software): doctor against fake runners and a read-only smoke run with 
 Install the APK once the phone is authorized (see §3 for USB debugging). On a Xiaomi/Redmi phone also enable **Developer options → Install via USB** (it may ask you to sign in to a Mi account once); without it `adb install` fails with `INSTALL_FAILED_USER_RESTRICTED`:
 
 ```sh
-adb -s SERIAL install -r artifacts/lumendock-1.0.0.apk   # or the debug APK you built
+adb -s SERIAL install -r artifacts/lumendock-<version>.apk   # or the debug APK you built
 ```
 
 With `npm run connect -- --serial SERIAL` running in another terminal, start the hub in pairing mode. It binds only `127.0.0.1:8765`, and pairing is closed unless you ask for it:

@@ -67,6 +67,58 @@
     "volumePercent": 45,
     "muted": false,
     "micMuted": true,
-    "doNotDisturb": false
+    "doNotDisturb": false,
+    "vitals": {
+      "cpu": {
+        "name": "Synthetic 6-core CPU",
+        "usagePercent": 23.5,
+        "threadUsage": [
+          40,
+          12,
+          8,
+          30,
+          5,
+          2,
+          61,
+          9,
+          14,
+          3,
+          22,
+          7
+        ],
+        "tempC": 61.3,
+        "clockMhz": 3890,
+        "powerW": 14.2
+      },
+      "gpu": {
+        "name": "Synthetic GPU",
+        "state": "active",
+        "usagePercent": 37,
+        "tempC": 58,
+        "hotspotC": null,
+        "powerW": 21.4,
+        "memoryUsedMb": 1210,
+        "memoryTotalMb": 4096,
+        "clockMhz": 1455
+      },
+      "igpu": {
+        "usagePercent": 6,
+        "tempC": 49
+      },
+      "memory": {
+        "usedBytes": 10842316800,
+        "totalBytes": 15540506624,
+        "swapUsedBytes": 2147483648,
+        "swapTotalBytes": 4294963200
+      },
+      "power": {
+        "source": "battery",
+        "batteryPercent": 76,
+        "charging": false,
+        "watts": 18.4,
+        "minutesLeft": 161
+      },
+      "storageTempC": 44.9
+    }
   }
 }

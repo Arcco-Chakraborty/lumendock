@@ -49,9 +49,22 @@ const notifications = z.strictObject({state:z.enum(['disabled','available','unav
 // Laptop state for the Deck: what is playing and the audio/notification toggles.
 // Every field is nullable because each comes from a separate, optional desktop tool.
 export const HostMediaSchema = z.strictObject({player:bounded(40),status:z.enum(['playing','paused','stopped']),title:bounded(120),artist:bounded(120)});
+// Laptop vitals for the Laptop screen. Each part is null when the laptop does not expose it.
+const tempC = finite.min(-50).max(200).nullable();
+const percent = finite.min(0).max(100).nullable();
+const watts = finite.min(0).max(2000).nullable();
+const mhz = safeInt.max(20000).nullable();
+export const HostVitalsSchema = z.strictObject({
+  cpu:z.strictObject({name:bounded(80),usagePercent:percent,threadUsage:z.array(finite.min(0).max(100)).max(128),tempC,clockMhz:mhz,powerW:watts}).nullable(),
+  gpu:z.strictObject({name:bounded(80),state:z.enum(['active','asleep']),usagePercent:percent,tempC,hotspotC:tempC,powerW:watts,memoryUsedMb:safeInt.nullable(),memoryTotalMb:safeInt.nullable(),clockMhz:mhz}).nullable(),
+  igpu:z.strictObject({usagePercent:percent,tempC}).nullable(),
+  memory:z.strictObject({usedBytes:safeInt,totalBytes:safeInt,swapUsedBytes:safeInt,swapTotalBytes:safeInt}).nullable(),
+  power:z.strictObject({source:z.enum(['ac','battery','unknown']),batteryPercent:percent,charging:z.boolean().nullable(),watts,minutesLeft:safeInt.max(100000).nullable()}).nullable(),
+  storageTempC:tempC,
+});
 export const HostStateSchema = z.strictObject({
   media:HostMediaSchema.nullable(),volumePercent:safeInt.max(150).nullable(),muted:z.boolean().nullable(),
-  micMuted:z.boolean().nullable(),doNotDisturb:z.boolean().nullable(),
+  micMuted:z.boolean().nullable(),doNotDisturb:z.boolean().nullable(),vitals:HostVitalsSchema.nullable().optional(),
 });
 const hubObject = z.strictObject({v:z.literal(1),serverNowEpochMs:epochMs,usage:z.strictObject({claude:UsageSourceSchema,codex:UsageSourceSchema}),notifications,host:HostStateSchema.optional()});
 export const HubSnapshotSchema = withByteBudget(hubObject.refine(h => h.usage.claude.provider === 'claude' && h.usage.codex.provider === 'codex','Usage provider mismatch'),LIMITS.hubBytes);
@@ -127,6 +140,7 @@ export type SelectedNotification = z.infer<typeof SelectedNotificationSchema>;
 export type HubSnapshot = z.infer<typeof HubSnapshotSchema>;
 export type HostState = z.infer<typeof HostStateSchema>;
 export type HostMedia = z.infer<typeof HostMediaSchema>;
+export type HostVitals = z.infer<typeof HostVitalsSchema>;
 export type EspState = z.infer<typeof EspStateSchema>;
 export type EspHistory = z.infer<typeof EspHistorySchema>;
 export type LightPatch = z.infer<typeof LightPatchSchema>;

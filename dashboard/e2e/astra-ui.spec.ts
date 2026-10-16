@@ -237,3 +237,70 @@ test("a new WhatsApp alert pulses the lamp green and the setting turns it off", 
   await page.waitForTimeout(3000);
   expect(await pulses()).toHaveLength(2);
 });
+
+async function panelProblems(page: Page) {
+  return page.evaluate(() => {
+    const errors: string[] = [];
+    for (const panel of document.querySelectorAll<HTMLElement>(".vital-panel")) {
+      if (panel.scrollWidth > panel.clientWidth + 1) errors.push(`${panel.className} wider than box ${panel.scrollWidth}>${panel.clientWidth}`);
+      if (panel.scrollHeight > panel.clientHeight + 1) errors.push(`${panel.className} taller than box ${panel.scrollHeight}>${panel.clientHeight}`);
+    }
+    return errors;
+  });
+}
+for (const [width, height] of [[800,360],[740,320],[360,800]] as const) {
+  test(`Laptop screen shows CPU, GPU, memory and power at ${width}x${height}`, async ({page}) => {
+    const data = await open(page, width, height);
+    await page.getByRole("tab", {name: "Laptop", exact: true}).click();
+    await expect(page.getByRole("region", {name: "Processor"})).toContainText("Synthetic 6-core CPU");
+    // A few reports fill the load sparklines.
+    for (let i = 1; i <= 6; i += 1) {
+      const vitals = data.hub.data!.host!.vitals!;
+      data.hub.data!.serverNowEpochMs += 2000;
+      vitals.cpu!.usagePercent = [23.5, 41, 18, 67, 35, 52][i - 1]!;
+      vitals.gpu!.usagePercent = [37, 52, 44, 71, 60, 66][i - 1]!;
+      await setBridgeSlot(page, "hub", data.hub);
+      await expect(page.getByRole("region", {name: "Processor"}).locator(".vital-value").first()).toHaveText(`${Math.round(vitals.cpu!.usagePercent)}%`);
+    }
+    await expect(page.locator(".vital-spark polyline")).toHaveCount(2);
+    await expect(page.getByRole("region", {name: "Graphics"})).toContainText("not reported by driver");
+    await expect(page.getByRole("region", {name: "Power"})).toContainText("2 h 41 min left");
+    await page.getByRole("button", {name: "Hide bar"}).click();
+    expect(await panelProblems(page)).toEqual([]);
+    // Portrait scrolls: check the end of the list, where the last panel sits just above the edge strip.
+    await page.locator(".laptop-container").evaluate(e => e.scrollTo(0, e.scrollHeight));
+    expect(await overlapProblems(page)).toEqual([]);
+    expect(await controlProblems(page, "body", {allowVerticalScroll: height > width})).toEqual([]);
+    if (width > height) expect(await page.locator(".laptop-container").evaluate(e => e.scrollHeight <= e.clientHeight + 1), "Laptop screen needs no internal scroll").toBe(true);
+    await page.screenshot({animations: "disabled", path: evidence(`${width}x${height}-laptop`), fullPage: true});
+  });
+}
+
+test("Laptop screen shows a sleeping GPU, heat colours and the disconnected state", async ({page}) => {
+  const data = await open(page, 800, 360, {edit: f => {
+    const vitals = f.hub.data!.host!.vitals!;
+    vitals.cpu!.tempC = 91;
+    vitals.gpu = {...vitals.gpu!, state: "asleep", usagePercent: null, tempC: null, powerW: null, memoryUsedMb: null, clockMhz: null};
+    vitals.power = {source: "ac", batteryPercent: 100, charging: false, watts: null, minutesLeft: null};
+    vitals.storageTempC = 78;
+  }});
+  const monitor = page.getByRole("tab", {name: "Monitor", exact: true});
+  await monitor.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", {name: "Laptop", exact: true})).toBeFocused();
+  await expect(page.getByRole("tab", {name: "Laptop", exact: true})).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", {name: "Graphics"})).toContainText("Asleep");
+  await expect(page.locator(".vital-cpu .vital-readout.is-hot")).toHaveCount(1);
+  await expect(page.getByRole("region", {name: "Power"})).toContainText("Battery full");
+  await expect(page.locator(".vital-meta .is-warm")).toHaveText("SSD 78°C");
+  await page.keyboard.press("ArrowRight");
+  await expect(monitor).toBeFocused();
+  await page.keyboard.press("End");
+  await page.getByRole("button", {name: "Hide bar"}).click();
+  expect(await panelProblems(page)).toEqual([]);
+  await page.screenshot({animations: "disabled", path: evidence("800x360-laptop-asleep-hot")});
+  data.hub = {state: "disconnected", ageMs: null, stale: true, data: null, errorCode: "USB_UNAVAILABLE"};
+  await setBridgeSlot(page, "hub", data.hub);
+  await expect(page.getByText("Connect the laptop to see its CPU, GPU, memory and power.")).toBeVisible();
+});

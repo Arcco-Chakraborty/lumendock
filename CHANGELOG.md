@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-10-16)
+
+### Laptop screen
+
+A third screen, **Laptop**, shows the laptop's vitals, updated every 2 seconds:
+
+- **CPU:** load, a bar per thread, temperature (amber from 75°C, red from 85°C), clock, package power, and a three-minute load chart.
+- **GPU:** load, temperature, hotspot when the driver reports one, power, memory and clock, plus the integrated graphics' load and temperature. A hybrid-graphics GPU that is asleep shows as **Asleep**: the hub never wakes it to read stats. If it has sat idle for a few readings, the hub stops asking so it can fall asleep again.
+- **Memory:** use, with swap.
+- **Power:** AC or battery, charge level, draw or charge rate, time left or time to full, and SSD temperature.
+
+Vitals are read from `/proc` and `/sys`, plus `nvidia-smi` for NVIDIA GPUs, and only while the phone is connected. On the reference laptop (RTX 3050 Ti), the NVIDIA driver does not report a GPU hotspot, so it shows as "not reported by driver".
+
+### Fixes
 
 - Fixed: `./phone-monitor.sh status`, `start` and `restart` could mistake any process whose command line mentioned the hub's path for a running hub. `restart` then stopped the service and never started it again. All checks now count only real `node` processes.
 

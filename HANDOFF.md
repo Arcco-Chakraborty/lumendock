@@ -1,6 +1,6 @@
 # LumenDock live handoff
 
-Current revision, 2026-10-16 (Claude Code, Opus 5.5, sole coordinator at the user's instruction): **v1.0.0 released.** Repo made public (MIT) at the user's request; GitHub release v1.0.0 carries the signed APK, desktop tarball, manifest and SHA256SUMS.
+Current revision, 2026-10-16 (Claude Code, Opus 5.5, sole coordinator at the user's instruction): **v1.0.0 released; main is at 1.1.0 (Laptop vitals screen), installed on the phone, GitHub release for 1.1.0 not yet cut.** Repo made public (MIT) at the user's request; GitHub release v1.0.0 carries the signed APK, desktop tarball, manifest and SHA256SUMS.
 
 ## State
 - App renamed LumenDock (user-visible strings; package id `com.phonemonitor` and `~/.config/phone-monitor` kept for compatibility; generated systemd unit text intentionally unchanged because uninstall compares it byte-for-byte).

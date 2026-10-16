@@ -15,6 +15,7 @@ import { LightCard } from "./components/LightCard.js";
 import { NotificationStrip } from "./components/NotificationStrip.js";
 import { SettingsSheet } from "./components/SettingsSheet.js";
 import { DeckView } from "./components/DeckView.js";
+import { HISTORY_SAMPLES, LaptopView, type VitalsHistory } from "./components/LaptopView.js";
 import { LightIntentController } from "./lib/lightIntent.js";
 import { LampSignaller, SignalDetector, inQuietHours, loadSignalPrefs, saveSignalPrefs, type SignalPrefs } from "./lib/lampSignals.js";
 
@@ -56,6 +57,8 @@ function LinkStatus({
     </span>
   );
 }
+type View = "monitor" | "deck" | "laptop";
+const VIEWS: Array<[View, string]> = [["monitor", "Monitor"], ["deck", "Deck"], ["laptop", "Laptop"]];
 export function App({
   store,
   nativeAvailable,
@@ -89,7 +92,7 @@ export function App({
     | "history"
     | null
   >(null);
-  const [view, setView] = useState<"monitor" | "deck">("monitor");
+  const [view, setView] = useState<View>("monitor");
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [dockOpen, setDockOpen] = useState(true);
   const dockRef = useRef<HTMLElement>(null);
@@ -177,6 +180,20 @@ export function App({
   const signaller = useMemo(() => (controller ? new LampSignaller(controller) : null), [controller]);
   const detector = useRef(new SignalDetector());
   const hubData = snapshot.hub.data;
+  const laptopConnected = snapshot.hub.state === "connected" && !snapshot.hub.stale && !unpaired;
+  // Three minutes of load samples for the Laptop screen's sparklines, one per laptop report.
+  const [vitalsHistory, setVitalsHistory] = useState<VitalsHistory>({ cpuLoad: [], gpuLoad: [] });
+  const lastVitalsAt = useRef<number | null>(null);
+  useEffect(() => {
+    const vitals = hubData?.host?.vitals;
+    if (!vitals || hubData.serverNowEpochMs === lastVitalsAt.current) return;
+    lastVitalsAt.current = hubData.serverNowEpochMs;
+    const keep = (values: number[], next: number | null | undefined) => (next == null ? values : [...values, next].slice(-HISTORY_SAMPLES));
+    setVitalsHistory((previous) => ({
+      cpuLoad: keep(previous.cpuLoad, vitals.cpu?.usagePercent),
+      gpuLoad: keep(previous.gpuLoad, vitals.gpu?.state === "active" ? vitals.gpu.usagePercent : null),
+    }));
+  }, [hubData]);
   useEffect(() => {
     const kinds = detector.current.observe(hubData).filter((kind) => signalPrefs[kind]);
     if (!kinds.length || (signalPrefs.quietHours && inQuietHours(new Date()))) return;
@@ -247,41 +264,31 @@ export function App({
           onKeyDown={(event) => {
             if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
             event.preventDefault();
-            const next = event.key === "Home" ? "monitor" : event.key === "End" ? "deck" : view === "monitor" ? "deck" : "monitor";
+            const index = VIEWS.findIndex(([id]) => id === view);
+            const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+            const next = event.key === "Home" ? "monitor" : event.key === "End" ? "laptop" : VIEWS[(index + step + VIEWS.length) % VIEWS.length]![0];
             setView(next);
             dockRef.current?.querySelector<HTMLButtonElement>(`#${next}-tab`)?.focus();
             resetAutoDropTimer();
           }}>
-          <button
-            type="button"
-            role="tab"
-            id="monitor-tab"
-            aria-controls="monitor-panel"
-            aria-selected={view === "monitor"}
-            className={`view-tab${view === "monitor" ? " is-active" : ""}`}
-            onClick={() => {
-              setView("monitor");
-              resetAutoDropTimer();
-            }}
-            tabIndex={view === "monitor" ? 0 : -1}
-          >
-            Monitor
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="deck-tab"
-            aria-controls="deck-panel"
-            aria-selected={view === "deck"}
-            className={`view-tab${view === "deck" ? " is-active" : ""}`}
-            onClick={() => {
-              setView("deck");
-              resetAutoDropTimer();
-            }}
-            tabIndex={view === "deck" ? 0 : -1}
-          >
-            Deck
-          </button>
+          {VIEWS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`${id}-tab`}
+              aria-controls={`${id}-panel`}
+              aria-selected={view === id}
+              className={`view-tab${view === id ? " is-active" : ""}`}
+              onClick={() => {
+                setView(id);
+                resetAutoDropTimer();
+              }}
+              tabIndex={view === id ? 0 : -1}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <div className="dock-actions">
           <button
@@ -416,10 +423,12 @@ export function App({
             </footer>
           )}
         </>
+      ) : view === "laptop" ? (
+        <LaptopView connected={laptopConnected} vitals={hubData?.host?.vitals} history={vitalsHistory} />
       ) : (
         <DeckView
           store={store}
-          laptopConnected={snapshot.hub.state === "connected" && !snapshot.hub.stale && !unpaired}
+          laptopConnected={laptopConnected}
           host={snapshot.hub.data?.host}
           esp={snapshot.esp}
           controller={controller}
