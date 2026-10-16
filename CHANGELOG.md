@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: `./phone-monitor.sh status`, `start` and `restart` could mistake any process whose command line mentioned the hub's path for a running hub. `restart` then stopped the service and never started it again. All checks now count only real `node` processes.
+
 ## 1.0.0 (2026-10-16)
 
 First public release.

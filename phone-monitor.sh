@@ -58,6 +58,17 @@ get_single_serial() {
   return 1
 }
 
+# A PID counts only if it is a real node process: a shell whose command line merely
+# mentions the hub's paths, or a recycled PID from a stale PID file, is ignored.
+is_node() { [ "$(basename "$(readlink "/proc/$1/exe" 2>/dev/null)")" = "node" ]; }
+first_node() {
+  local p
+  for p in $(pgrep -f "$1" 2>/dev/null); do
+    if is_node "$p"; then echo "$p"; return 0; fi
+  done
+  return 0
+}
+
 do_status() {
   local running_hub=0
   local running_conn=0
@@ -66,10 +77,10 @@ do_status() {
 
   if [ -f "$PID_FILE" ]; then
     read -r hub_pid conn_pid < "$PID_FILE" || true
-    if [ -n "$hub_pid" ] && kill -0 "$hub_pid" 2>/dev/null; then
+    if [ -n "$hub_pid" ] && is_node "$hub_pid"; then
       running_hub=1
     fi
-    if [ -n "$conn_pid" ] && kill -0 "$conn_pid" 2>/dev/null; then
+    if [ -n "$conn_pid" ] && is_node "$conn_pid"; then
       running_conn=1
     fi
   fi
@@ -77,12 +88,12 @@ do_status() {
   # Fallback process scan if pid file missing or stale
   if [ $running_hub -eq 0 ]; then
     local p
-    p="$(pgrep -f "node.*desktop/dist/main.js" 2>/dev/null | head -n1 || true)"
+    p="$(first_node "node.*desktop/dist/main.js")"
     if [ -n "$p" ]; then running_hub=1; hub_pid="$p"; fi
   fi
   if [ $running_conn -eq 0 ]; then
     local p
-    p="$(pgrep -f "node.*scripts/connect.mjs" 2>/dev/null | head -n1 || true)"
+    p="$(first_node "node.*scripts/connect.mjs")"
     if [ -n "$p" ]; then running_conn=1; conn_pid="$p"; fi
   fi
 
@@ -178,9 +189,7 @@ do_stop() {
     rm -f "$PID_FILE"
   fi
 
-  # Only ever signal real node processes: a shell whose command line merely
-  # mentions these paths (or a recycled PID from a stale PID file) is left alone.
-  is_node() { [ "$(basename "$(readlink "/proc/$1/exe" 2>/dev/null)")" = "node" ]; }
+  # Only ever signal real node processes (see is_node above).
   local pids=()
   [ -n "$hub_pid" ] && is_node "$hub_pid" && pids+=("$hub_pid")
   [ -n "$conn_pid" ] && is_node "$conn_pid" && pids+=("$conn_pid")
