@@ -1,4 +1,12 @@
+import java.util.Properties
+
 plugins { alias(libs.plugins.android.application) }
+// Release signing comes from a private properties file outside the repository
+// (storeFile, storePassword, keyAlias, keyPassword), passed as -PlumendockSigning=<path>.
+// Without it the release APK is built unsigned.
+val releaseSigning = providers.gradleProperty("lumendockSigning").orNull?.let { path ->
+    Properties().apply { file(path).inputStream().use { load(it) } }
+}
 val diagnosticUi = providers.gradleProperty("diagnosticUi").map { it.toBooleanStrict() }.orElse(false)
 val dashboardAssets = if (diagnosticUi.get()) rootProject.file("diagnostic") else rootProject.file("../dashboard/dist")
 android {
@@ -9,8 +17,8 @@ android {
         applicationId = "com.phonemonitor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 100
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     sourceSets {
@@ -18,6 +26,20 @@ android {
         getByName("test").resources.directories.add("../../packages/protocol/fixtures")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    signingConfigs {
+        if (releaseSigning != null) create("release") {
+            storeFile = file(releaseSigning.getProperty("storeFile"))
+            storePassword = releaseSigning.getProperty("storePassword")
+            keyAlias = releaseSigning.getProperty("keyAlias")
+            keyPassword = releaseSigning.getProperty("keyPassword")
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
     buildFeatures { buildConfig = true }
     lint { abortOnError = true }
 }

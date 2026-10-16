@@ -14,7 +14,7 @@ it("explains absent connections and supplies independent room and usage slots", 
   const empty = renderToStaticMarkup(
     <App store={store} nativeAvailable={false} />,
   );
-  expect(empty).toContain("Open the Phone Monitor app");
+  expect(empty).toContain("Open the LumenDock app");
   expect(empty).toContain("Laptop disconnected");
   expect(empty).toContain("Controller disconnected");
   store.applyEsp(EspSnapshotSchema.parse(esp));

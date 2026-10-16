@@ -38,7 +38,7 @@ if (args[0] === 'notifications') {
     host.start();
     await allowlistSync.start();
     if (args.includes('--pair')) console.log(`Pairing code: ${pairing.open(clock.nowMs())} (expires in 120 seconds)`);
-    console.log('Phone Monitor hub listening on 127.0.0.1:8765');
+    console.log('LumenDock hub listening on 127.0.0.1:8765');
   } catch {
     console.error('Hub startup failed. Check private configuration and port 8765 availability.');
     allowlistSync.stop(); host.stop();

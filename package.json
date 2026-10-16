@@ -1,5 +1,8 @@
 {
   "name": "phone-monitor",
+  "version": "1.0.0",
+  "description": "Turn a spare Android phone into a USB desk display for Claude/Codex limits, laptop notifications, media keys and an ESP32 lamp.",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "workspaces": [

@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Phone Monitor</string>
-    <string name="webview_guidance">Update Android System WebView to use Phone Monitor. This device must support secure web messages. Reopen the app after updating.</string>
+    <string name="app_name">LumenDock</string>
+    <string name="webview_guidance">Update Android System WebView to use LumenDock. This device must support secure web messages. Reopen the app after updating.</string>
     <string name="pairing_title">Pair with laptop</string>
     <string name="pairing_instructions">Connect USB, start hub pairing on the laptop, then enter the 8-digit code it prints. The code expires after 2 minutes.</string>
     <string name="pairing_hint">8-digit code</string>

@@ -341,7 +341,7 @@ export function App({
       )}
       {!nativeAvailable && !demo && (
         <p className="setup-banner">
-          Open the Phone Monitor app to connect your laptop and room controller.
+          Open the LumenDock app to connect your laptop and room controller.
         </p>
       )}
       {import.meta.env.DEV && demo && <span className="demo-label">Synthetic demo</span>}

@@ -1,7 +1,10 @@
 import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+// Never run real host actions (mute, launchers) from tests: the route is exercised with a fake.
+const executeAction = vi.hoisted(() => vi.fn(async (action: string) => ({ success: true, message: `synthetic ${action}` })));
+vi.mock('../src/actions.js', () => ({ executeAction }));
 import { buildHub } from '../src/server.js';
 import { HubStore } from '../src/store.js';
 import { TokenStore } from '../src/config.js';
@@ -141,5 +144,7 @@ describe('read-time source retention', () => {
     const res = await app.inject({method:'POST',url:'/v1/action',headers:auth,payload:{action:'media_mute'}});
     expect(res.statusCode).toBe(200);
     expect(res.json().ok).toBe(true);
+    expect(executeAction).toHaveBeenCalledTimes(1);
+    expect(executeAction).toHaveBeenCalledWith('media_mute');
   });
 });

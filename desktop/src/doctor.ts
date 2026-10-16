@@ -106,7 +106,7 @@ export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
 
 export function formatDoctorText(report: DoctorReport): string {
   const mark = { ok: 'ok  ', warn: 'warn', fail: 'FAIL' } as const;
-  const lines = ['Phone Monitor doctor', ''];
+  const lines = ['LumenDock doctor', ''];
   for (const check of report.checks) lines.push(`[${mark[check.status]}] ${check.label}${check.version ? `: ${check.version}` : ''}${check.detail ? ` - ${check.detail}` : ''}`);
   lines.push('', `USB devices (authorized, physical): ${report.devices.authorizedUsb.length}`);
   for (const device of report.devices.authorizedUsb) lines.push(`  #${device.index} ${device.serial ?? device.serialMasked}${device.model ? ` (${device.model})` : ''}`);

@@ -75,7 +75,7 @@ describe('doctor', () => {
     expect(JSON.parse(j.out[0]!).v).toBe(1);
     const t = io();
     expect(await runDoctorCommand([], { io: t.io, collect })).toBe(0);
-    expect(t.out[0]).toContain('Phone Monitor doctor');
+    expect(t.out[0]).toContain('LumenDock doctor');
     const bad = io();
     expect(await runDoctorCommand(['--serial'], { io: bad.io, collect })).toBe(2);
     expect(await runDoctorCommand(['--nope'], { io: bad.io, collect })).toBe(2);

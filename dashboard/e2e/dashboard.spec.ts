@@ -83,7 +83,7 @@ test.describe("production bundle (A13/A14)", () => {
     // The development demo switch is dead code in production: ?demo shows no fixture UI.
     await page.setViewportSize({ width: 800, height: 360 });
     await page.goto("/?demo=over-limit");
-    await expect(page.getByText(/Open the Phone Monitor app/)).toBeVisible();
+    await expect(page.getByText(/Open the LumenDock app/)).toBeVisible();
     await expect(page.getByText(/Synthetic/)).toHaveCount(0);
     await expect(page.getByText(/% used/)).toHaveCount(0);
     expect(await page.evaluate(() => "__bridge" in window || "phoneMonitor" in window)).toBe(false);
@@ -359,7 +359,7 @@ test.describe("production bundle (A13/A14)", () => {
   }) => {
     await page.setViewportSize({ width: 800, height: 360 });
     await page.goto("/");
-    await expect(page.getByText(/Open the Phone Monitor app/)).toBeVisible();
+    await expect(page.getByText(/Open the LumenDock app/)).toBeVisible();
     await expect(link(page, "Laptop", "disconnected")).toBeVisible();
     await expect(link(page, "Controller", "disconnected")).toBeVisible();
     await expect(page.getByText(/Synthetic demo/)).toHaveCount(0);

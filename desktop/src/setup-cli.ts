@@ -68,7 +68,7 @@ const SERVICE_MESSAGES: Record<string, string> = {
   UNSAFE_PATH: 'A path contains control characters.',
   CONFIG_DIRECTORY_NAME_UNSUPPORTED: 'The service needs the configuration directory to be named "phone-monitor" (the hub reads XDG_CONFIG_HOME/phone-monitor).',
   HUB_BUILD_MISSING: 'The compiled hub (desktop/dist/main.js) is missing. Run: npm ci && npm run build',
-  UNIT_EXISTS_NOT_OWNED: 'A unit file with this name already exists and was not created by Phone Monitor; it was left untouched.',
+  UNIT_EXISTS_NOT_OWNED: 'A unit file with this name already exists and was not created by LumenDock; it was left untouched.',
   UNIT_MODIFIED: 'The unit file was modified after installation, so it was left untouched (and so was the service state). Restore or remove it yourself, then rerun.',
   UNIT_UNSAFE: 'The unit path is a symlink or not owned by you; refusing to touch it.',
   SERVICE_OWNERSHIP_CONFLICT: 'The recorded service belongs to a different unit directory; pass the same --unit-dir used at install.',
@@ -110,7 +110,7 @@ export async function runUninstallHubCommand(argv: readonly string[], deps: Pick
   if (typeof parsed === 'string') { deps.io.err(`${parsed} Usage: uninstall-hub [--config-dir DIR] [--unit-dir DIR]`); return 2; }
   try {
     const result = await uninstallHubService({ configDir: parsed.values.get('--config-dir') ?? deps.configDir, unitDir: parsed.values.get('--unit-dir') ?? deps.unitDir, systemctl: deps.systemctl });
-    deps.io.out(result.changed ? 'Removed the service unit created by Phone Monitor. Pairing token and other configuration were kept.' : 'No Phone Monitor service installation was recorded; nothing was changed.');
+    deps.io.out(result.changed ? 'Removed the service unit created by LumenDock. Pairing token and other configuration were kept.' : 'No LumenDock service installation was recorded; nothing was changed.');
     for (const warning of result.warnings) deps.io.out(`Warning: ${warning}`);
     return 0;
   } catch (error) { deps.io.err(describeServiceError(error)); return 1; }

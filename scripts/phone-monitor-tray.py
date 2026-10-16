@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Phone Monitor Top Bar Indicator & Tray Application
+LumenDock Top Bar Indicator & Tray Application
 Provides a native GNOME top-bar system tray indicator with status, logs, and a kill switch.
 """
 
@@ -36,7 +36,7 @@ class PhoneMonitorTray:
         )
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
         if os.path.exists(ICON_PATH):
-            self.indicator.set_icon_full(ICON_PATH, "Phone Monitor")
+            self.indicator.set_icon_full(ICON_PATH, "LumenDock")
 
         self.status_text = "Starting..."
         self.detail_text = ""
@@ -62,7 +62,7 @@ class PhoneMonitorTray:
                     old_pid = int(f.read().strip())
                 # Check if old pid is alive
                 os.kill(old_pid, 0)
-                print(f"Phone Monitor tray is already running (PID {old_pid}). Exiting.")
+                print(f"LumenDock tray is already running (PID {old_pid}). Exiting.")
                 sys.exit(0)
         except (ValueError, OSError):
             pass
@@ -71,7 +71,7 @@ class PhoneMonitorTray:
 
     def _build_menu(self):
         # Header / Status Item
-        self.item_status = Gtk.MenuItem(label="● Phone Monitor: Checking...")
+        self.item_status = Gtk.MenuItem(label="● LumenDock: Checking...")
         self.item_status.set_sensitive(False)
         self.menu.append(self.item_status)
 
@@ -95,7 +95,7 @@ class PhoneMonitorTray:
         self.menu.append(Gtk.SeparatorMenuItem())
 
         # Kill / Quit Item
-        self.item_quit_all = Gtk.MenuItem(label="Quit & Stop Phone Monitor")
+        self.item_quit_all = Gtk.MenuItem(label="Quit & Stop LumenDock")
         self.item_quit_all.connect("activate", self._on_quit_all)
         self.menu.append(self.item_quit_all)
 
@@ -123,19 +123,19 @@ class PhoneMonitorTray:
             is_active = (res.returncode == 0)
 
             if is_active:
-                status = "● Phone Monitor: Connected"
+                status = "● LumenDock: Connected"
                 detail = "Hub: 127.0.0.1:8765 | USB Reverse: Active"
             else:
                 if "Active ADB reverse mappings" in output:
-                    status = "● Phone Monitor: Reverse Active (Hub Stopped)"
+                    status = "● LumenDock: Reverse Active (Hub Stopped)"
                     detail = "Hub stopped"
                 else:
-                    status = "○ Phone Monitor: Stopped"
+                    status = "○ LumenDock: Stopped"
                     detail = "Services offline"
 
             GLib.idle_add(self._update_ui_state, status, detail, is_active)
         except Exception:
-            GLib.idle_add(self._update_ui_state, "○ Phone Monitor: Offline", "Cannot reach service", False)
+            GLib.idle_add(self._update_ui_state, "○ LumenDock: Offline", "Cannot reach service", False)
 
     def _update_ui_state(self, status, detail, is_active=True):
         self.item_status.set_label(status)
@@ -157,7 +157,7 @@ class PhoneMonitorTray:
         subprocess.Popen(["xdg-open", CONFIG_DIR])
 
     def _on_quit_all(self, _widget):
-        self.item_status.set_label("⏳ Stopping Phone Monitor...")
+        self.item_status.set_label("⏳ Stopping LumenDock...")
         # Stop background services
         try:
             subprocess.run([SH_SCRIPT, "stop"], capture_output=True, text=True, timeout=10)

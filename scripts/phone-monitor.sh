@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Phone Monitor laptop service controller (manual background execution)
+# LumenDock laptop service controller (manual background execution)
 # Manages both the desktop hub and the ADB reverse supervisor in the background.
 
 # Determine repository root
@@ -86,7 +86,7 @@ do_status() {
     if [ -n "$p" ]; then running_conn=1; conn_pid="$p"; fi
   fi
 
-  echo "Phone Monitor background status:"
+  echo "LumenDock background status:"
   if [ $running_hub -eq 1 ]; then
     echo "  [RUNNING] Desktop Hub (PID: $hub_pid) on 127.0.0.1:8765"
   else
@@ -114,7 +114,7 @@ do_status() {
 
 do_start() {
   if do_status >/dev/null 2>&1; then
-    echo "Phone Monitor is already running."
+    echo "LumenDock is already running."
     do_status
     return 0
   fi
@@ -141,7 +141,7 @@ do_start() {
 
   local masked
   masked="$(mask_serial "$target_serial")"
-  echo "Starting Phone Monitor for device $masked..."
+  echo "Starting LumenDock for device $masked..."
 
   # Start hub detached from controlling terminal
   setsid node desktop/dist/main.js </dev/null >> "$HUB_LOG" 2>&1 &
@@ -156,12 +156,12 @@ do_start() {
   sleep 1.5
 
   if kill -0 "$hub_pid" 2>/dev/null && kill -0 "$conn_pid" 2>/dev/null; then
-    echo "Phone Monitor started successfully in background."
+    echo "LumenDock started successfully in background."
     echo "  Hub PID: $hub_pid (logs: $HUB_LOG)"
     echo "  ADB Connect PID: $conn_pid (logs: $CONNECT_LOG)"
     echo "Run '$0 status' to check state, '$0 logs' to view logs, or '$0 stop' to terminate."
   else
-    echo "Error: Failed to start Phone Monitor processes. Check logs:" >&2
+    echo "Error: Failed to start LumenDock processes. Check logs:" >&2
     tail -n 20 "$HUB_LOG" >&2
     tail -n 20 "$CONNECT_LOG" >&2
     do_stop >/dev/null 2>&1 || true
@@ -178,17 +178,20 @@ do_stop() {
     rm -f "$PID_FILE"
   fi
 
+  # Only ever signal real node processes: a shell whose command line merely
+  # mentions these paths (or a recycled PID from a stale PID file) is left alone.
+  is_node() { [ "$(basename "$(readlink "/proc/$1/exe" 2>/dev/null)")" = "node" ]; }
   local pids=()
-  [ -n "$hub_pid" ] && pids+=("$hub_pid")
-  [ -n "$conn_pid" ] && pids+=("$conn_pid")
+  [ -n "$hub_pid" ] && is_node "$hub_pid" && pids+=("$hub_pid")
+  [ -n "$conn_pid" ] && is_node "$conn_pid" && pids+=("$conn_pid")
 
   # Also discover any lingering processes by commandline pattern
   while IFS= read -r p; do
-    [ -n "$p" ] && pids+=("$p")
+    [ -n "$p" ] && is_node "$p" && pids+=("$p")
   done < <(pgrep -f "node.*desktop/dist/main.js|node.*scripts/connect.mjs" 2>/dev/null || true)
 
   if [ ${#pids[@]} -eq 0 ]; then
-    echo "Phone Monitor is not running."
+    echo "LumenDock is not running."
     return 0
   fi
 
@@ -202,7 +205,7 @@ do_stop() {
     fi
   done
 
-  echo "Stopping Phone Monitor (PIDs: ${unique_pids[*]})..."
+  echo "Stopping LumenDock (PIDs: ${unique_pids[*]})..."
   for p in "${unique_pids[@]}"; do
     kill -15 "$p" 2>/dev/null || true
   done
@@ -231,12 +234,12 @@ do_stop() {
     fi
   done
 
-  echo "Phone Monitor stopped."
+  echo "LumenDock stopped."
 }
 
 do_logs() {
   touch "$HUB_LOG" "$CONNECT_LOG"
-  echo "Streaming Phone Monitor logs (Ctrl-C to exit)..."
+  echo "Streaming LumenDock logs (Ctrl-C to exit)..."
   tail -n 30 -f "$HUB_LOG" "$CONNECT_LOG"
 }
 

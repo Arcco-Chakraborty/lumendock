@@ -32,7 +32,7 @@ function treeEntries(root, directory) {
 export function installInstructions(name, version, nodeVersion) {
   const top = `${name}-${version}`;
   return [
-    `Phone Monitor desktop package ${version}`,
+    `LumenDock desktop package ${version}`,
     '',
     'Clean install (exact lockfile versions, production dependencies only):',
     `  1. Use Node ${nodeVersion} (user-owned toolchain; this package does not ship a Node binary).`,
@@ -78,7 +78,7 @@ export function packageProject({ root, out = join(root, 'artifacts'), log = () =
   // The Android build output, if present. Absence is allowed while Android tasks are open.
   const apks = [];
   const apkProblems = [];
-  const apkNames = existsSync(out) ? readdirSync(out).filter(file => /^phone-monitor-.*\.apk$/.test(file)).sort() : [];
+  const apkNames = existsSync(out) ? readdirSync(out).filter(file => /^(phone-monitor|lumendock)-.*\.apk$/.test(file)).sort() : [];
   for (const file of apkNames) {
     if (/diagnostic/i.test(file)) { apkProblems.push(`Diagnostic APK must not be packaged: ${file}`); continue; }
     const stat = lstatSync(join(out, file));
@@ -96,7 +96,7 @@ export function packageProject({ root, out = join(root, 'artifacts'), log = () =
     frontend: { jsCssBytes: frontend.jsCssBytes, budgetBytes: frontend.budgetBytes, files: frontend.files },
     apk: apks.length
       ? { present: true, budgetBytes: APK_BUDGET_BYTES, files: apks }
-      : { present: false, budgetBytes: APK_BUDGET_BYTES, note: 'No artifacts/phone-monitor-*.apk found; Android build is not part of this package.' }
+      : { present: false, budgetBytes: APK_BUDGET_BYTES, note: 'No artifacts/lumendock-*.apk or phone-monitor-*.apk found; Android build is not part of this package.' }
   };
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
   const sums = [
