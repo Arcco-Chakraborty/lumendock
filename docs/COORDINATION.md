@@ -1,6 +1,6 @@
 # Shared build coordination
 
-Canonical worktree: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. The original project mirrors this file. Re-read before editing and append acknowledgments/messages; do not erase previous entries. Claims are exclusive; commits use explicit owned paths and are serialized. No source work starts under another active claim.
+Canonical worktree: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`. The original project mirrors this file. Re-read before editing and append acknowledgments/messages; do not erase previous entries. Claims are exclusive; commits use explicit owned paths and are serialized. No source work starts under another active claim.
 
 ## Current ownership
 

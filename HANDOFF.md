@@ -1,19 +1,19 @@
 # LumenDock live handoff
 
-Current revision, 2026-10-15 (Claude Code, Opus 5.5, acting as sole coordinator at the user's instruction: "its just you, do it all please commit push, put it on the phone too").
+Current revision, 2026-10-16 (Claude Code, Opus 5.5, sole coordinator at the user's instruction): **v1.0.0 released.** Repo made public (MIT) at the user's request; GitHub release v1.0.0 carries the signed APK, desktop tarball, manifest and SHA256SUMS.
 
-Latest: Deck gained Now playing, System keys (mic/DND/lock/capture) and phone-side Lamp signals (see PROGRESS tail; protocol has optional `host`, rebuild protocol dist before running the hub). Before that: control bar overlays content like an auto-hide taskbar (28px edge strip opener); near-black + electric cyan palette and aligned room panel (supersedes sage); hours/days durations, compact usage and larger alerts (see PROGRESS tail). Earlier: user disliked the Astra/Antigravity UI (function fine) and asked for a full UI redesign plus swapping the Deck's Spotify key for a terminal. User chose the "desk appliance" direction: warm charcoal housing (#2a2823), one recessed display well for quotas/alerts, big condensed Archivo clock (font bundled, OFL), light pressable Deck keys, signal orange only on play/pause and quotas >= 90%. Details/tokens: docs/reports/R-CLAUDE-desk-appliance.md.
+## State
+- App renamed LumenDock (user-visible strings; package id `com.phonemonitor` and `~/.config/phone-monitor` kept for compatibility; generated systemd unit text intentionally unchanged because uninstall compares it byte-for-byte).
+- Features in 1.0.0: see CHANGELOG.md (Monitor, Deck with now playing + system keys, lamp signals, overlay control bar, near-black/cyan design).
+- Release signing: keystore + properties OUTSIDE the repo at `~/.local/share/phone-monitor/signing/` (0700/0600). `node scripts/build.mjs --release` signs and verifies. Certificate SHA-256 `595f8aa4be43bad2cbe532ac06a9e811d0b1f8eb81f4d8d68b76a11c67f63933`. Losing the keystore means no in-place updates.
+- Verified 2026-10-16: typecheck clean; protocol 16, desktop 224 (server route now uses a mocked executeAction), dashboard 126, Playwright 50, Android 115 + lint debug/release; package OK. Details in docs/TESTING.md.
+- History privacy scan before going public: no tokens/keys/passwords/serial/attribution trailers; only file checksums matched 64-hex; home paths shortened to `~` in current docs.
+- Phone: debug build replaced by the signed release (requires re-pair + lamp Wi-Fi reconnect by the user).
 
-Done and committed/pushed to private origin main (see git log; no attribution):
-- Dashboard restyle (styles.css rewrite, class names and ARIA kept), status lamps, Terminal key, Lamp section label.
-- desktop/src/actions.ts: `open_spotify` replaced by `open_terminal` (detached spawn: ptyxis, gnome-terminal, kgx, x-terminal-emulator). Fixed bug: dashboard sent `volume_mute`, desktop only handled `media_mute`, so Mute never worked; dashboard now sends `media_mute`.
-- Android MainActivity window/WebView background aligned to #2a2823.
-- Earlier uncommitted Astra/Antigravity UI work and docs/reports/reviews were committed with it (user asked to commit everything).
+## Next / open
+- Formal device-acceptance rows remain UNRUN (informal observations recorded in docs/DEVICE_ACCEPTANCE.md).
+- Lamp pulse appearance on the real strip not yet observed.
+- AGENTS.md asks for an independent Astra-high final review; not available to Claude.
 
-Verified: dashboard typecheck, vitest 116/116, Playwright 46/46 (800x360, 740x320, 360x800, 130% text); desktop tsc + vitest 195/195 excluding desktop/test/server.test.ts (it fires the REAL media_mute action on the host; should be mocked before anyone runs it); Android unit tests + lint + assembleDebug via scripts/build.mjs (Node 24.22.0 toolchain). APK installed on the Redmi 9A (XGV8****) and app relaunched; live screenshot dashboard/evidence/astra-redesign/phone-live-desk-appliance.png shows new UI on real data. Hub rebuilt and restarted with ./scripts/phone-monitor.sh restart (single hub + connect process).
-
-Not verified: Terminal key pressed live on the phone (action unit-tested with fake spawner only); ESP32/lamp physical acceptance; final independent review (AGENTS.md asks for Astra-high; not available to Claude).
-
-Canonical execution root: /home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor (detached HEAD; push with `git push origin HEAD:main`). Original project dir is a checkpoint/launcher mirror. Node 24/JDK 17/SDK 36 are user-local in ~/.local/share/phone-monitor/toolchains; defaults unchanged. User Git identity only; no attribution.
-
-Next: user tries the new UI and Terminal key; optional follow-ups: mock executeAction in desktop/test/server.test.ts, align "History" button in the no-reading room state, final independent review.
+## How to resume
+Canonical root: ~/.codex/worktrees/phone-monitor-build/Phone_monitor (detached HEAD; push with `git push origin HEAD:main`). Toolchain: Node 24.22.0, JDK 17, SDK 36 under ~/.local/share/phone-monitor/toolchains. Rebuild protocol dist before running the hub after schema changes. Run the background service with ./phone-monitor.sh start|stop|status|logs. User Git identity only; no attribution.

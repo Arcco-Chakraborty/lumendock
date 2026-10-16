@@ -1,7 +1,7 @@
 # A2 — USB hub client and reconnection
 
 Status: software implementation complete, ready for independent review. **No commit made** (coordinator commits). **No device run**: every hardware row in `docs/DEVICE_ACCEPTANCE.md` is UNRUN. Software verified is not device accepted.
-Root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Edited only `android/**`, `docs/DEVICE_ACCEPTANCE.md` (new) and this report. No git writes, no new dependencies, no system tool changes, no provider/auth files read.
+Root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`. Edited only `android/**`, `docs/DEVICE_ACCEPTANCE.md` (new) and this report. No git writes, no new dependencies, no system tool changes, no provider/auth files read.
 
 ## Files
 - New main: `LaptopClient.kt` (clock seam, fixed `HubPath`, `HubRequest`/transport, `LoopbackHubTransport`, `LinkSnapshot`, `PairResult`, `LaptopClient`), `PairingStore.kt` (`PairingStore`, `PrivatePairingStore`), `HubPairing.kt` (`HubPairingFlow`, `PairingOutcome`), `OrientationPolicy.kt`.

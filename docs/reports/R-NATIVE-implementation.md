@@ -1,6 +1,6 @@
 # R-NATIVE implementation report — READY
 
-Date: 2026-10-15. Canonical execution root `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive product edits under `android/**`; no staging, commits, pushes, subagents, phone installs/actions, global settings changes, or other owners' edits. Coordinator owns checkpoint and acceptance. Final palette instruction applied: window/root/WebView background **#191a18**.
+Date: 2026-10-15. Canonical execution root `~/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive product edits under `android/**`; no staging, commits, pushes, subagents, phone installs/actions, global settings changes, or other owners' edits. Coordinator owns checkpoint and acceptance. Final palette instruction applied: window/root/WebView background **#191a18**.
 
 ## Change
 
@@ -17,10 +17,10 @@ Test-first red: added `DashboardWindowPolicyTest` and changed manifest rotation 
 Final command (user-local JDK17/SDK36/Gradle9.6 selected explicitly; system defaults unchanged):
 
 ```sh
-JAVA_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/jdk17 \
-ANDROID_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/android-sdk \
-ANDROID_SDK_ROOT=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/android-sdk \
-PATH=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/jdk17/bin:/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/gradle-9.6.0/bin:$PATH \
+JAVA_HOME=~/.local/share/phone-monitor/toolchains/jdk17 \
+ANDROID_HOME=~/.local/share/phone-monitor/toolchains/android-sdk \
+ANDROID_SDK_ROOT=~/.local/share/phone-monitor/toolchains/android-sdk \
+PATH=~/.local/share/phone-monitor/toolchains/jdk17/bin:~/.local/share/phone-monitor/toolchains/gradle-9.6.0/bin:$PATH \
 ./android/gradlew -p android --offline :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 

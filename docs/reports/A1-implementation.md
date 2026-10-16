@@ -2,7 +2,7 @@
 
 Status: implementation ready for independent Astra/high review; no commit made. Physical/device acceptance is unrun. A2/A3 transport and real native credential/permission flows remain separate planned work.
 
-Execution root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor` (managed detached HEAD). Worker edited only `android/**`, `scripts/build.mjs`, and this scoped report. Coordinator owns HANDOFF/STATUS/PROGRESS and commits. No firmware, default system tools, provider auth/private captures, accounts, device permissions, or external publishing were touched.
+Execution root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor` (managed detached HEAD). Worker edited only `android/**`, `scripts/build.mjs`, and this scoped report. Coordinator owns HANDOFF/STATUS/PROGRESS and commits. No firmware, default system tools, provider auth/private captures, accounts, device permissions, or external publishing were touched.
 
 ## What is implemented
 
@@ -28,8 +28,8 @@ Current `UnavailableBridgeServices` deliberately returns disconnected/no-data st
 User-local tool selection for every Gradle command:
 
 ```sh
-JAVA_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/jdk17 \
-ANDROID_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/android-sdk \
+JAVA_HOME=~/.local/share/phone-monitor/toolchains/jdk17 \
+ANDROID_HOME=~/.local/share/phone-monitor/toolchains/android-sdk \
 ./android/gradlew -p android ...
 ```
 
@@ -96,16 +96,16 @@ Changes are confined to three Android files:
 Actual red/green commands used the user-local toolchain; no system/default tools were changed:
 
 ```sh
-JAVA_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/jdk17 \
-ANDROID_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/android-sdk \
+JAVA_HOME=~/.local/share/phone-monitor/toolchains/jdk17 \
+ANDROID_HOME=~/.local/share/phone-monitor/toolchains/android-sdk \
 ./android/gradlew -p android :app:testDebugUnitTest --tests com.phonemonitor.LifecycleReplyDeliveryTest
 ```
 
 RED before the production fix: exit 1; four delivery tests ran, one failed. `staleDeliveryCannotRemoveNewSameIdCancellationRegistration` failed at the assertion that the new pending registration remained after draining the old reply (expected 1; actual 0). Log: `/tmp/phone-monitor-a1-fix2-red.log`.
 
 ```sh
-JAVA_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/jdk17 \
-ANDROID_HOME=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/android-sdk \
+JAVA_HOME=~/.local/share/phone-monitor/toolchains/jdk17 \
+ANDROID_HOME=~/.local/share/phone-monitor/toolchains/android-sdk \
 ./android/gradlew -p android -PdiagnosticUi=true :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 

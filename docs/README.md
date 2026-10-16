@@ -1,16 +1,18 @@
-# Phone Monitor planning bundle
+# LumenDock documentation
 
-Date: 2026-10-14. These are proposed requirements and build instructions. Product implementation and device acceptance have not started.
+## Using LumenDock
 
-Read in this order:
+- [Quickstart](QUICKSTART.md): from cable to running dashboard.
+- [Setup](SETUP.md): every step in detail, including Codex and Claude usage, notifications, the optional login service, Deck system keys, lamp signals, release builds and uninstall.
+- [Testing](TESTING.md): how to run every suite, what each one covers, and the v1.0.0 results.
+- [Device acceptance](DEVICE_ACCEPTANCE.md): the hardware checklist and what has been observed on a real Redmi 9A.
+- [Changelog](../CHANGELOG.md).
 
-0. [Live handoff](../HANDOFF.md), [agent rules](../AGENTS.md), [machine-readable status](STATUS.json), and [progress ledger](PROGRESS.md): current checkpoint for any AI tool.
-1. [Product requirements](PRD.md): intended dashboard, scope, privacy, compatibility, and acceptance criteria.
-2. [System design](superpowers/specs/2026-10-14-phone-monitor-design.md): component boundaries, shared protocol, routing, lifecycle, and recovery.
-3. [Main implementation plan](superpowers/plans/2026-10-14-phone-monitor.md): ordered milestones, agent routing, review gates, and final release conditions.
-4. Component task plans: [desktop hub](superpowers/plans/2026-10-14-desktop-hub.md), [Android companion](superpowers/plans/2026-10-14-android-companion.md), [dashboard](superpowers/plans/2026-10-14-dashboard.md).
-5. [Planning review](reviews/2026-10-14-planning-review.md): independent findings and their resolution before execution.
+## Project records
 
-Execution uses subagents selected by difficulty, with Astra at high reasoning effort checking the requirements/plan and the finished project. An APK build and mock tests alone do not satisfy the real Redmi/ESP32 acceptance gate.
+LumenDock was planned and built with several AI coding agents working in parallel. These files are the working records of that process. They are kept for history, but they are not needed to use or build the project.
 
-The coordinating agent maintains the handoff/status/ledger at each task and review boundary; these are working project records, not a one-time chat summary. Workers use scoped reports and one coordinating checkpoint writer. No watcher or recurring automation is required to read/resume this repository.
+- [Product requirements](PRD.md), [redesign brief](REDESIGN.md) and [redesign acceptance](REDESIGN_ACCEPTANCE.md).
+- [System design](superpowers/specs/2026-10-14-phone-monitor-design.md) and [implementation plans](superpowers/plans/).
+- [Agent rules](../AGENTS.md), [live handoff](../HANDOFF.md), [status index](STATUS.json), [progress ledger](PROGRESS.md) and [coordination log](COORDINATION.md).
+- Task [reports](reports/) and [reviews](reviews/).

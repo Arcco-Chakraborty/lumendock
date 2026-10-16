@@ -1,6 +1,6 @@
-# Phone Monitor setup
+# LumenDock setup
 
-Status legend used throughout: **VERIFIED (software)** means an automated test or a read-only command passed on the laptop. **UNVERIFIED / UNRUN** means no real phone, ESP32 or live capture has exercised it yet. Software-verified is not device-accepted: the Redmi/ESP32 acceptance matrix in [the PRD](PRD.md) is still open (see [TESTING.md](TESTING.md)).
+Status legend used throughout: **VERIFIED (software)** means an automated test or a read-only command passed on the laptop. **UNVERIFIED / UNRUN** marks the formal device-acceptance rows in [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md) that nobody has recorded yet. Since those notes were written, pairing, the USB link and lamp Wi-Fi working at the same time, live Claude/Codex usage, live notifications and room readings have all been seen working on the developer's Redmi 9A (see "Observed in daily use" in that file). The formal rows are still the place to record a full pass.
 
 All commands run from the repository root with the project Node 24 toolchain first on `PATH` (the system Node 20 / Java 8 defaults are never changed):
 
@@ -9,7 +9,8 @@ export TC=$HOME/.local/share/phone-monitor/toolchains
 export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH
 npm ci                    # first time on a fresh clone
 npm run build             # protocol + desktop hub + dashboard
-JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk node scripts/build.mjs   # Android tests/lint + APK -> artifacts/phone-monitor-debug.apk
+JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk node scripts/build.mjs   # Android tests/lint + debug APK -> artifacts/phone-monitor-debug.apk
+# or: ... node scripts/build.mjs --release   # signed release -> artifacts/lumendock-<version>.apk (see "Release builds" below)
 npm run doctor            # add -- --json for machine output
 ```
 
@@ -28,7 +29,7 @@ VERIFIED (software): doctor against fake runners and a read-only smoke run with 
 Install the APK once the phone is authorized (see §3 for USB debugging). On a Xiaomi/Redmi phone also enable **Developer options → Install via USB** (it may ask you to sign in to a Mi account once); without it `adb install` fails with `INSTALL_FAILED_USER_RESTRICTED`:
 
 ```sh
-adb -s SERIAL install -r artifacts/phone-monitor-debug.apk
+adb -s SERIAL install -r artifacts/lumendock-1.0.0.apk   # or the debug APK you built
 ```
 
 With `npm run connect -- --serial SERIAL` running in another terminal, start the hub in pairing mode. It binds only `127.0.0.1:8765`, and pairing is closed unless you ask for it:
@@ -37,7 +38,7 @@ With `npm run connect -- --serial SERIAL` running in another terminal, start the
 npm run start --workspace @phone-monitor/desktop -- --pair
 ```
 
-The terminal prints an eight-digit code valid for 120 seconds, five wrong attempts, one use. **Type the code on the phone:** open Phone Monitor; an unpaired phone shows a **Pair laptop** card on the main screen (also under the settings icon → **Pair laptop**). Enter it in the native **Pair with laptop** dialog only (not on a web page, never as a command-line argument). The token is stored privately on both sides (`~/.config/phone-monitor/phone-token`, mode 0600, directory 0700). Restart the hub without `--pair` afterwards: pairing then stays closed.
+The terminal prints an eight-digit code valid for 120 seconds, five wrong attempts, one use. **Type the code on the phone:** open LumenDock; an unpaired phone shows a **Pair laptop** card on the main screen (also under the settings icon → **Pair laptop**). Enter it in the native **Pair with laptop** dialog only (not on a web page, never as a command-line argument). The token is stored privately on both sides (`~/.config/phone-monitor/phone-token`, mode 0600, directory 0700). Restart the hub without `--pair` afterwards: pairing then stays closed.
 
 UNVERIFIED: the phone-side pairing screen on a real device.
 
@@ -156,3 +157,43 @@ If you deny the permission, decline the prompt, or enter a wrong password, setup
 **Stop using it.** Uninstalling the app, or clearing its storage, removes the stored controller settings. In manual mode, also forget the network in Android settings. The controller firmware and its access point are never modified by this product.
 
 SOFTWARE-VERIFIED (JVM fakes): network selection and loss handling, the permission policy for API 29–33, no automatic re-prompting, strict controller parsing, and light-command ordering. UNRUN on hardware: every row A3-D1…A3-D14 in [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md), including simultaneous USB + Wi-Fi on the Redmi.
+
+## 10. Deck media and system keys (laptop requirements)
+
+The Deck's now-playing panel and system keys read and change laptop state through fixed commands. The phone never sends a command line, and each tool is optional: if one is missing, only its own key or field stops working.
+
+| Feature | Laptop tool | Command (fixed, no shell) |
+|---|---|---|
+| Now playing | `busctl` (systemd) and any MPRIS player (browsers, Spotify, mpv, ...) | reads `PlaybackStatus` and `Metadata` from `org.mpris.MediaPlayer2.*`; only the title, artist and player name are sent to the phone |
+| Volume, mute, microphone | `wpctl` (PipeWire) | `wpctl get-volume` / `set-mute @DEFAULT_AUDIO_SOURCE@ toggle` |
+| Do Not Disturb | `gsettings` (GNOME) | flips `org.gnome.desktop.notifications show-banners` |
+| Lock | `loginctl` | `loginctl lock-session` |
+| Screenshot | xdg-desktop-portal | opens the interactive GNOME screenshot tool; GNOME does not let other apps capture silently |
+| Terminal | `ptyxis`, `gnome-terminal`, `kgx` or `x-terminal-emulator` | the first one found is started detached |
+
+The hub polls this state every 2 seconds, and immediately after any Deck key, so status lights follow quickly. VERIFIED (software): fake-runner tests in `desktop/test/host.test.ts` and `desktop/test/actions.test.ts`, plus a read-only live read on the development laptop.
+
+## 11. Lamp signals (phone)
+
+Lamp signals run entirely on the phone, which is the only device that talks to the lamp controller. When a new Claude/Codex alert arrives, a new WhatsApp alert arrives, or a usage window that was at 100% drops back, the app sets the lamp to a 4-second Breathe pulse (cyan, green or white). It then restores the previous colour, mode, brightness, speed and power, unless you changed the lamp in the meantime. Signals are at least 15 seconds apart. Alerts already on screen when the app opens never signal.
+
+Settings → **Lamp signals** has one switch per signal, quiet hours (11 PM to 8 AM, on by default) and **Try a signal**. The choices are stored on the phone only.
+
+## 12. Release builds
+
+`node scripts/build.mjs --release` builds, tests, lints and signs the APK, verifies it with `apksigner`, and copies it to `artifacts/lumendock-<version>.apk`. It deletes any `artifacts/phone-monitor-debug.apk` so a release package never ships a debug build.
+
+Signing reads a private properties file that never enters the repository:
+
+```
+storeFile=/absolute/path/to/your-release.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+Point `LUMENDOCK_SIGNING` at it (default `~/.local/share/phone-monitor/signing/release.properties`). Keep the keystore backed up: Android only accepts updates signed with the same key, so losing it means users must uninstall (and pair again) to move to a new key. To create your own:
+
+```sh
+keytool -genkeypair -keystore my-release.jks -storetype PKCS12 -alias lumendock -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=LumenDock"
+```

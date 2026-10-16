@@ -6,6 +6,19 @@ Record only sanitized evidence: no phone serial, pairing code, token, Wi-Fi pass
 
 Status values: `UNRUN` · `PASS` · `FAIL` (with a linked finding) · `BLOCKED` (with the missing prerequisite).
 
+## Observed in daily use (2026-10-15 to 2026-10-16)
+
+Informal observations from the developer's Redmi 9A during the UI work, taken from on-device screenshots in `dashboard/evidence/astra-redesign/phone-live-*.png`. They are not formal row passes (no APK hash or MIUI build was recorded per row), but they show the following working on real hardware:
+
+- The app paired with the laptop hub over USB and stayed connected across hub restarts and app reinstalls.
+- **Laptop connected** and **Controller connected** at the same time: the USB hub link and the lamp controller's Wi-Fi coexist (A02 in practice).
+- Live Claude (5-hour window) and Codex usage, including a Codex window at 100% shown with the red near-limit bar, and reset countdowns.
+- Live selected notifications from Claude Code shown in Recent alerts.
+- Live room temperature and humidity from the controller's sensor.
+- Laptop now-playing, volume, microphone and Do Not Disturb state read correctly by the hub (read-only check on the laptop).
+
+Still not observed: lamp pulse appearance on the LED strip, physical unplug/replug recovery timing, the optional login service across a reboot, and the formal soak rows.
+
 ## PRD acceptance matrix A01-A17 (status as of 2026-10-15)
 
 Two columns on purpose: **Software** = automated/browser/JVM evidence run by Claude Code (Node 24.22.0, JDK 17, Chrome 155 headless); **Device** = Redmi 9A / ESP32 / real desktop, all of which are `UNRUN` because no phone or controller was attached. No row is "complete" on software evidence alone.

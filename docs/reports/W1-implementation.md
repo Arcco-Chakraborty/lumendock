@@ -1,6 +1,6 @@
 # W1 — Dashboard shell and device adapter
 
-Date: 2026-10-15. Status: implementation ready for independent Sol-high review; uncommitted pending coordinator serialization. Execution root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`, managed detached HEAD. Shared baseline advanced to `26c4e541f52050b64216b6c23c524b8c5e26b3a9` during parallel work; W1 changed only `dashboard/**`, root `package-lock.json`, and this scoped report. Root `package.json` needed no edit because existing scripts aggregate workspaces. No staging, commits, branch changes, firmware changes, captures, permission grants, publishing, or account access.
+Date: 2026-10-15. Status: implementation ready for independent Sol-high review; uncommitted pending coordinator serialization. Execution root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`, managed detached HEAD. Shared baseline advanced to `26c4e541f52050b64216b6c23c524b8c5e26b3a9` during parallel work; W1 changed only `dashboard/**`, root `package-lock.json`, and this scoped report. Root `package.json` needed no edit because existing scripts aggregate workspaces. No staging, commits, branch changes, firmware changes, captures, permission grants, publishing, or account access.
 
 ## Delivered scope
 
@@ -35,7 +35,7 @@ The design token plan followed the approved brief: background `#111719`, surface
 
 ## Test-first and verification evidence
 
-All npm commands below used `PATH=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin:$PATH`; no system/default tool change.
+All npm commands below used `PATH=~/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin:$PATH`; no system/default tool change.
 
 1. RED: direct user-local Node invocation of `node_modules/vitest/vitest.mjs run --root dashboard device.test.ts store.test.ts` failed with two missing implementation imports, as the brief explicitly expected before implementation.
 2. GREEN: adapter/store implementation passed 14 tests.

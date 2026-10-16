@@ -1,6 +1,6 @@
 # D1 implementation and checkpoint report
 
-Execution root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`.
+Execution root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`.
 Starting HEAD: `2a8ba20572dabb36d26cc9206e26cc907bf67f08` (managed detached HEAD).
 Product baseline: `6501f489651816ab77dc6d45f3e20f0e8af2f0cd`.
 Status: implementation/checks complete, checkpoint requested by coordinator; fresh independent D1 review still required. This is software evidence only; no device acceptance or finished-project claim.
@@ -18,7 +18,7 @@ Status: implementation/checks complete, checkpoint requested by coordinator; fre
 
 ## Toolchain and dependency evidence
 
-Actual selected runtime: `/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin/node` → `v24.22.0`.
+Actual selected runtime: `~/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin/node` → `v24.22.0`.
 
 - `curl -I -s https://nodejs.org/dist/v24.22.0/SHASUMS256.txt`: HTTP200.
 - Downloaded official `node-v24.22.0-linux-x64.tar.xz` and compared `sha256sum` to the official SHA256 list: both `cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008`.
@@ -40,7 +40,7 @@ Actual selected runtime: `/home/arcco-chakraborty/.local/share/phone-monitor/too
 
 ## Commands and final results
 
-All npm commands use `PATH=/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin:$PATH` from the execution root.
+All npm commands use `PATH=~/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin:$PATH` from the execution root.
 
 - `npm install --save-exact --workspace @phone-monitor/protocol zod@4`: pass, exact pin/lock.
 - `npm install --save-exact --workspace @phone-monitor/desktop fastify@5`: pass, exact pin/lock.

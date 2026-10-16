@@ -1,6 +1,6 @@
 # R-UI implementation report — READY
 
-Date: 2026-10-15. Canonical execution root `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive product edits under `dashboard/**`; no backend/native/launcher edits or dependency lockfile changes.
+Date: 2026-10-15. Canonical execution root `~/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive product edits under `dashboard/**`; no backend/native/launcher edits or dependency lockfile changes.
 
 ## Changes
 

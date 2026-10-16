@@ -1,6 +1,19 @@
-# Phone Monitor testing
+# LumenDock testing
 
 Two completion levels exist and must never be conflated: **software verified** (automated tests, typecheck, build, read-only smoke runs pass) and **device accepted** (the real Redmi 9A and ESP32 pass the matrix in [the PRD](PRD.md)). Everything under "Automated" can be re-run by anyone; everything under "Physical" is **UNRUN** until someone records a result below. A mock or fake-runner pass is not evidence of USB routing, MIUI lifecycle behaviour or light output.
+
+## Run everything
+
+```sh
+export TC=$HOME/.local/share/phone-monitor/toolchains
+export PATH=$TC/node-v24.22.0-linux-x64/bin:$PATH
+npm run typecheck
+npm test                                   # protocol, desktop hub, dashboard (unit)
+npm run test:e2e                           # production dashboard in headless Chrome
+JAVA_HOME=$TC/jdk17 ANDROID_HOME=$TC/android-sdk node scripts/build.mjs   # Android unit tests, lint, debug APK
+```
+
+Results for v1.0.0 are listed under "v1.0.0 results" below. Every suite uses fakes and synthetic fixtures. No test pairs a device, runs a real Deck action (the hub's action route is tested with a mocked `executeAction`), reads real notifications or calls a model.
 
 ## Automated (software)
 
@@ -67,3 +80,18 @@ Commands (Node 24 toolchain first on `PATH`):
 Software-verified: e2e suite (layout at 800x360 and 740x320 including bounding boxes and 44 px tap targets, control/text overlap, 360x800 portrait, 130% text emulation, reduced motion, keyboard order and focus restoration, offline shell, independent USB/ESP loss, plain-text notifications, usage above 100% and odd Codex bucket durations, one `esp.set` in flight via the bridge log); packaging unit tests in `dashboard/test/packaging.test.mjs`; one real `npm run package` plus `npm ci --omit=dev` from the extracted tarball.
 
 UNRUN: real Redmi WebView (text zoom is emulated by scaling CSS font sizes, not Android `textZoom`), the physical APK and its 20 MiB/3 s startup measurements, anything involving the bridge implementation on Android, and the sixty-minute/two-hour soaks. Android asset wiring to `dashboard/dist` belongs to the Android tasks.
+
+## v1.0.0 results (2026-10-16)
+
+Run from the repository root with Node 24.22.0, JDK 17 and Android SDK 36, against commit-ready sources:
+
+| Suite | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| Protocol unit tests | 16 passed |
+| Desktop hub unit tests (including the server route with a mocked action runner) | 224 passed |
+| Dashboard unit tests | 126 passed |
+| Playwright e2e (800x360, 740x320, 360x800, 130% text, lamp signals, Deck actions) | 50 passed |
+| Android JVM unit tests + `lintDebug` + `lintRelease` | 115 passed, lint clean |
+| `node scripts/build.mjs --release` | signed APK verified by `apksigner` (v2 scheme, certificate SHA-256 `595f8aa4…f63933`) |
+| `npm run package` | desktop tarball 1.0.0, manifest and `SHA256SUMS`; JS+CSS 363,306 of 768,000 bytes; APK 3,638,484 bytes of the 20 MiB budget |

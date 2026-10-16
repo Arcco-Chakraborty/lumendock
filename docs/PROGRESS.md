@@ -43,7 +43,7 @@ Implementation tasks D1–D3, A1–A3, W1–W3 are all planned, not started. Pla
 
 ## 2026-10-14 — Execution workspace ready
 
-- Reviewed baseline committed as 6501f48 using existing user identity. Native managed worktree created at /home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor; detached HEAD is managed by the app. Baseline has documents only, so no product test suite existed to run.
+- Reviewed baseline committed as 6501f48 using existing user identity. Native managed worktree created at ~/.codex/worktrees/phone-monitor-build/Phone_monitor; detached HEAD is managed by the app. Baseline has documents only, so no product test suite existed to run.
 - D1 brief extracted; D1 active. User explicitly chose software-first build; physical acceptance remains deferred/unrun.
 - Canonical checkpoint mirrored to original project folder for other AI tools; all implementation/reporting occurs in the execution root.
 
@@ -244,3 +244,5 @@ D1 implementation reported 35 passing tests/typecheck/build and clean all-depend
 - Evidence: protocol 16/16, desktop 207/207 (server.test.ts skipped: real media_mute), dashboard 126/126 unit + 50/50 Playwright, Android unit tests/lint/assemble OK, live read-only host read OK (Chrome playing, volume, mic, DND fields populated), hub restarted, APK installed, phone shows Laptop connected with host field.
 - Not verified physically: lamp pulse look on the real LED strip (Breathe mode, speed 85), Deck screen on phone (MIUI blocks adb taps), screenshot portal UI.
 - Found: scripts/phone-monitor.sh stop matches any process whose command line contains the project name (it killed the calling shell); not changed.
+
+2026-10-16 — v1.0.0 release (Claude Code, sole coordinator). User decisions: replace phone debug build with signed release, rename to LumenDock, make repo public under MIT. Done: rename, phone-monitor.sh stop now only signals real node processes (verified against decoy shells; Node 24 reports comm "MainThread", so /proc/PID/exe is used), server.test mocks executeAction, versions 1.0.0 (Android versionCode 100), release signing outside repo, build.mjs --release with apksigner verification, packaging accepts lumendock-*.apk, README/QUICKSTART/SETUP/TESTING/DEVICE_ACCEPTANCE/docs index rewritten, CHANGELOG, LICENSE. Verification: typecheck clean, protocol 16, desktop 224, dashboard 126, e2e 50, Android 115 + lint, release APK sha256 f7cca9444c33f2530f8f3d4613a92ac87597085783e65f45fc6f92529fa999e2. History scan clean.

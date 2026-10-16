@@ -1,7 +1,7 @@
 # A3 — Explicit Wi-Fi ESP32 access and controls
 
 Status: software implementation complete, ready for independent Astra-high review. **No commit** (coordinator commits). **No device run.** Every A3 row in `docs/DEVICE_ACCEPTANCE.md` is UNRUN. Software verified is not device accepted.
-Root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Edited only `android/**`, `docs/DEVICE_ACCEPTANCE.md` (A3 section filled; A2 rows untouched), `docs/SETUP.md` (appended §9) and this report. No git writes, no dashboard/desktop/packages/scripts edits, no npm install, no firmware access beyond reading the sketch, no provider/auth files.
+Root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`. Edited only `android/**`, `docs/DEVICE_ACCEPTANCE.md` (A3 section filled; A2 rows untouched), `docs/SETUP.md` (appended §9) and this report. No git writes, no dashboard/desktop/packages/scripts edits, no npm install, no firmware access beyond reading the sketch, no provider/auth files.
 
 ## Files
 - New: `WifiSession.kt` (`WifiCredentials` with redacted toString, `WifiStore`/`PrivateWifiStore`, `WifiPlatform` seam, `WifiSession`, `WifiPermissionPolicy`, `PermissionGate`, `WifiSetupFlow`, `AndroidEspNetwork`, `AndroidWifiPlatform`). Also `EspClient.kt` (`EspNetwork`, `NetworkLease`, fixed `EspPath`/`EspRequest`, `NetworkEspTransport`, `LightPatch`, `EspStateValue`, `EspHistoryValue`, `EspParser`, `EspSnapshot`, `EspClient`) and `ControlQueue.kt` (`QueueScheduler`, `ControlIo`, `CommandResult`, `CommandTicket`, `DesiredLight`, `ControlQueue`).

@@ -1,6 +1,6 @@
 # R-BACKEND implementation report — READY
 
-Date: 2026-10-15. Canonical execution root `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive backend changes under `desktop/**`.
+Date: 2026-10-15. Canonical execution root `~/.codex/worktrees/phone-monitor-build/Phone_monitor`; baseline `87bd88d`. Exclusive backend changes under `desktop/**`.
 
 ## Changes
 

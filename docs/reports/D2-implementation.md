@@ -2,7 +2,7 @@
 
 Status: READY for coordinator's fresh Astra/high review; no commit created. Product/device acceptance is not implied.
 
-Execution root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`. Dispatch baseline `26c4e541f52050b64216b6c23c524b8c5e26b3a9`; D1 authority `75cb65d`. Shared HEAD observed during final checks: `03847a332284d6f574b5de3029f04ac486f2a50d` (other component commits are coordinator-owned). Existing modified/untracked Android/dashboard/checkpoint files were left to their owners. No root package/dependency/protocol edits were needed.
+Execution root: `~/.codex/worktrees/phone-monitor-build/Phone_monitor`. Dispatch baseline `26c4e541f52050b64216b6c23c524b8c5e26b3a9`; D1 authority `75cb65d`. Shared HEAD observed during final checks: `03847a332284d6f574b5de3029f04ac486f2a50d` (other component commits are coordinator-owned). Existing modified/untracked Android/dashboard/checkpoint files were left to their owners. No root package/dependency/protocol edits were needed.
 
 ## Implemented files
 
@@ -16,7 +16,7 @@ Execution root: `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Ph
 
 ## Red/green evidence
 
-All commands below selected `/home/arcco-chakraborty/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin` explicitly through PATH. System/default Node/Java were unchanged.
+All commands below selected `~/.local/share/phone-monitor/toolchains/node-v24.22.0-linux-x64/bin` explicitly through PATH. System/default Node/Java were unchanged.
 
 1. Required initial command `npm run test --workspace @phone-monitor/desktop -- claude.test.ts codex.test.ts installer.test.ts` failed with three absent collector/installer module suites. These failures required no account access. After implementation: 17/17 passed and desktop typecheck passed.
 2. Real-subprocess wrapper tests first failed 4/4 because the wrapper was absent: nonzero exit expected7/9 but received1; no descendant PID; no standalone capture. After implementation: 4/4 passed.

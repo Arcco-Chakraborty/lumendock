@@ -52,3 +52,15 @@ Plan (execute in order; each step tested before the next). DONE: steps 1-4 (prot
 - Evidence: protocol 16/16, desktop 207/207 (server.test.ts skipped: real media_mute), dashboard 126/126 unit + 50/50 Playwright, Android unit tests/lint/assemble OK, live read-only host read OK (Chrome playing, volume, mic, DND fields populated), hub restarted, APK installed, phone shows Laptop connected with host field.
 - Not verified physically: lamp pulse look on the real LED strip (Breathe mode, speed 85), Deck screen on phone (MIUI blocks adb taps), screenshot portal UI.
 - Found: scripts/phone-monitor.sh stop matches any process whose command line contains the project name (it killed the calling shell); not changed.
+
+## IN PROGRESS: v1.0.0 production release (user, 2026-10-16)
+User decisions: replace phone debug build with signed release now (re-pair + lamp Wi-Fi reconnect accepted); rename app to LumenDock; make repo PUBLIC with MIT license.
+Steps:
+1. Hygiene: mock executeAction in desktop/test/server.test.ts (it fired real media_mute); fix scripts/phone-monitor.sh stop pattern (killed calling shell); user-visible "Phone Monitor" -> "LumenDock" (strings.xml, index.html title, banners). Keep applicationId com.phonemonitor and config dir names.
+2. Version 1.0.0 everywhere (package.json x4 + lock, android versionName 1.0.0 / versionCode 100).
+3. Release signing: keystore + properties OUTSIDE repo at ~/.local/share/phone-monitor/signing/ (chmod 600); gradle signingConfig from -PlumendockSigning=<properties>; scripts/build.mjs --release -> artifacts/lumendock-1.0.0.apk, apksigner verify.
+4. Docs: README rewrite + screenshots (synthetic only) in docs/images, docs/README index, QUICKSTART/SETUP/TESTING refresh, CHANGELOG.md, LICENSE (MIT).
+5. Verify all suites + release build. 6. History privacy scan before going public (stop and ask if anything sensitive).
+7. Commit, tag v1.0.0, push, gh repo visibility public, gh release with APK + SHA256SUMS + desktop tarball.
+8. Phone: uninstall debug, install release, hub --pair, user enters code, reconnect lamp Wi-Fi.
+DONE so far: steps 1-3 (rename, stop-script fix verified with decoy shell, server.test mocked -> desktop 224/224, versions 1.0.0, keystore at ~/.local/share/phone-monitor/signing/ (BACK IT UP), signed artifacts/lumendock-1.0.0.apk cert SHA-256 595f8aa4be43bad2cbe532ac06a9e811d0b1f8eb81f4d8d68b76a11c67f63933). NEXT: step 4 docs.

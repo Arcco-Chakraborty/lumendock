@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "updatedOn": "2026-10-15",
+  "updatedOn": "2026-10-16",
   "timezone": "Asia/Kolkata",
-  "phase": "desk_appliance_ui_redesign_deployed",
+  "phase": "released_v1.0.0",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -12,20 +12,20 @@
   },
   "git": {
     "initialized": true,
-    "executionRoot": "/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor",
+    "executionRoot": "~/.codex/worktrees/phone-monitor-build/Phone_monitor",
     "branch": null,
     "baselineSha": "6501f489651816ab77dc6d45f3e20f0e8af2f0cd",
     "remoteUrl": "https://github.com/Arcco-Chakraborty/lumendock.git",
-    "remoteVisibility": "private",
+    "remoteVisibility": "public",
     "remoteBranch": "main",
     "lastPushedSha": "e85a5f19f9232196b0085b5771b7c50356bd7a5f"
   },
-  "softwareVerified": false,
+  "softwareVerified": true,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "None; desk-appliance UI redesign and terminal key deployed to Redmi 9A",
-  "nextAction": "User physical check of new UI and Terminal key; optional independent review",
+  "activeTask": "None; v1.0.0 released",
+  "nextAction": "User re-pairs phone with release build; formal device acceptance rows optional",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -38,7 +38,8 @@
     "W3a": "complete",
     "W3b": "complete",
     "A17": "cold_resume_check_passed_with_minor_staleness_fixed_2026-10-15",
-    "R-CLAUDE-desk-appliance": "complete_software_verified_installed_on_device"
+    "R-CLAUDE-desk-appliance": "complete_software_verified_installed_on_device",
+    "R-CLAUDE-release-1.0.0": "complete"
   },
   "unverifiedInputs": [
     "Physical ESP32/light acceptance (modes/brightness/colors against real LED strip)",
@@ -234,5 +235,6 @@
     ],
     "uiDesign": "dashboard/evidence/astra-redesign/design.md",
     "uiBaselineSha": "a544fa1"
-  }
+  },
+  "version": "1.0.0"
 }
