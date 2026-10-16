@@ -28,6 +28,14 @@ class ProtocolHostTest {
         )) assertFalse(host, valid(withHost(host)))
     }
 
+    @Test fun claudeUsageMayComeFromTheUsageService() {
+        val hub=hubFixture()
+        assertTrue(hub.contains("\"claude_statusline\"") && hub.contains("\"codex_app_server\""))
+        assertTrue(valid(hub.replace("\"claude_statusline\"","\"claude_usage_api\"")))
+        assertFalse(valid(hub.replace("\"claude_statusline\"","\"codex_app_server\"")))
+        assertFalse(valid(hub.replace("\"codex_app_server\"","\"claude_usage_api\"")))
+    }
+
     private fun withVitals(vitals:String)=withHost("{\"media\":null,\"volumePercent\":40,\"muted\":false,\"micMuted\":false,\"doNotDisturb\":false,\"vitals\":$vitals}")
     private val cpu="{\"name\":\"c\",\"usagePercent\":20.5,\"threadUsage\":[1,2.5,3],\"tempC\":61.3,\"clockMhz\":3900,\"powerW\":14.2}"
     private val power="{\"source\":\"battery\",\"batteryPercent\":76,\"charging\":false,\"watts\":18.4,\"minutesLeft\":161}"

@@ -1,4 +1,4 @@
-import { HostStateSchema, HubSnapshotSchema, LIMITS, SelectedNotificationSchema, UsageObservationSchema, type ErrorCode, type HostState, type HubSnapshot, type Provider, type SelectedNotification, type UsageSource } from '@phone-monitor/protocol';
+import { HostStateSchema, HubSnapshotSchema, LIMITS, SelectedNotificationSchema, claudeWindowStale, UsageObservationSchema, type ErrorCode, type HostState, type HubSnapshot, type Provider, type SelectedNotification, type UsageSource } from '@phone-monitor/protocol';
 
 const emptySource = (provider: Provider): UsageSource => ({provider,source:provider === 'claude' ? 'claude_statusline' : 'codex_app_server',state:'awaiting_data',observedAtEpochMs:null,lastSuccessAtEpochMs:null,stale:true,windows:[],errorCode:null});
 export interface StoreOptions {initialSnapshot?: HubSnapshot; notificationAllowlist?: readonly string[]}
@@ -65,7 +65,7 @@ export class HubStore {
       const old = (at:number|null,limit:number) => at === null || nowMs-at >= limit || nowMs < at;
       source.stale = source.stale || source.state !== 'available' || (provider === 'codex'
         ? old(source.lastSuccessAtEpochMs,LIMITS.codexStaleMs)
-        : source.windows.length === 0 || source.windows.some(w=>old(w.reportedAtEpochMs,LIMITS.claudeStaleMs)));
+        : source.windows.length === 0 || source.windows.some(w=>claudeWindowStale(w,nowMs)));
     }
     // Expired notifications never reach a response and never persist on disk.
     this.notifications.items = this.notifications.items.filter(n=>n.expiresAtEpochMs > nowMs);

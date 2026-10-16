@@ -16,6 +16,7 @@ Informal observations from the developer's Redmi 9A during the UI work, taken fr
 - Live selected notifications from Claude Code shown in Recent alerts.
 - Live room temperature and humidity from the controller's sensor.
 - Laptop now-playing, volume, microphone and Do Not Disturb state read correctly by the hub (read-only check on the laptop).
+- 1.2.0: with Claude usage polling on, the Claude card showed live Session usage and its reset countdown from the usage service.
 
 Still not observed: lamp pulse appearance on the LED strip, physical unplug/replug recovery timing, the optional login service across a reboot, and the formal soak rows.
 

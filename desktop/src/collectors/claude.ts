@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { UsageSourceSchema, LIMITS, type UsageSource, type UsageWindow } from '@phone-monitor/protocol';
+import { UsageSourceSchema, LIMITS, claudeWindowStale, type UsageSource, type UsageWindow } from '@phone-monitor/protocol';
 import { ensurePrivateDirectory, readPrivateJson, withLock, atomicWrite } from '../private-files.js';
 
 type ObjectValue=Record<string,unknown>;
@@ -15,7 +15,7 @@ export interface ClaudeSignature {
   sessionHash:string;api:string;ordinal:number;firstSeenAtEpochMs:number;lastSeenAtEpochMs:number;
 }
 export interface ClaudeObservation {public:UsageSource;local:ClaudeSignature}
-const windowInfo=[['five_hour','5 hours',300],['seven_day','7 days',10080]] as const;
+const windowInfo=[['five_hour','Session',300],['seven_day','Week',10080]] as const;
 export function normalizeClaude(input:unknown,observation:Observation):UsageSource {
   const rate=object(object(input).rate_limits);const windows:UsageWindow[]=[];
   for(const [key,label,duration]of windowInfo){
@@ -54,7 +54,7 @@ export function observeClaude(input:unknown,previous:ClaudeObservation|null,nowM
     } else if(old&&old.resetsAtEpochSec!==null&&old.resetsAtEpochSec*1000<=nowMs){windows.push({...old});}
   }
   const at=genuine?nowMs:previous?.public.observedAtEpochMs??null;
-  return {public:{...incoming,state:windows.length?'available':'awaiting_data',windows,observedAtEpochMs:at,lastSuccessAtEpochMs:at,stale:windows.length===0||windows.some(w=>w.reportedAtEpochMs===null||nowMs<w.reportedAtEpochMs||nowMs-w.reportedAtEpochMs>=LIMITS.claudeStaleMs)},local:{sessionHash,api,ordinal:(previous?.local.ordinal??0)+(genuine?1:0),firstSeenAtEpochMs:previous?.local.firstSeenAtEpochMs??nowMs,lastSeenAtEpochMs:nowMs}};
+  return {public:{...incoming,state:windows.length?'available':'awaiting_data',windows,observedAtEpochMs:at,lastSuccessAtEpochMs:at,stale:windows.length===0||windows.some(w=>claudeWindowStale(w,nowMs))},local:{sessionHash,api,ordinal:(previous?.local.ordinal??0)+(genuine?1:0),firstSeenAtEpochMs:previous?.local.firstSeenAtEpochMs??nowMs,lastSeenAtEpochMs:nowMs}};
 }
 interface ObservationFile {v:1;ordinal:number;winner:string|null;sessions:Record<string,ClaudeObservation>}
 function parseFile(value:unknown):ObservationFile {
@@ -102,7 +102,7 @@ export class ClaudeObservationStore {
   private publicAt(file:ObservationFile,nowMs:number):UsageSource|null {
     const source=file.winner?file.sessions[file.winner]?.public:null;if(!source)return null;
     const result=UsageSourceSchema.parse(source);
-    result.stale=result.windows.length===0||result.windows.some(w=>w.reportedAtEpochMs===null||nowMs<w.reportedAtEpochMs||nowMs-w.reportedAtEpochMs>=LIMITS.claudeStaleMs);
+    result.stale=result.windows.length===0||result.windows.some(w=>claudeWindowStale(w,nowMs));
     return result;
   }
 }

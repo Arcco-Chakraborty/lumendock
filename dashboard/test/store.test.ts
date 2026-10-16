@@ -186,8 +186,9 @@ describe("independent dashboard lifecycle", () => {
     vi.advanceTimersByTime(120000);
     expect(s.snapshot().hub.data?.usage.codex.stale).toBe(true);
     expect(s.snapshot().hub.data?.usage.claude.stale).toBe(false);
+    // Claude reports only while in use: its reading stays current until the window resets.
     vi.advanceTimersByTime(180000);
-    expect(s.snapshot().hub.data?.usage.claude.stale).toBe(true);
+    expect(s.snapshot().hub.data?.usage.claude.stale).toBe(false);
     vi.advanceTimersByTime(1500000);
     expect(s.snapshot().hub.data?.notifications.items).toHaveLength(0);
     s.dispose();

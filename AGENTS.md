@@ -25,7 +25,7 @@ Use subagents selected by difficulty. Mechanical, completely specified work: `gp
 
 The user explicitly requested parallel subagents on 2026-10-15. Independent implementation tracks may run concurrently with disjoint file ownership; serialize shared-file edits and commits, retain one owner per task, and use a fresh independent reviewer for each task. Read-only investigations/reviews may also run in parallel. Keep task briefs narrow, report concrete evidence, and preserve applicable constraints. Runtime tools/model aliases can differ in another harness; verify capabilities while retaining the required review gates.
 
-Do not create model inference merely to test quota capture. Do not read provider auth files, tokens, transcripts, account emails, or private session logs. Do not send messages to people or external accounts as part of monitoring.
+Do not create model inference merely to test quota capture. Do not read provider auth files, tokens, transcripts, account emails, or private session logs. One product exception, approved by the user on 2026-10-16: once the user turns it on with `claude-usage on`, the hub's Claude usage poller (`desktop/src/collectors/claude-usage.ts`) may read the access token and its expiry from Claude Code's credentials file at runtime. It sends them only to Anthropic's usage endpoint and never refreshes, stores, logs or forwards them. Agents still must not open, print or copy that file. Do not send messages to people or external accounts as part of monitoring.
 
 The existing sibling `../RGB_Controller` firmware is a read-only dependency. This release does not modify/flash it. Do not create a GitHub project, publish, push, merge, alter system Java/default Node, or grant OS permissions as an implicit planning/setup step.
 

@@ -14,7 +14,7 @@ Turn a spare Android phone into a desk display for your laptop. Over USB it show
 
 - A large local clock and date that keep working without any connection.
 - Room temperature and humidity from the lamp controller's sensor, with a history chart.
-- Claude and Codex usage: percentage used, a bar that turns red near the limit, the window name, and when it resets. The full view lists every window as "5 hours" or "7 days".
+- Claude and Codex usage: percentage used, a bar that turns red near the limit, the window name, and when it resets. The full view lists every window as "5 hours" or "7 days". Claude usage comes from the Claude Code status line, or, if you opt in with `npm run claude-usage -- on`, from Anthropic every 3 minutes with no Claude session open.
 - The newest alerts from Claude, Codex and WhatsApp (2 in landscape, 3 in portrait).
 
 **Deck** is a grid of keys for the laptop and the lamp:
@@ -99,7 +99,8 @@ Day to day, one command runs the hub and the USB link in the background:
 ## Privacy and security
 
 - The hub binds `127.0.0.1` only and is reached over the USB cable. Pairing needs an 8-digit code that is valid for 2 minutes and works once. The resulting token is stored with owner-only permissions on both sides.
-- No accounts, no cloud services, and no model calls. Usage comes from the Codex CLI's local app-server and from an opt-in Claude Code status line.
+- No accounts of its own and no model calls. Usage comes from the Codex CLI's local app-server and an opt-in Claude Code status line.
+- Optional Claude usage polling (off by default) reads only the access token and expiry that Claude Code keeps on the laptop. The token is sent only to Anthropic's usage endpoint, and is never refreshed, stored, logged or sent to the phone.
 - Notification capture is off until you allow specific apps. Only allowed alerts are kept, in memory, for 30 minutes.
 - The phone can only trigger a fixed list of Deck actions. They run without a shell, and nothing the phone sends becomes a command.
 - The lamp's Wi-Fi password stays in the app's private storage on the phone, with backups disabled.

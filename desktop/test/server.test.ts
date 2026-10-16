@@ -92,7 +92,8 @@ describe('read-time source retention', () => {
     expect(store.snapshot(t+119999).usage.codex.stale).toBe(false);
     expect(store.snapshot(t+120000).usage.codex.stale).toBe(true);
     expect(store.snapshot(t+299999).usage.claude.stale).toBe(false);
-    expect(store.snapshot(t+300000).usage.claude.stale).toBe(true);
+    // Claude readings with a reset time stay current until that reset.
+    expect(store.snapshot(t+300000).usage.claude.stale).toBe(false);
     expect(store.snapshot(t+1800000).notifications.items).toHaveLength(0);
     expect(store.snapshot(t).usage.claude.stale).toBe(false); advance(1);
   });

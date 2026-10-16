@@ -214,6 +214,24 @@ it("distinguishes missing Claude setup from an installed source waiting for data
   expect(quiet).toContain("Waiting for a report");
   expect(quiet).not.toContain("Set up Claude capture on the laptop.");
 });
+it("keeps a quiet Claude reading until its reset, then shows the window as reset", () => {
+  const hour = 3_600_000;
+  const source = usage(64);
+  source.provider = "claude";
+  source.source = "claude_usage_api";
+  source.windows[0]!.reportedAtEpochMs = 10 * hour;
+  source.windows[0]!.resetsAtEpochSec = (13 * hour) / 1000;
+  source.lastSuccessAtEpochMs = 10 * hour;
+  const quiet = render(<UsageCard name="Claude" source={source} laptopNowEpochMs={12 * hour} />);
+  expect(quiet.replace(/<[^>]*>/g, "")).toContain("64% used");
+  expect(quiet).not.toContain("Stale");
+  const rolled = render(<UsageCard name="Claude" source={source} laptopNowEpochMs={13 * hour + 25 * 60_000} />).replace(/<[^>]*>/g, "");
+  expect(rolled).toContain("Reset 25m ago, no use reported since");
+  expect(rolled).not.toContain("64%");
+  source.state = "auth_required";
+  source.windows = [];
+  expect(render(<UsageCard name="Claude" source={source} laptopNowEpochMs={null} />)).toContain("Open Claude Code on the laptop to renew it.");
+});
 it("names only the selected notification sources in setup guidance", () => {
   const html = render(<NotificationStrip items={[]} laptopNowEpochMs={null} state="disabled" />);
   expect(html).toContain("Claude, Codex and WhatsApp");

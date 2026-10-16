@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { AppStatusSchema, BridgeRequestSchema, BridgeReplyDataSchemas, BridgeReplySchemaFor,
-  EspStateSchema, EspSnapshotSchema, EspHistorySchema, HubSnapshotSchema, LightPatchSchema } from '../src/index.js';
+  EspStateSchema, EspSnapshotSchema, EspHistorySchema, HubSnapshotSchema, LightPatchSchema, LIMITS, claudeWindowStale } from '../src/index.js';
 
 const fixture = (name: string): any => JSON.parse(readFileSync(new URL(`../fixtures/${name}.json`, import.meta.url), 'utf8'));
 const fixtureHub = () => fixture('hub-ready');
@@ -13,6 +13,22 @@ describe('wire boundaries', () => {
     expect(EspHistorySchema.safeParse(fixture('esp-history')).success).toBe(true);
     expect(AppStatusSchema.safeParse(fixture('app-status')).success).toBe(true);
     expect(EspSnapshotSchema.safeParse(fixture('esp-link-ready')).success).toBe(true);
+  });
+  it('accepts Claude from the status line or the usage API, never the Codex source', () => {
+    const source = fixtureHub().usage.claude;
+    expect(HubSnapshotSchema.safeParse(fixtureWithClaude({...source, source:'claude_usage_api'})).success).toBe(true);
+    expect(HubSnapshotSchema.safeParse(fixtureWithClaude({...source, source:'codex_app_server'})).success).toBe(false);
+    expect(HubSnapshotSchema.safeParse({...fixtureHub(), usage:{...fixtureHub().usage, codex:{...fixtureHub().usage.codex, source:'claude_usage_api'}}}).success).toBe(false);
+  });
+  it('keeps a Claude reading current until its window resets', () => {
+    const now = 1_800_000_000_000;
+    const row = {bucketId:'claude', windowId:'five_hour', label:'5 hours', usedPercent:40, windowDurationMins:300, resetsAtEpochSec:now / 1000 + 3600, reportedAtEpochMs:now - 2 * 3600_000};
+    expect(claudeWindowStale(row, now)).toBe(false);
+    expect(claudeWindowStale({...row, resetsAtEpochSec:now / 1000 - 60}, now)).toBe(false);
+    expect(claudeWindowStale({...row, resetsAtEpochSec:null}, now)).toBe(true);
+    expect(claudeWindowStale({...row, resetsAtEpochSec:null, reportedAtEpochMs:now - LIMITS.claudeStaleMs + 1}, now)).toBe(false);
+    expect(claudeWindowStale({...row, reportedAtEpochMs:null}, now)).toBe(true);
+    expect(claudeWindowStale({...row, reportedAtEpochMs:now + 1}, now)).toBe(true);
   });
   it('accepts optional laptop host state and rejects malformed host fields', () => {
     const host = fixture('hub-host');

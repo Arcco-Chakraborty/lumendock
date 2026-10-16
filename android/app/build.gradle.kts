@@ -17,8 +17,8 @@ android {
         applicationId = "com.phonemonitor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 110
-        versionName = "1.1.0"
+        versionCode = 120
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     sourceSets {

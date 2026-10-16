@@ -78,7 +78,7 @@ object ProtocolValidator {
         str(o["bucketId"],80,true) && str(o["windowId"],80,true) && str(o["label"]) && nullable(o["usedPercent"]){num(it,0.0)} && nullable(o["windowDurationMins"]){num(it,Double.MIN_VALUE)} && nullable(o["resetsAtEpochSec"]){int(it,0,253402300799)} && nullable(o["reportedAtEpochMs"]){int(it)}
     }
     private fun usage(e:JsonElement?,provider:String):Boolean = obj(e,"provider source state observedAtEpochMs lastSuccessAtEpochMs stale windows errorCode") { o ->
-        one(o["provider"],provider) && one(o["source"],if(provider=="claude") "claude_statusline" else "codex_app_server") && one(o["state"],"available","awaiting_data","auth_required","unsupported","error") && nullable(o["observedAtEpochMs"]){int(it)} && nullable(o["lastSuccessAtEpochMs"]){int(it)} && bool(o["stale"]) && arr(o["windows"],if(provider=="claude") 2 else 62){window(it)} && error(o["errorCode"])
+        one(o["provider"],provider) && (if(provider=="claude") one(o["source"],"claude_statusline","claude_usage_api") else one(o["source"],"codex_app_server")) && one(o["state"],"available","awaiting_data","auth_required","unsupported","error") && nullable(o["observedAtEpochMs"]){int(it)} && nullable(o["lastSuccessAtEpochMs"]){int(it)} && bool(o["stale"]) && arr(o["windows"],if(provider=="claude") 2 else 62){window(it)} && error(o["errorCode"])
     }
     private fun notification(e:JsonElement?):Boolean = obj(e,"id appId title body receivedAtEpochMs expiresAtEpochMs") { o ->
         str(o["id"],80,true) && str(o["appId"],80,true) && str(o["title"],100) && str(o["body"],280) && int(o["receivedAtEpochMs"]) && int(o["expiresAtEpochMs"]) && (o["expiresAtEpochMs"].asLong-o["receivedAtEpochMs"].asLong) in 1..1800000

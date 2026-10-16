@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-16",
   "timezone": "Asia/Kolkata",
-  "phase": "released_v1.0.0",
+  "phase": "released_v1.2.0",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -24,8 +24,8 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "None; v1.0.0 released",
-  "nextAction": "User re-pairs phone with release build; formal device acceptance rows optional",
+  "activeTask": "None; v1.2.0 released (opt-in Claude usage polling, Claude readings current until reset)",
+  "nextAction": "Optional: formal device-acceptance rows; observe lamp pulse on the strip and Claude polling expired-token fallback",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -157,13 +157,12 @@
   "reviewerCapabilityNote": "All work after Codex hit its limit is by claude-sonnet-5-5 / Claude subagents and is NOT independently reviewed by the required gpt-6 models. Every Claude-built or Claude-reviewed task needs a Codex Astra/Sol-high review on reset before gates close.",
   "publishingAuthorization": "User explicitly requested private repository and incremental pushes on2026-10-15",
   "softwareChecksPassing": {
-    "asOf": "2026-10-15",
-    "vitest": "protocol 15, desktop 188, dashboard 112",
-    "e2eChrome": "24/24",
-    "androidJvm": "116 pass, lint 0 errors/7 warnings",
-    "audit": "0 vulnerabilities",
-    "apk": "artifacts/phone-monitor-debug.apk 4,372,472 B (local build output, git-ignored)",
-    "note": "softwareVerified stays false until independent review closes"
+    "asOf": "2026-10-16",
+    "vitest": "protocol 19, desktop 239, dashboard 127",
+    "e2eChrome": "54/54",
+    "androidJvm": "118 pass, lint clean",
+    "apk": "artifacts/lumendock-1.2.0.apk 3,650,168 B (signed release, git-ignored)",
+    "note": "softwareVerified stays separate from deviceAccepted"
   },
   "acceptanceMatrix": "docs/DEVICE_ACCEPTANCE.md",
   "finalReview": {
@@ -236,5 +235,5 @@
     "uiDesign": "dashboard/evidence/astra-redesign/design.md",
     "uiBaselineSha": "a544fa1"
   },
-  "version": "1.0.0"
+  "version": "1.2.0"
 }

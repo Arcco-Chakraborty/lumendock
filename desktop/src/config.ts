@@ -116,3 +116,16 @@ export async function removeNotificationApp(directory: string, label: string): P
   if (!isValidNotificationLabel(label)) throw new Error('BAD_APP_LABEL');
   return updateAllowlist(directory,labels => labels.filter(item => item !== label));
 }
+
+// Opt-in Claude usage polling: one boolean key of the same private config.json, off unless set.
+export function claudeUsagePollingEnabled(directory = defaultConfigDirectory()): boolean {
+  try { return readConfigObject(directory).claudeUsagePolling === true; } catch { return false; }
+}
+export async function setClaudeUsagePolling(directory: string, enabled: boolean): Promise<void> {
+  const dir = resolve(directory);
+  ensurePrivateDirectory(dir);
+  await withLock(join(dir,'config.lock'),() => {
+    const config = readConfigObject(dir);
+    if (config.claudeUsagePolling !== enabled) atomicWrite(configFile(dir),`${JSON.stringify({...config,claudeUsagePolling:enabled},null,2)}\n`);
+  });
+}

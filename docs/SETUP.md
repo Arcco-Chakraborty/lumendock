@@ -95,6 +95,23 @@ npm run claude-uninstall                             # restores only the field t
 
 If you already have a status-line command, install **refuses and changes nothing** unless you supply every attestation yourself, after verifying them for your Claude Code version: `--previous-shell /absolute/shell --claude-version 2.1.N --attest-shell --attest-cancellation`. These flags are your own statement; the tool cannot verify cancellation behaviour and does not claim to. If you edit the status line after installing, uninstall refuses rather than overwrite your edit. UNVERIFIED: a live opt-in on a real Claude Code settings file and real quota data arriving; tests use temporary settings only.
 
+## 5b. Claude usage with no session open (opt-in, off by default)
+
+The status line only reports while a Claude Code session is open and in use. To keep the Claude card current without one, turn on usage polling:
+
+```
+npm run claude-usage -- on        # or: off, status
+```
+
+While the phone is connected, the hub asks Anthropic for your usage every 3 minutes (`GET https://api.anthropic.com/api/oauth/usage`). The figures are account-wide, so they include use on claude.ai and the desktop app. It uses the sign-in Claude Code keeps in `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR`), and reads only the access token and its expiry:
+
+- The token is sent only in that request. It is never refreshed, written anywhere, logged, or sent to the phone.
+- When the token has expired, or the service refuses it, the hub sends nothing. The card keeps its last readings, falls back to the status line, and asks you to open Claude Code, which renews the sign-in. Polling resumes on its own once the token is renewed.
+- A rate-limited reply pauses polling for at least 15 minutes. Any other error pauses it for 5.
+- The endpoint is not a documented public API, so a Claude Code or Anthropic change can break it. The status line keeps working either way, and newer readings from either source win, per window.
+
+A running hub picks up `on` or `off` within a few seconds. Turning it off drops every polled reading.
+
 ## 6. Notification allowlist (empty by default)
 
 Notification capture is off until you allow at least one app. The allowlist starts empty, holds at most ten bounded app labels, and is edited only on the laptop (the phone settings sheet just explains this):

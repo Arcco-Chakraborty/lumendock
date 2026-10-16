@@ -1,5 +1,6 @@
 import {
   LIMITS,
+  claudeWindowStale,
   type UsageSource,
   type UsageWindow,
 } from "@phone-monitor/protocol";
@@ -12,21 +13,29 @@ function Row({
 }: {
   row: UsageWindow;
   now: number | null;
-  threshold: number;
+  threshold: number | null;
   expanded: boolean;
 }) {
+  // A null threshold means Claude: its readings stay current until the window resets.
   const stale =
     row.reportedAtEpochMs === null ||
     now === null ||
-    now - row.reportedAtEpochMs >= threshold;
+    (threshold === null ? claudeWindowStale(row, now) : now - row.reportedAtEpochMs >= threshold);
+  // Claude only: the window rolled over after this reading, so its percentage no longer applies.
+  // Codex is polled every few seconds, so its brief "Reset due" keeps the last value.
+  const resetMs = row.resetsAtEpochSec === null ? null : row.resetsAtEpochSec * 1000;
+  const elapsed = threshold === null && now !== null && resetMs !== null && resetMs <= now && (row.reportedAtEpochMs ?? 0) < resetMs;
+  const shown = elapsed ? null : row.usedPercent;
   return (
     <div className="quota-row">
       {/* The percentage and window name share a line on Monitor and wrap when narrow. */}
       <div className="quota-headline">
-        <div className="usage-value" aria-label={row.usedPercent === null ? "Unknown usage" : undefined}>
-          {row.usedPercent === null
+        <div className="usage-value" aria-label={elapsed ? "Window reset" : row.usedPercent === null ? "Unknown usage" : undefined}>
+          {elapsed
+            ? <span className="usage-number">Reset</span>
+            : shown === null
             ? "Unknown"
-            : <><span className="usage-number">{row.usedPercent}%</span>{" "}<span className="usage-unit">used</span></>}
+            : <><span className="usage-number">{shown}%</span>{" "}<span className="usage-unit">used</span></>}
         </div>
         <div className="quota-label">
           <span className="quota-identity" title={row.label || row.windowId}>
@@ -48,26 +57,30 @@ function Row({
         preserveAspectRatio="none"
         role="img"
         aria-label={
-          row.usedPercent === null
+          elapsed
+            ? "Window reset"
+            : shown === null
             ? "Usage unknown"
-            : `${row.usedPercent}% used`
+            : `${shown}% used`
         }
       >
         <rect className="quota-track" width="100" height="6" rx="1" />
-        {row.usedPercent !== null && (
+        {shown !== null && (
           <rect
-            width={Math.max(0, Math.min(100, row.usedPercent))}
+            width={Math.max(0, Math.min(100, shown))}
             height="6"
             rx="1"
-            className={`quota-fill${row.usedPercent >= 90 ? " is-high" : ""}`}
+            className={`quota-fill${shown >= 90 ? " is-high" : ""}`}
           />
         )}
       </svg>
       <div className="quota-meta">
         <p className={stale ? "warning" : "muted"}>
-          {countdown(
-            now === null ? null : secondsUntilReset(row.resetsAtEpochSec, now),
-          )}
+          {elapsed
+            ? `Reset ${elapsedLabel(resetMs, now)}, no use reported since`
+            : countdown(
+                now === null ? null : secondsUntilReset(row.resetsAtEpochSec, now),
+              )}
         </p>
         <p className="muted">
           {stale ? "Stale, " : ""}
@@ -92,7 +105,7 @@ export function UsageCard({
 }) {
   const title = name ?? (source?.provider === "claude" ? "Claude" : "Codex");
   const threshold =
-    source?.provider === "claude" ? LIMITS.claudeStaleMs : LIMITS.codexStaleMs;
+    source?.provider === "claude" ? null : LIMITS.codexStaleMs;
   let guidance = "Connect laptop for usage";
   if (source) {
     guidance =
@@ -101,7 +114,9 @@ export function UsageCard({
         : source.provider === "claude" && source.state === "unsupported" && source.errorCode === "SOURCE_UNAVAILABLE"
           ? "Set up Claude capture on the laptop."
         : source.state === "auth_required"
-          ? "Sign in to the provider on your laptop."
+          ? source.provider === "claude"
+            ? "Claude sign-in expired. Open Claude Code on the laptop to renew it."
+            : "Sign in to the provider on your laptop."
           : source.state === "unsupported"
             ? "Source format unsupported. Update the desktop collector."
             : source.state === "error"

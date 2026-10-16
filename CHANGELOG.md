@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 (2026-10-16)
+
+### Claude usage without an open session
+
+- **Opt-in usage polling:** run `npm run claude-usage -- on`. While the phone is connected, the hub asks Anthropic for your Claude usage every 3 minutes. It uses the sign-in Claude Code already keeps on the laptop, so usage stays current with no Claude Code session open, and includes use on claude.ai and the desktop app. The hub reads only the access token and its expiry. It never refreshes, copies or logs the token, or sends it to the phone. When the token expires, the hub waits for Claude Code to renew it the next time you open Claude Code, and the card falls back to the status line. It is off by default, and `npm run claude-usage -- off` turns it off.
+- **Claude readings stay current until they reset.** Claude only reports while it is in use, so a reading no longer turns "Stale" 5 minutes after its last update. Once a window's reset time passes with no newer report, the card shows **Reset** instead of the old percentage.
+- Claude's windows are now named **Session** (5 hours) and **Week** (7 days), so the card no longer reads "5 hours 5h".
+
 ## 1.1.0 (2026-10-16)
 
 ### Laptop screen

@@ -95,3 +95,20 @@ Run from the repository root with Node 24.22.0, JDK 17 and Android SDK 36, again
 | Android JVM unit tests + `lintDebug` + `lintRelease` | 115 passed, lint clean |
 | `node scripts/build.mjs --release` | signed APK verified by `apksigner` (v2 scheme, certificate SHA-256 `595f8aa4…f63933`) |
 | `npm run package` | desktop tarball 1.0.0, manifest and `SHA256SUMS`; JS+CSS 363,306 of 768,000 bytes; APK 3,638,484 bytes of the 20 MiB budget |
+
+## v1.2.0 results (2026-10-16)
+
+Same toolchain as above:
+
+| Suite | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| Protocol unit tests (Claude usage source, staleness until reset) | 19 passed |
+| Desktop hub unit tests (usage poller with a synthetic sign-in and replies, merge with the status line, `claude-usage` command) | 239 passed |
+| Dashboard unit tests (reset window, sign-in guidance) | 127 passed |
+| Playwright e2e | 54 passed |
+| Android JVM unit tests + lint | 118 passed, lint clean |
+| `npm run package` | desktop tarball 1.2.0, manifest and `SHA256SUMS`; JS+CSS 375,117 of 768,000 bytes; APK 3,650,168 bytes |
+
+Live, on the developer's laptop and Redmi 9A: after `claude-usage on`, the hub's snapshot showed `claude_usage_api` with both windows within 10 seconds, and the phone's Claude card showed the Session window with its reset countdown. The token was never printed or read by the agent. Not yet observed: the expired-token fallback on real hardware.
+

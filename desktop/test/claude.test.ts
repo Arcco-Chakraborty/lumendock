@@ -14,7 +14,8 @@ describe('Claude report classification',()=>{
   const baseline=observeClaude(report(0,null),null,0);
   const first=observeClaude(report(100),baseline,1000);
   const timer=observeClaude(report(100),first,400000);
-  expect(timer.public.observedAtEpochMs).toBe(1000); expect(timer.public.stale).toBe(true);
+  // No new report keeps the old one: it stays current until its window resets.
+  expect(timer.public.observedAtEpochMs).toBe(1000); expect(timer.public.stale).toBe(false);
  });
  it('keeps expiry-only rows and their original report age',()=>{
   const base=observeClaude(report(0,null),null,0);
@@ -57,7 +58,7 @@ describe('Claude report classification',()=>{
   await a.capture({...report(0),transcript_path:'/synthetic/private',notification:'synthetic secret'},1);
   await a.capture(report(1),2);
   const source=new ClaudeObservationStore(dir).read(999999);
-  expect(source?.observedAtEpochMs).toBe(2); expect(source?.stale).toBe(true);
+  expect(source?.observedAtEpochMs).toBe(2); expect(source?.stale).toBe(false);
   expect(JSON.stringify(source)).not.toMatch(/session|ordinal|api|transcript|secret/);
   expect(readFileSync(join(dir,'claude-observations.json'),'utf8')).not.toContain('private');
  });

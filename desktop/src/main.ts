@@ -10,13 +10,17 @@ import { VitalsReader } from './collectors/vitals.js';
 import { AllowlistSync } from './notification-sync.js';
 import { runNotificationsCommand } from './notifications-cli.js';
 import { resolveCodexPath } from './codex-path.js';
+import { ClaudeUsagePoller } from './collectors/claude-usage.js';
+import { runClaudeUsageCommand } from './claude-usage-cli.js';
 
 const args = process.argv.slice(2);
 if (args[0] === 'notifications') {
   // Laptop-side setup: edit this app's private allowlist only; a running hub applies it within seconds.
   process.exitCode = await runNotificationsCommand(args,defaultConfigDirectory());
+} else if (args[0] === 'claude-usage') {
+  process.exitCode = await runClaudeUsageCommand(args,defaultConfigDirectory());
 } else if (args.some(arg=>arg !== '--pair') || args.length > 1) {
-  console.error('Usage: phone-monitor [--pair] | phone-monitor notifications allow|remove|list [APP_LABEL]'); process.exitCode = 1;
+  console.error('Usage: phone-monitor [--pair] | phone-monitor notifications allow|remove|list [APP_LABEL] | phone-monitor claude-usage on|off|status'); process.exitCode = 1;
 } else {
   const tokenStore = new TokenStore();
   const pairing = new PairingSession(tokenStore);
@@ -28,7 +32,9 @@ if (args[0] === 'notifications') {
   const host = new HostCollector({store,vitals:{reader:new VitalsReader(),active:()=>store.isPhoneActive(clock.monotonicMs())}});
   // Refresh media/mic/DND right after a Deck key so its lit state follows quickly.
   const app = buildHub({store,pairing,tokenStore,clock,afterAction:()=>void host.poll()});
-  const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})}});
+  // Opt-in Claude usage polling also runs only while the phone is watching.
+  const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})},
+    claudeUsage:{poller:new ClaudeUsagePoller(),active:()=>store.isPhoneActive(clock.monotonicMs())}});
   const notifications = new NotificationCollector({store,clock});
   const allowlistSync = new AllowlistSync({configDir:tokenStore.directory,apply:async labels=>{store.setNotificationAllowlist(labels);await notifications.start(labels);}});
   const stop = () => { pairing.close(); allowlistSync.stop(); host.stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };

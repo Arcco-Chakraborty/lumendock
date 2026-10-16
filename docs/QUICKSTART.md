@@ -72,11 +72,12 @@ Power on the ESP32. In the app's settings, tap **Connect controller**. Enter the
 
 ```sh
 npm run claude-install -- --dry-run      # shows what would change; run again without --dry-run to opt in
+npm run claude-usage -- on               # optional: Claude usage with no Claude session open
 npm run start --workspace @phone-monitor/desktop -- notifications allow "WhatsApp"   # repeat per app; default is none
 ```
 
 - **Codex** usage appears automatically. The hub finds the Codex CLI on `PATH` or inside the VS Code ChatGPT extension; `npm run doctor` shows the version it found.
-- **Claude** usage appears after your next Claude Code session, once the status line is installed.
+- **Claude** usage appears after your next Claude Code session, once the status line is installed. With `claude-usage on` it appears within seconds of the phone connecting, and stays current with Claude Code closed.
 - **Notifications:** use the app name exactly as GNOME shows it on the notification banner.
 
 ## You are running when

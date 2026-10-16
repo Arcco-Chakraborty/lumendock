@@ -1,5 +1,6 @@
 import {
   LIMITS,
+  claudeWindowStale,
   type AppStatus,
   type EspSnapshot,
   type EspHistory,
@@ -95,17 +96,20 @@ export class DashboardStore {
     };
     const hub = aged(this.hub, this.hubReceived, LIMITS.laptopStaleMs);
     if (hub.data && epoch !== null) {
-      const source = (value: UsageSource, threshold: number): UsageSource => ({
+      // A null threshold means Claude, whose readings stay current until each window resets.
+      const source = (value: UsageSource, threshold: number | null): UsageSource => ({
         ...value,
         stale:
           value.stale ||
           value.lastSuccessAtEpochMs === null ||
-          epoch - value.lastSuccessAtEpochMs >= threshold,
+          (threshold === null
+            ? value.windows.length === 0 || value.windows.some((w) => claudeWindowStale(w, epoch))
+            : epoch - value.lastSuccessAtEpochMs >= threshold),
       });
       hub.data = {
         ...hub.data,
         usage: {
-          claude: source(hub.data.usage.claude, LIMITS.claudeStaleMs),
+          claude: source(hub.data.usage.claude, null),
           codex: source(hub.data.usage.codex, LIMITS.codexStaleMs),
         },
         notifications: {

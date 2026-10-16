@@ -33,15 +33,25 @@ export const UsageWindowSchema = z.strictObject({
   windowDurationMins:finite.positive().nullable(),resetsAtEpochSec:epochSec.nullable(),reportedAtEpochMs:epochMs.nullable(),
 });
 const sourceObject = z.strictObject({
-  provider:ProviderSchema,source:z.enum(['claude_statusline','codex_app_server']),state:SourceStateSchema,
+  provider:ProviderSchema,source:z.enum(['claude_statusline','claude_usage_api','codex_app_server']),state:SourceStateSchema,
   observedAtEpochMs:epochMs.nullable(),lastSuccessAtEpochMs:epochMs.nullable(),stale:z.boolean(),
   windows:z.array(UsageWindowSchema),errorCode,
 });
-const matchingSource = (source: z.infer<typeof sourceObject>) => source.source === (source.provider === 'claude' ? 'claude_statusline' : 'codex_app_server');
+const matchingSource = (source: z.infer<typeof sourceObject>) => source.provider === 'claude' ? source.source !== 'codex_app_server' : source.source === 'codex_app_server';
 // Collector boundary accepts over-capacity observations so the store can expose
 // SOURCE_CAPACITY_EXCEEDED while retaining a previous complete observation.
 export const UsageObservationSchema = withByteBudget(sourceObject.refine(matchingSource,'Provider/source mismatch'),LIMITS.hubBytes);
 export const UsageSourceSchema = sourceObject.refine(matchingSource,'Provider/source mismatch').refine(source => source.windows.length <= (source.provider === 'claude' ? LIMITS.claudeWindows : LIMITS.codexWindows),'Source capacity exceeded');
+/**
+ * Claude reports only while it is used, so a quiet source usually means no new use: a
+ * reading stays current until its window resets. Only a reading without a reset time
+ * ages out after LIMITS.claudeStaleMs. An elapsed window is shown as reset, not stale.
+ */
+export function claudeWindowStale(window: z.infer<typeof UsageWindowSchema>, nowMs: number): boolean {
+  const at = window.reportedAtEpochMs;
+  if (at === null || nowMs < at) return true;
+  return window.resetsAtEpochSec === null && nowMs - at >= LIMITS.claudeStaleMs;
+}
 export const SelectedNotificationSchema = z.strictObject({
   id:identifier,appId:identifier,title:bounded(100),body:bounded(280),receivedAtEpochMs:epochMs,expiresAtEpochMs:epochMs,
 }).refine(n => n.expiresAtEpochMs > n.receivedAtEpochMs && n.expiresAtEpochMs - n.receivedAtEpochMs <= LIMITS.notificationTtlMs,'Invalid notification lifetime');
