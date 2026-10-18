@@ -7,7 +7,8 @@ import { HostStateSchema, type HostState } from '@phone-monitor/protocol';
 // (host-helper.ps1) answers fixed command words with one JSON line each. Starting PowerShell
 // and compiling its audio interop takes seconds, so it is started once and kept, and
 // restarted with a bounded backoff if it dies. Requests are strictly serialized.
-export const HELPER_SCRIPT = fileURLToPath(new URL('../../src/win/host-helper.ps1', import.meta.url));
+// Next to this module: in src for tests, copied into dist/win by the desktop build.
+export const HELPER_SCRIPT = fileURLToPath(new URL('./host-helper.ps1', import.meta.url));
 export type HelperCommand = 'state' | 'vitals' | 'ping' | 'volume_up' | 'volume_down' | 'media_mute' | 'mic_mute'
   | 'media_play_pause' | 'media_next' | 'media_prev';
 export interface HelperReply { ok: boolean; data?: unknown; error?: string }

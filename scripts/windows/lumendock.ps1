@@ -43,10 +43,26 @@ function Find-Adb {
 function Hide-Serial([string]$value) { if ($value.Length -le 4) { '****' } else { $value.Substring(0, 4) + '****' } }
 
 # Authorized and unauthorized USB phones as reported by `adb devices` (emulators and Wi-Fi debugging excluded).
+# A server started by a captured `adb` call inherits its pipes, so that call never returns, and the
+# server dies if its client gives up first. Start it on its own, with no pipes, when none is listening.
+function Start-AdbServer([string]$adb) {
+  $client = New-Object System.Net.Sockets.TcpClient
+  try { $listening = $client.ConnectAsync('127.0.0.1', 5037).Wait(400) -and $client.Connected } catch { $listening = $false } finally { $client.Close() }
+  if (-not $listening) { Start-Process -FilePath $adb -ArgumentList 'start-server' -WindowStyle Hidden -Wait }
+}
+
+# adb's stdout lines; its stderr (e.g. "no devices/emulators found") is dropped instead of becoming
+# a terminating error under ErrorActionPreference Stop.
+function Invoke-AdbQuiet([string]$adb, [string[]]$arguments) {
+  $ErrorActionPreference = 'Continue'
+  & $adb @arguments 2>$null
+}
+
 function Get-UsbDevices {
   $adb = Find-Adb
   if (-not $adb) { return @() }
-  $lines = & $adb devices 2>$null
+  Start-AdbServer $adb
+  $lines = Invoke-AdbQuiet $adb @('devices')
   foreach ($line in $lines | Select-Object -Skip 1) {
     $parts = $line.Trim() -split '\s+'
     if ($parts.Count -lt 2 -or $parts[0] -match ':|^emulator-|_adb|^adb-') { continue }
@@ -96,7 +112,7 @@ function Get-LumenStatus {
   $connect = Test-Recorded $pids.connect
   $reverse = $null
   $adb = Find-Adb
-  if ($adb) { $reverse = (& $adb reverse --list 2>$null) -join ' ' }
+  if ($adb) { Start-AdbServer $adb; $reverse = (Invoke-AdbQuiet $adb @('reverse', '--list')) -join ' ' }
   [pscustomobject]@{ Hub = [bool]$hub; Connect = [bool]$connect; Reverse = $reverse; Devices = @(Get-UsbDevices) }
 }
 
@@ -122,14 +138,24 @@ function Resolve-Serial([string]$explicit) {
   $null
 }
 
+# A release package ships the built hub and needs only its production dependencies; a source
+# checkout installs everything and builds.
 function Initialize-Build {
   $protocol = Join-Path $script:Root 'packages\protocol\dist\index.js'
-  if ((Test-Path $script:HubScript) -and (Test-Path $protocol)) { return }
-  'Building the desktop hub...'
+  $modules = Join-Path $script:Root 'node_modules'
+  $source = Test-Path (Join-Path $script:Root 'desktop\src')
+  if ((Test-Path $script:HubScript) -and (Test-Path $protocol) -and (Test-Path $modules)) { return }
   Push-Location $script:Root
   try {
-    if (-not (Test-Path (Join-Path $script:Root 'node_modules'))) { & npm.cmd ci; if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' } }
-    & npm.cmd run build --workspace '@phone-monitor/desktop'; if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+    if (-not (Test-Path $modules)) {
+      'Installing dependencies...'
+      if ($source) { & npm.cmd ci } else { & npm.cmd ci --omit=dev --workspace '@phone-monitor/desktop' }
+      if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+    }
+    if (-not ((Test-Path $script:HubScript) -and (Test-Path $protocol))) {
+      'Building the desktop hub...'
+      & npm.cmd run build --workspace '@phone-monitor/desktop'; if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+    }
   } finally { Pop-Location }
 }
 

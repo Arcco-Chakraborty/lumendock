@@ -123,6 +123,20 @@ do_status() {
   fi
 }
 
+# A release package ships the built hub and needs only its production dependencies; a source
+# checkout installs everything and builds.
+ensure_installed() {
+  cd "$ROOT_DIR"
+  if [ ! -d node_modules ]; then
+    echo "Installing dependencies..."
+    if [ -d desktop/src ]; then npm ci; else npm ci --omit=dev --workspace @phone-monitor/desktop; fi
+  fi
+  if [ ! -f "desktop/dist/main.js" ]; then
+    echo "Building desktop hub..."
+    npm run build --workspace @phone-monitor/desktop
+  fi
+}
+
 do_start() {
   if do_status >/dev/null 2>&1; then
     echo "LumenDock is already running."
@@ -142,13 +156,7 @@ do_start() {
     fi
   fi
 
-  cd "$ROOT_DIR"
-
-  # Ensure desktop build exists
-  if [ ! -f "desktop/dist/main.js" ]; then
-    echo "Building desktop hub..."
-    npm run build --workspace @phone-monitor/desktop
-  fi
+  ensure_installed
 
   local masked
   masked="$(mask_serial "$target_serial")"
@@ -246,6 +254,37 @@ do_stop() {
   echo "LumenDock stopped."
 }
 
+# Pairing prints a one-time code, so the hub runs in this terminal for it. As soon as the phone
+# has paired (the token file changes), it hands over to the background hub by itself.
+do_pair() {
+  local serial="${1:-}"
+  if [ -z "$serial" ] && ! serial="$(get_single_serial)"; then
+    echo "Error: No single authorized USB device detected. Connect the phone, or run: $0 pair SERIAL" >&2
+    return 1
+  fi
+  ensure_installed
+  do_stop >/dev/null 2>&1 || true
+  local token="$CONFIG_DIR/phone-token" before now paired=0 waited=0
+  before="$(stat -c %y "$token" 2>/dev/null || echo none)"
+  setsid node scripts/connect.mjs --serial "$serial" </dev/null >> "$CONNECT_LOG" 2>&1 &
+  local conn_pid=$!
+  echo "Type the eight-digit code below on the phone (LumenDock > Pair laptop). It is valid for 120 seconds."
+  echo "This finishes by itself once the phone is paired."
+  node desktop/dist/main.js --pair &
+  local hub_pid=$!
+  trap 'kill "$hub_pid" "$conn_pid" 2>/dev/null; wait "$hub_pid" 2>/dev/null; do_start "$serial"; exit 130' INT
+  while kill -0 "$hub_pid" 2>/dev/null && [ "$waited" -lt 250 ]; do
+    sleep 0.5; waited=$((waited + 1))
+    now="$(stat -c %y "$token" 2>/dev/null || echo none)"
+    if [ "$now" != "$before" ]; then paired=1; sleep 1; break; fi
+  done
+  trap - INT
+  kill "$hub_pid" "$conn_pid" 2>/dev/null || true
+  wait "$hub_pid" 2>/dev/null || true
+  if [ "$paired" -eq 1 ]; then echo "Paired."; else echo "No phone paired in time. Run '$0 pair' again for a new code."; fi
+  do_start "$serial"
+}
+
 do_logs() {
   touch "$HUB_LOG" "$CONNECT_LOG"
   echo "Streaming LumenDock logs (Ctrl-C to exit)..."
@@ -277,12 +316,16 @@ case "$action" in
   logs)
     do_logs
     ;;
+  pair)
+    shift
+    do_pair "${1:-}"
+    ;;
   tray)
     shift
     do_tray "$@"
     ;;
   *)
-    echo "Usage: $0 {start [SERIAL]|stop|restart [SERIAL]|status|logs|tray}" >&2
+    echo "Usage: $0 {start [SERIAL]|stop|restart [SERIAL]|status|logs|pair [SERIAL]|tray}" >&2
     exit 1
     ;;
 esac

@@ -81,7 +81,7 @@ The phone reaches the laptop only through `adb reverse` over the USB cable, so t
 
 1. **Phone app.** Download `lumendock-<version>.apk` from the [latest release](https://github.com/Arcco-Chakraborty/lumendock/releases/latest) and check its SHA-256 against the release notes. Every release is signed with the same LumenDock key; its certificate SHA-256 is
    `59:5F:8A:A4:BE:43:BA:D2:CB:E5:32:AC:06:A9:E8:11:D0:B1:F8:EB:81:F4:D8:D6:8B:76:A1:1C:67:F6:39:33`.
-2. **Laptop hub.**
+2. **Laptop hub.** Easiest: download the desktop bundle for your system from the same release. On Windows, extract `lumendock-desktop-<version>-windows.zip` and run `Install.cmd`; on Ubuntu, extract `lumendock-desktop-<version>-linux.tar.gz`, run `npm ci --omit=dev --workspace @phone-monitor/desktop`, then `scripts/linux/install-desktop.sh`. Each bundle's `INSTALL.txt` has the steps. Or from source:
    ```sh
    git clone https://github.com/Arcco-Chakraborty/lumendock.git && cd lumendock
    npm ci

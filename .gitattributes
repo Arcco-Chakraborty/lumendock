@@ -1,0 +1,6 @@
+# Shell and Python scripts run on Linux: keep LF in every checkout. Batch files need CRLF.
+*.sh text eol=lf
+*.py text eol=lf
+*.cmd text eol=crlf
+*.png binary
+*.ico binary

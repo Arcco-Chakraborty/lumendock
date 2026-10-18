@@ -1,4 +1,4 @@
-import { AdbError, maskSerial, parseAdbDevices, selectDevice, nodeRunner, type ProcessRunner } from './adb.js';
+import { AdbError, ensureAdbServer, maskSerial, parseAdbDevices, selectDevice, nodeRunner, type ProcessRunner } from './adb.js';
 import { CODEX_COMPATIBLE_VERSION } from './collectors/codex.js';
 
 // Read-only environment report. Shareable output never contains device serials
@@ -77,6 +77,8 @@ export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
 
   const devices: DoctorReport['devices'] = { authorizedUsb: [], unauthorized: 0, offline: 0, wirelessIgnored: 0, otherIgnored: 0 };
   if (adbOutput) {
+    // A real run starts the adb server detached first, so the listing cannot hang on its pipes.
+    if (!input.runner) await ensureAdbServer(adbPath);
     const listing = await probe(runner, adbPath, ['devices', '-l']);
     const parsed = listing ? parseAdbDevices(listing) : [];
     for (const device of parsed) {

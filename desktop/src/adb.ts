@@ -1,5 +1,6 @@
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { connect } from 'node:net';
 import { delimiter, join } from 'node:path';
 
 // Selected-device USB reverse management. Every adb call is an argv array run
@@ -49,23 +50,69 @@ export interface ProcessRunner {
 }
 export interface TimerClock { setTimer(fn: () => void, ms: number): unknown; clearTimer(handle: unknown): void }
 
-/** Real runner: execFile never uses a shell; a non-zero exit is a result, not an exception. */
+/**
+ * Real runner: never uses a shell; a non-zero exit is a result, not an exception. It settles when
+ * the process exits, not when its pipes close: an adb server started by this call inherits the
+ * pipes on Windows and would otherwise hold the call open for as long as the server runs.
+ */
 export const nodeRunner: ProcessRunner = {
   exec: (file, args, options) => new Promise((resolve, reject) => {
-    execFile(file, [...args], {
-      shell: false, windowsHide: true, encoding: 'utf8', timeout: options?.timeoutMs ?? COMMAND_TIMEOUT_MS,
-      maxBuffer: MAX_OUTPUT_BYTES, ...(options?.signal ? { signal: options.signal } : {})
-    }, (error, stdout, stderr) => {
-      if (!error) { resolve({ code: 0, stdout, stderr }); return; }
-      const e = error as NodeJS.ErrnoException & { killed?: boolean; signal?: string };
-      if (options?.signal?.aborted || e.name === 'AbortError') reject(new AdbError('STOPPED'));
-      else if (e.code === 'ENOENT' || e.code === 'EACCES') reject(new AdbError('ADB_UNAVAILABLE'));
-      else if (e.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') reject(new AdbError('ADB_OUTPUT_TOO_LARGE'));
-      else if (e.killed) reject(new AdbError('ADB_TIMEOUT'));
-      else resolve({ code: typeof e.code === 'number' ? e.code : 1, stdout: String(stdout ?? ''), stderr: String(stderr ?? '') });
-    });
+    let child: ReturnType<typeof spawn>;
+    try { child = spawn(file, [...args], { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    catch { reject(new AdbError('ADB_UNAVAILABLE')); return; }
+    let stdout = '', stderr = '', bytes = 0, settled = false;
+    const finish = (settle: () => void) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer); options?.signal?.removeEventListener('abort', abort);
+      child.stdout?.destroy(); child.stderr?.destroy(); settle();
+    };
+    const fail = (code: AdbErrorCode) => { try { child.kill(); } catch { /* already gone */ } finish(() => reject(new AdbError(code))); };
+    const collect = (into: 'out' | 'err') => (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes > MAX_OUTPUT_BYTES) { fail('ADB_OUTPUT_TOO_LARGE'); return; }
+      if (into === 'out') stdout += chunk.toString('utf8'); else stderr += chunk.toString('utf8');
+    };
+    child.stdout?.on('data', collect('out')); child.stderr?.on('data', collect('err'));
+    child.stdout?.on('error', () => {}); child.stderr?.on('error', () => {});
+    const timer = setTimeout(() => fail('ADB_TIMEOUT'), options?.timeoutMs ?? COMMAND_TIMEOUT_MS);
+    const abort = () => fail('STOPPED');
+    if (options?.signal) { if (options.signal.aborted) { abort(); return; } options.signal.addEventListener('abort', abort, { once: true }); }
+    child.once('error', () => finish(() => reject(new AdbError('ADB_UNAVAILABLE'))));
+    // A short grace lets output already written reach us before the pipes are dropped.
+    child.once('exit', code => setTimeout(() => finish(() => resolve({ code: code ?? 1, stdout, stderr })), 50));
   })
 };
+
+const ADB_SERVER_PORT = Number(process.env.ANDROID_ADB_SERVER_PORT) || 5037;
+/** True when something accepts connections on the adb server port. */
+export function adbServerListening(port = ADB_SERVER_PORT, timeoutMs = 500): Promise<boolean> {
+  return new Promise(resolve => {
+    const socket = connect({ host: '127.0.0.1', port });
+    const done = (ok: boolean) => { socket.destroy(); resolve(ok); };
+    socket.setTimeout(timeoutMs, () => done(false));
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+  });
+}
+/**
+ * Starts the adb server with no pipes attached and waits until it answers. On Windows a server
+ * started as a side effect of a piped `adb devices` inherits those pipes, and dies ("cannot write
+ * ACK") if that client gives up first, which left a freshly booted laptop unable to link the phone.
+ */
+export function startAdbServer(adbPath: string, timeoutMs = 20_000): Promise<boolean> {
+  return new Promise(resolve => {
+    let child: ReturnType<typeof spawn>;
+    try { child = spawn(adbPath, ['start-server'], { shell: false, windowsHide: true, stdio: 'ignore' }); }
+    catch { resolve(false); return; }
+    const timer = setTimeout(() => { try { child.kill(); } catch { /* gone */ } resolve(false); }, timeoutMs);
+    child.once('error', () => { clearTimeout(timer); resolve(false); });
+    child.once('exit', code => { clearTimeout(timer); resolve(code === 0); });
+  });
+}
+/** Starts the adb server only when none is listening. */
+export async function ensureAdbServer(adbPath: string): Promise<void> {
+  if (!(await adbServerListening())) await startAdbServer(adbPath);
+}
 export const realClock: TimerClock = {
   setTimer: (fn, ms) => setTimeout(fn, ms),
   clearTimer: handle => clearTimeout(handle as ReturnType<typeof setTimeout>)
@@ -185,6 +232,8 @@ export type AdbEvent =
   | { state: 'waiting'; code: AdbErrorCode; message: string };
 export interface AdbConnectionOptions {
   runner?: ProcessRunner; clock?: TimerClock; adbPath?: string; pollIntervalMs?: number;
+  /** Makes sure an adb server runs before devices are listed (default: ensureAdbServer with the real runner). */
+  ensureServer?: () => Promise<void>;
 }
 interface Run { serial: string; signal: AbortSignal; abort: AbortController; timer: unknown; inflight: Promise<void> | null; stopped: boolean; failures: number; last: string | null; listener: ((event: AdbEvent) => void) | undefined }
 
@@ -193,6 +242,7 @@ export class AdbConnection {
   private readonly clock: TimerClock;
   private readonly adbPath: string;
   private readonly pollIntervalMs: number;
+  private readonly ensureServer: () => Promise<void>;
   private active: Run | null = null;
 
   constructor(options: AdbConnectionOptions = {}) {
@@ -200,6 +250,7 @@ export class AdbConnection {
     this.clock = options.clock ?? realClock;
     this.adbPath = options.adbPath ?? 'adb';
     this.pollIntervalMs = Math.min(30_000, Math.max(500, options.pollIntervalMs ?? 2000));
+    this.ensureServer = options.ensureServer ?? (options.runner ? async () => {} : () => ensureAdbServer(this.adbPath));
   }
 
   private async adb(args: string[], signal?: AbortSignal): Promise<ProcessResult> {
@@ -207,6 +258,7 @@ export class AdbConnection {
     catch (error) { throw error instanceof AdbError ? error : new AdbError('ADB_UNAVAILABLE'); }
   }
   private async listDevices(signal?: AbortSignal): Promise<AdbDevice[]> {
+    await this.ensureServer();
     const result = await this.adb(['devices', '-l'], signal);
     if (result.code !== 0) throw new AdbError('ADB_UNAVAILABLE');
     return parseAdbDevices(result.stdout);

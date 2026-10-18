@@ -5,6 +5,7 @@ Provides a native GNOME top-bar system tray indicator with status, logs, and a k
 """
 
 import os
+import shutil
 import sys
 import signal
 import subprocess
@@ -24,7 +25,12 @@ CONFIG_DIR = os.path.expanduser("~/.config/phone-monitor")
 TRAY_PID_FILE = os.path.join(CONFIG_DIR, "phone-monitor-tray.pid")
 ICON_PATH = os.path.expanduser("~/.local/share/icons/hicolor/48x48/apps/phone-monitor.png")
 if not os.path.exists(ICON_PATH):
+    ICON_PATH = os.path.join(SCRIPT_DIR, "linux", "lumendock-48.png")
+if not os.path.exists(ICON_PATH):
     ICON_PATH = "phone"
+
+# Pairing shows a one-time code, so it runs in a terminal window; the first one found is used.
+TERMINALS = [["ptyxis", "--new-window", "--"], ["gnome-terminal", "--"], ["kgx", "--"], ["x-terminal-emulator", "-e"]]
 
 
 class PhoneMonitorTray:
@@ -86,6 +92,11 @@ class PhoneMonitorTray:
         self.item_restart = Gtk.MenuItem(label="Restart Services")
         self.item_restart.connect("activate", self._on_restart)
         self.menu.append(self.item_restart)
+
+        # Pair item
+        self.item_pair = Gtk.MenuItem(label="Pair Phone…")
+        self.item_pair.connect("activate", self._on_pair)
+        self.menu.append(self.item_pair)
 
         # View logs item
         self.item_logs = Gtk.MenuItem(label="Open Log Directory")
@@ -152,6 +163,13 @@ class PhoneMonitorTray:
             subprocess.run([SH_SCRIPT, "restart"], capture_output=True, text=True)
             self._check_status_now()
         threading.Thread(target=_do_restart, daemon=True).start()
+
+    def _on_pair(self, _widget):
+        for terminal in TERMINALS:
+            if shutil.which(terminal[0]):
+                subprocess.Popen(terminal + [SH_SCRIPT, "pair"])
+                return
+        print("No terminal found; run: " + SH_SCRIPT + " pair", file=sys.stderr)
 
     def _on_open_logs(self, _widget):
         subprocess.Popen(["xdg-open", CONFIG_DIR])

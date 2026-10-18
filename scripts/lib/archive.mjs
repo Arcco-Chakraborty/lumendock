@@ -1,4 +1,4 @@
-import { gzipSync } from 'node:zlib';
+import { crc32, deflateRawSync, gzipSync } from 'node:zlib';
 
 // Minimal deterministic ustar writer: sorted names, fixed mtime/uid/gid/owner, no
 // timestamps from the filesystem. The same inputs always give the same bytes.
@@ -48,3 +48,37 @@ export function createTar(entries) {
   return Buffer.concat(chunks);
 }
 export const createTarGz = entries => gzipSync(createTar(entries), { level: 9 });
+
+// Minimal deterministic zip writer (deflate, fixed 1980-01-01 timestamps, sorted names), for the
+// Windows bundle: Explorer opens zip files natively.
+export function createZip(entries) {
+  const sorted = [...entries].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  const local = [], central = [];
+  let offset = 0;
+  const seen = new Set();
+  for (const entry of sorted) {
+    if (seen.has(entry.path)) throw new Error(`Duplicate archive path: ${entry.path}`);
+    seen.add(entry.path);
+    if (entry.path.startsWith('/') || entry.path.split('/').includes('..') || entry.path.includes('\0')) throw new Error(`Unsafe archive path: ${entry.path}`);
+    const name = Buffer.from(entry.path, 'utf8');
+    const data = Buffer.from(entry.data);
+    const packed = deflateRawSync(data, { level: 9 });
+    const crc = crc32(data);
+    const header = Buffer.alloc(30);
+    header.writeUInt32LE(0x04034b50, 0); header.writeUInt16LE(20, 4); header.writeUInt16LE(0x0800, 6); header.writeUInt16LE(8, 8);
+    header.writeUInt16LE(0, 10); header.writeUInt16LE(0x21, 12); header.writeUInt32LE(crc, 14);
+    header.writeUInt32LE(packed.length, 18); header.writeUInt32LE(data.length, 22); header.writeUInt16LE(name.length, 26); header.writeUInt16LE(0, 28);
+    const record = Buffer.alloc(46);
+    record.writeUInt32LE(0x02014b50, 0); record.writeUInt16LE(20, 4); record.writeUInt16LE(20, 6); record.writeUInt16LE(0x0800, 8); record.writeUInt16LE(8, 10);
+    record.writeUInt16LE(0, 12); record.writeUInt16LE(0x21, 14); record.writeUInt32LE(crc, 16); record.writeUInt32LE(packed.length, 20); record.writeUInt32LE(data.length, 24);
+    record.writeUInt16LE(name.length, 28); record.writeUInt32LE(offset, 42);
+    local.push(header, name, packed);
+    central.push(record, name);
+    offset += header.length + name.length + packed.length;
+  }
+  const directory = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(sorted.length, 8); end.writeUInt16LE(sorted.length, 10);
+  end.writeUInt32LE(directory.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...local, directory, end]);
+}

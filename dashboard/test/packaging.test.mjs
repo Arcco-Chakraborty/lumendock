@@ -45,6 +45,12 @@ function project(root, { withApk } = {}) {
   put(root, "docs/TESTING.md", "# testing");
   for (const name of ["workspace", "doctor", "connect", "install-hub", "uninstall-hub", "claude-install", "claude-uninstall"]) put(root, `scripts/${name}.mjs`, "");
   put(root, "scripts/lib/dist.mjs", "");
+  for (const path of ["README.md", "LICENSE", "CHANGELOG.md", "docs/QUICKSTART.md", "docs/WINDOWS.md", "scripts/phone-monitor-tray.py",
+    "scripts/linux/lumendock.png", "scripts/linux/lumendock-48.png", "scripts/windows/lumendock.ps1", "scripts/windows/lumendock-tray.ps1",
+    "scripts/windows/install.ps1", "scripts/windows/lumendock.ico"]) put(root, path, "x");
+  // Checked out with CRLF, as on Windows: the Linux bundle must still ship LF.
+  for (const path of ["phone-monitor.sh", "scripts/phone-monitor.sh", "scripts/linux/install-desktop.sh"]) put(root, path, "#!/usr/bin/env bash\r\necho synthetic\r\n");
+  put(root, "scripts/windows/Install.cmd", "@echo off\npause\n");
   if (withApk) put(root, `artifacts/${withApk.name}`, Buffer.alloc(withApk.size, 1));
 }
 const message = (fn) => {
@@ -179,36 +185,47 @@ describe("exclusion rules", () => {
 });
 
 describe("packageProject", () => {
-  it("writes a verifiable tarball, manifest and SHA256SUMS and tolerates a missing APK", () => {
+  it("writes verifiable Linux and Windows bundles, manifest and SHA256SUMS and tolerates a missing APK", () => {
     const root = temp();
     project(root);
     const result = packageProject({ root });
     const out = join(root, "artifacts");
     const sums = readFileSync(join(out, "SHA256SUMS"), "utf8").trim().split("\n");
-    expect(sums).toHaveLength(2);
+    expect(sums).toHaveLength(3);
     for (const line of sums) {
       const [hash, file] = line.split(/  /);
       expect(sha(readFileSync(join(out, file)))).toBe(hash);
     }
-    const manifest = JSON.parse(readFileSync(join(out, "phone-monitor-manifest.json"), "utf8"));
+    const manifest = JSON.parse(readFileSync(join(out, "lumendock-manifest.json"), "utf8"));
     expect(manifest.apk.present).toBe(false);
     expect(manifest.apk.note).toMatch(/No artifacts/);
-    expect(manifest.tarball.sha256).toBe(sha(readFileSync(join(out, result.tarballName))));
+    expect(result.bundles).toEqual(["lumendock-desktop-1.2.3-linux.tar.gz", "lumendock-desktop-1.2.3-windows.zip"]);
+    for (const bundle of manifest.bundles) expect(bundle.sha256).toBe(sha(readFileSync(join(out, bundle.name))));
     expect(manifest.frontend.jsCssBytes).toBeGreaterThan(0);
-    const paths = manifest.files.map((file) => file.path);
-    expect(paths).toContain("phone-monitor-desktop-1.2.3/desktop/dist/main.js");
-    expect(paths).toContain("phone-monitor-desktop-1.2.3/INSTALL.txt");
+    const [linux, windows] = manifest.bundles;
+    const paths = linux.files.map((file) => file.path);
+    expect(paths).toContain("lumendock-desktop-1.2.3/desktop/dist/main.js");
+    expect(paths).toContain("lumendock-desktop-1.2.3/INSTALL.txt");
+    expect(paths).toContain("lumendock-desktop-1.2.3/scripts/linux/install-desktop.sh");
+    expect(paths.some((path) => path.includes("scripts/windows"))).toBe(false);
+    const winPaths = windows.files.map((file) => file.path);
+    expect(winPaths).toContain("lumendock-desktop-1.2.3/Install.cmd");
+    expect(winPaths.some((path) => path.endsWith(".sh"))).toBe(false);
     expect(paths.some((path) => path.endsWith(".d.ts"))).toBe(false);
     expect(paths.some((path) => path.includes("dashboard/dist"))).toBe(false);
     expect(JSON.stringify(manifest)).not.toMatch(/\d{4}-\d\d-\d\dT/); // no timestamps
-    const tar = gunzipSync(readFileSync(join(out, result.tarballName))).toString("latin1");
+    const tar = gunzipSync(readFileSync(join(out, linux.name))).toString("latin1");
     expect(tar).toContain("npm ci --omit=dev --workspace @phone-monitor/desktop");
+    // Shell scripts ship with LF endings and mode 0755, whatever the checkout used.
+    expect(tar).toContain("#!/usr/bin/env bash\necho synthetic\n");
+    expect(tar).not.toContain("echo synthetic\r");
+    expect(tar).toContain("0000755");
   });
   it("is reproducible: two builds give identical bytes and checksums", () => {
     const first = temp(), second = temp();
     project(first); project(second);
     packageProject({ root: first }); packageProject({ root: second });
-    for (const file of ["SHA256SUMS", "phone-monitor-manifest.json", "phone-monitor-desktop-1.2.3.tar.gz"])
+    for (const file of ["SHA256SUMS", "lumendock-manifest.json", "lumendock-desktop-1.2.3-linux.tar.gz", "lumendock-desktop-1.2.3-windows.zip"])
       expect(readFileSync(join(first, "artifacts", file)).equals(readFileSync(join(second, "artifacts", file)))).toBe(true);
     packageProject({ root: first }); // idempotent over its own output directory
     expect(readFileSync(join(first, "artifacts/SHA256SUMS"), "utf8")).toBe(readFileSync(join(second, "artifacts/SHA256SUMS"), "utf8"));
@@ -219,7 +236,7 @@ describe("packageProject", () => {
     packageProject({ root });
     const sums = readFileSync(join(root, "artifacts/SHA256SUMS"), "utf8");
     expect(sums).toContain("phone-monitor-debug.apk");
-    expect(JSON.parse(readFileSync(join(root, "artifacts/phone-monitor-manifest.json"), "utf8")).apk.files[0].size).toBe(2048);
+    expect(JSON.parse(readFileSync(join(root, "artifacts/lumendock-manifest.json"), "utf8")).apk.files[0].size).toBe(2048);
   });
   it("refuses an APK over 20 MiB, a diagnostic APK, and writes nothing", () => {
     const big = temp();

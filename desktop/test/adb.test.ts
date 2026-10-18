@@ -291,3 +291,24 @@ describe('connection watcher', () => {
     await adb.stop();
   });
 });
+
+describe('fresh-boot adb server', () => {
+  it('settles when the command exits even though a process it started still holds the pipes', async () => {
+    const { nodeRunner } = await import('../src/adb.js');
+    // Like adb starting its server: the child exits at once, its own child keeps stdout open for 4 s.
+    const script = "require('node:child_process').spawn(process.execPath,['-e','setTimeout(()=>{},4000)'],{stdio:['ignore','inherit','inherit']}).unref();console.log('listed')";
+    const started = Date.now();
+    const result = await nodeRunner.exec(process.execPath, ['-e', script], { timeoutMs: 8000 });
+    expect(result).toMatchObject({ code: 0, stdout: expect.stringContaining('listed') });
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+  it('makes sure a server runs before every device listing', async () => {
+    const order: string[] = [];
+    const adb = new AdbConnection({
+      runner: { exec: async (_file, args) => { order.push(args.join(' ')); return { code: 0, stdout: 'List of devices attached\n', stderr: '' }; } },
+      ensureServer: async () => { order.push('ensure'); },
+    });
+    await expect(adb.ensureReverse('SYNTH0001')).rejects.toMatchObject({ code: 'DEVICE_NOT_FOUND' });
+    expect(order).toEqual(['ensure', 'devices -l']);
+  });
+});

@@ -1,11 +1,11 @@
-# Regenerates scripts/windows/lumendock.ico from the dashboard favicon's geometry
+# Regenerates scripts/windows/lumendock.ico and scripts/linux/lumendock{,-48}.png from the dashboard favicon's geometry
 # (dashboard/public/favicon.svg: dark rounded square, cyan diamond outline, filled inner diamond).
 # The .ico holds PNG frames at the sizes Windows asks for on the desktop, taskbar and tray.
 param([string]$Out = (Join-Path $PSScriptRoot 'lumendock.ico'))
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-function New-Frame([int]$size) {
+function New-Frame([int]$size, [switch]$Png) {
   $bmp = New-Object System.Drawing.Bitmap($size, $size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
@@ -25,7 +25,7 @@ function New-Frame([int]$size) {
   $g.FillPolygon((New-Object System.Drawing.SolidBrush($cyan)), $inner)
   $g.Dispose()
   $ms = New-Object System.IO.MemoryStream
-  if ($size -ge 256) {
+  if ($size -ge 256 -or $Png) {
     $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
   } else {
     # Small frames as classic 32-bit DIBs: .NET's Icon (used by the tray) cannot decode PNG frames.
@@ -59,3 +59,12 @@ foreach ($frame in $frames) { $w.Write($frame) }
 $w.Flush()
 [System.IO.File]::WriteAllBytes($Out, $file.ToArray())
 "Wrote $Out"
+
+# The same artwork as PNGs for the Linux launcher (256) and tray (48).
+$linux = Join-Path (Split-Path $PSScriptRoot -Parent) 'linux'
+New-Item -ItemType Directory -Force $linux | Out-Null
+foreach ($pair in @(@(256, 'lumendock.png'), @(48, 'lumendock-48.png'))) {
+  $path = Join-Path $linux $pair[1]
+  [System.IO.File]::WriteAllBytes($path, (New-Frame $pair[0] -Png))
+  "Wrote $path"
+}

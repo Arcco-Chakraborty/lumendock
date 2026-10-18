@@ -17,7 +17,7 @@ try {
     run(process.execPath, [npm, 'run', 'build'], { cwd: root });
   }
   packageProject({ root, log: line => console.log(line) });
-  console.log('Wrote artifacts/SHA256SUMS and artifacts/phone-monitor-manifest.json. Verify with: (cd artifacts && sha256sum -c SHA256SUMS)');
+  console.log('Wrote artifacts/SHA256SUMS and artifacts/lumendock-manifest.json. Verify with: (cd artifacts && sha256sum -c SHA256SUMS)');
 } catch (error) {
   if (error instanceof PackageError) {
     console.error('Packaging refused:');

@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 (2026-10-18)
+
+### Desktop apps for Windows and Ubuntu
+
+- Each release now ships two ready desktop bundles next to the APK: `lumendock-desktop-<version>-windows.zip` (run `Install.cmd`) and `lumendock-desktop-<version>-linux.tar.gz` (run `scripts/linux/install-desktop.sh`). Both add a LumenDock launcher with a tray icon; neither starts anything at boot or login.
+- Linux: `./phone-monitor.sh pair` and **Pair Phone…** in the top-bar menu pair the phone and hand over to the background hub by themselves. A release bundle installs its production dependencies on first start.
+- The Android app is unchanged since 1.2.0; this release carries the same signed `lumendock-1.2.0.apk`.
+
+### Fixes
+
+- Fixed: after a fresh boot on Windows the USB link never came up, so the phone could not pair. The first `adb` call started the adb server with its own output pipes attached; that call never finished, and the server exited when its caller gave up ("cannot write ACK"). LumenDock now starts the adb server on its own first, and its adb calls finish when adb exits.
+- Fixed: on Windows, `lumendock.ps1 status` and the tray reported an error instead of the state when no phone was plugged in.
+
 
 ### Windows laptops
 
