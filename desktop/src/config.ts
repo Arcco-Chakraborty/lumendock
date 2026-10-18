@@ -2,7 +2,7 @@ import { constants, chmodSync, closeSync, existsSync, fstatSync, fsyncSync, lsta
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { atomicWrite, ensurePrivateDirectory, readPrivateJson, withLock } from './private-files.js';
+import { atomicWrite, ensurePrivateDirectory, ownedByCurrentUser, readPrivateJson, withLock } from './private-files.js';
 
 const tokenPattern = /^[a-f0-9]{64}$/;
 export function defaultConfigDirectory(): string {
@@ -21,7 +21,7 @@ export class TokenStore {
       mkdirSync(this.directory,{recursive:true,mode:0o700});
     }
     const info = lstatSync(this.directory);
-    if (!info.isDirectory() || info.isSymbolicLink() || info.uid !== process.getuid?.()) throw new Error('UNSAFE_CONFIG_DIRECTORY');
+    if (!info.isDirectory() || info.isSymbolicLink() || !ownedByCurrentUser(info)) throw new Error('UNSAFE_CONFIG_DIRECTORY');
     chmodSync(this.directory,0o700);
     return true;
   }
@@ -32,7 +32,7 @@ export class TokenStore {
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw new Error('BAD_TOKEN_FILE'); }
     try {
       const info = fstatSync(fd);
-      if (!info.isFile() || info.uid !== process.getuid?.() || info.size > 65) throw new Error('BAD_TOKEN_FILE');
+      if (!info.isFile() || !ownedByCurrentUser(info) || info.size > 65) throw new Error('BAD_TOKEN_FILE');
       // A read from a legacy permissive file repairs only this product's file.
       if ((info.mode & 0o777) !== 0o600) chmodSync(this.path,0o600);
       const token = readFileSync(fd,'utf8').trim();

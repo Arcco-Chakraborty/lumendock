@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { delimiter, join } from 'node:path';
 
 // Selected-device USB reverse management. Every adb call is an argv array run
 // without a shell. Errors carry fixed codes/messages and never echo adb output,
@@ -78,10 +80,23 @@ const KNOWN_OTHER_STATES = new Set(['authorizing', 'connecting', 'bootloader', '
 const USB_PORT_PATTERN = /^[0-9A-Za-z][0-9A-Za-z.-]{0,31}$/;
 const MODEL_PATTERN = /^[A-Za-z0-9_.-]{1,40}$/;
 
+/** `adb` on PATH; on Windows, else the usual platform-tools folders (none of which is on PATH by default). */
+export function defaultAdbPath(env: NodeJS.ProcessEnv = process.env, exists: (path: string) => boolean = existsSync, platform: NodeJS.Platform = process.platform): string {
+  if (platform !== 'win32') return 'adb';
+  if ((env.PATH ?? env.Path ?? '').split(delimiter).some(dir => dir && exists(join(dir, 'adb.exe')))) return 'adb';
+  const local = env.LOCALAPPDATA;
+  const candidates = [local && join(local, 'Android', 'platform-tools', 'adb.exe'), local && join(local, 'Android', 'Sdk', 'platform-tools', 'adb.exe'), env.ANDROID_HOME && join(env.ANDROID_HOME, 'platform-tools', 'adb.exe')];
+  return candidates.find((path): path is string => !!path && exists(path)) ?? 'adb';
+}
+
 export const isWirelessSerial = (serial: string): boolean => WIRELESS_PATTERN.test(serial);
 
-/** Parses `adb devices -l`. Unknown/hostile/oversized lines are dropped, never thrown on. */
-export function parseAdbDevices(output: string): AdbDevice[] {
+/**
+ * Parses `adb devices -l`. Unknown/hostile/oversized lines are dropped, never thrown on.
+ * Windows adb never prints the usb: device path, so there a local serial that is neither
+ * wireless nor an emulator counts as a USB device.
+ */
+export function parseAdbDevices(output: string, platform: NodeJS.Platform = process.platform): AdbDevice[] {
   const devices: AdbDevice[] = [];
   const seen = new Set<string>();
   for (const raw of output.split(/\r?\n/).slice(0, 2000)) {
@@ -106,7 +121,8 @@ export function parseAdbDevices(output: string): AdbDevice[] {
     }
     const usb = attributes.get('usb');
     const model = attributes.get('model');
-    const transport = wireless ? 'wireless' : usb !== undefined && USB_PORT_PATTERN.test(usb) ? 'usb' : 'other';
+    const local = usb !== undefined ? USB_PORT_PATTERN.test(usb) : platform === 'win32' && !/^emulator-\d+$/.test(serial);
+    const transport = wireless ? 'wireless' : local ? 'usb' : 'other';
     devices.push({ serial, state, transport, ...(model !== undefined && MODEL_PATTERN.test(model) ? { model } : {}) });
     seen.add(serial);
     if (devices.length >= MAX_DEVICE_LINES) break;

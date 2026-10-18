@@ -73,7 +73,7 @@ The phone reaches the laptop only through `adb reverse` over the USB cable, so t
 
 ## Requirements
 
-- **Laptop:** Linux with GNOME and PipeWire (developed on Ubuntu with GNOME 50), Node.js 24, `adb`. Claude Code and the Codex CLI are optional; each feeds its own usage card.
+- **Laptop:** Linux with GNOME and PipeWire (developed on Ubuntu with GNOME 50), or Windows 10/11 ([docs/WINDOWS.md](docs/WINDOWS.md)). Node.js 24, `adb`. Claude Code and the Codex CLI are optional; each feeds its own usage card.
 - **Phone:** Android 10 or later with USB debugging. Developed and used on a Redmi 9A (MIUI).
 - **Lamp (optional):** an ESP32 running the RGB_Controller firmware, which provides the `Rgb_Controller` access point at `192.168.4.1`. Everything except the lamp and room readings works without it.
 
@@ -95,6 +95,8 @@ Day to day, one command runs the hub and the USB link in the background:
 ```sh
 ./phone-monitor.sh start     # also: status, logs, stop
 ```
+
+On Windows, a desktop icon starts the hub and the USB link with a tray icon; nothing starts with Windows. See [docs/WINDOWS.md](docs/WINDOWS.md).
 
 ## Privacy and security
 
@@ -131,7 +133,7 @@ Android unit tests and lint run as part of `scripts/build.mjs`. The tests use fa
 
 Version 1.1.0 is in daily use on a Redmi 9A with the RGB_Controller lamp. Known limits:
 
-- Laptop features target Linux with GNOME. The Deck's system keys rely on `wpctl`, `gsettings`, `loginctl` and the desktop screenshot portal. GNOME only allows its own tools to take silent screenshots, so the screenshot key opens the screenshot tool instead.
+- Laptop features target Linux with GNOME, and Windows with the differences listed in [docs/WINDOWS.md](docs/WINDOWS.md). On Linux, the Deck's system keys rely on `wpctl`, `gsettings`, `loginctl` and the desktop screenshot portal. GNOME only allows its own tools to take silent screenshots, so the screenshot key opens the screenshot tool instead.
 - Notifications are captured from the freedesktop `Notify` call. Apps that use GNOME's own notification API or the portal are not seen.
 - An existing custom Claude Code status line is left untouched unless you attest it is compatible (see [docs/SETUP.md](docs/SETUP.md)).
 - The phone app's package name is still `com.phonemonitor`, and the laptop config folder is `~/.config/phone-monitor`. These come from the project's original name and are kept so existing installs keep working.

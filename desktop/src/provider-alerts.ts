@@ -3,7 +3,7 @@ import { accessSync, constants, existsSync, lstatSync, mkdirSync, unlinkSync } f
 import { dirname, isAbsolute, join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { atomicWrite, ensurePrivateDirectory, readOwnedFile, readPrivateJson, withLock } from './private-files.js';
+import { atomicWrite, ensurePrivateDirectory, ownedByCurrentUser, readOwnedFile, readPrivateJson, withLock } from './private-files.js';
 import { defaultConfigDirectory } from './config.js';
 import { parseOptions } from './setup-cli.js';
 import { inspectClaudeCapture } from './claude/install.js';
@@ -33,7 +33,7 @@ async function settingsLock<T>(o:AlertInstallOptions,task:()=>Promise<T>|T):Prom
 }
 function checkAdapter(o:AlertInstallOptions):void {
  accessSync(o.nodePath,constants.X_OK);const s=lstatSync(o.adapterPath);
- if(!s.isFile()||s.isSymbolicLink()||s.uid!==process.getuid?.())throw Error('ALERT_ADAPTER_UNAVAILABLE');accessSync(o.adapterPath,constants.R_OK);
+ if(!s.isFile()||s.isSymbolicLink()||!ownedByCurrentUser(s))throw Error('ALERT_ADAPTER_UNAVAILABLE');accessSync(o.adapterPath,constants.R_OK);
 }
 export async function installClaudeAlerts(o:AlertInstallOptions):Promise<{changed:boolean}>{
  return settingsLock(o,()=>{
@@ -75,8 +75,10 @@ export async function uninstallClaudeAlerts(o:AlertInstallOptions):Promise<{chan
 }
 // Python's standard TOML parser validates only this settings document; it emits one fixed metadata word.
 // No configuration values, commands, credentials or parse-error text leave the subprocess.
+// Windows has no /usr/bin/python3; the py launcher picks the installed Python 3 (tomllib needs 3.11+).
+const PYTHON:[string,string[]]=process.platform==='win32'?['py',['-3']]:['/usr/bin/python3',[]];
 function codexHasNotify(text:string):boolean {
- const result=spawnSync('/usr/bin/python3',['-c',"import sys,tomllib; d=tomllib.loads(sys.stdin.read()); print('present' if 'notify' in d else 'absent')"],{input:text,encoding:'utf8',timeout:3000,maxBuffer:1024*1024,stdio:['pipe','pipe','ignore']});
+ const result=spawnSync(PYTHON[0],[...PYTHON[1],'-c',"import sys,tomllib; d=tomllib.loads(sys.stdin.read()); print('present' if 'notify' in d else 'absent')"],{input:text,encoding:'utf8',timeout:3000,maxBuffer:1024*1024,stdio:['pipe','pipe','ignore'],windowsHide:true});
  if(result.status!==0||!['present','absent'].includes(result.stdout.trim()))throw Error('INVALID_CODEX_CONFIG');return result.stdout.trim()==='present';
 }
 export async function installCodexAlerts(o:AlertInstallOptions):Promise<{changed:boolean}>{

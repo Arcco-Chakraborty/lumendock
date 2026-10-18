@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Windows laptops
+
+- The hub runs on Windows 10 and 11. A resident PowerShell helper reads volume, microphone, now playing and battery, and runs the Deck keys. Codex usage, the Laptop screen (CPU, memory, battery, NVIDIA GPU) and notifications from allowed apps work too. See [docs/WINDOWS.md](docs/WINDOWS.md).
+- A desktop icon (`scripts\windows\lumendock.ps1 shortcut`) opens a tray icon that starts and stops the hub and the USB link. Nothing is set to start with Windows.
+- `npm run doctor` and `connect` find `adb` in `%LOCALAPPDATA%\Android\platform-tools` when it is not on `PATH`. Windows `adb` never reports a USB port, so there a local, non-emulator serial counts as a USB phone.
+- On Windows, the Do Not Disturb key opens the notification center: Windows has no supported way for another program to switch Do Not Disturb.
+- The Windows Laptop screen shows CPU temperature (ACPI thermal zone), swap (page file) and integrated-GPU load. While no phone is watching, the hub asks Windows for Deck state every 15 seconds instead of every 2.
+
 ## 1.2.0 (2026-10-16)
 
 ### Claude usage without an open session

@@ -17,7 +17,7 @@ describe('notification allowlist persistence',()=>{
   expect(await allowNotificationApp(d,'Other App.v2')).toEqual(['SyntheticApp','Other App.v2']);
   expect(await allowNotificationApp(d,'SyntheticApp')).toEqual(['SyntheticApp','Other App.v2']);
   expect(listNotificationApps(d)).toEqual(['SyntheticApp','Other App.v2']);
-  expect(statSync(file(d)).mode&0o777).toBe(0o600);expect(statSync(d).mode&0o777).toBe(0o700);
+  if (process.platform !== 'win32') expect(statSync(file(d)).mode&0o777).toBe(0o600);if (process.platform !== 'win32') expect(statSync(d).mode&0o777).toBe(0o700);
   expect(await removeNotificationApp(d,'SyntheticApp')).toEqual(['Other App.v2']);
   expect(await removeNotificationApp(d,'Missing')).toEqual(['Other App.v2']);
   expect(readdirSync(d).filter(n=>n.startsWith('.phone-monitor-')||n.endsWith('.lock'))).toEqual([]);
@@ -46,7 +46,7 @@ describe('notification allowlist persistence',()=>{
   writeFileSync(file(d),JSON.stringify({notificationAllowlist:['ok',"bad'",5,'ok',...Array.from({length:20},(_,i)=>`A${i}`)]}));
   expect(listNotificationApps(d)).toEqual(['ok',...Array.from({length:9},(_,i)=>`A${i}`)]);
  });
- it('refuses a symlinked config file',async()=>{
+ it.skipIf(process.platform === 'win32')('refuses a symlinked config file',async()=>{
   const d=dir();const target=join(dir(),'elsewhere.json');writeFileSync(target,'{}');symlinkSync(target,file(d));
   await expect(allowNotificationApp(d,'SyntheticApp')).rejects.toThrow();expect(readFileSync(target,'utf8')).toBe('{}');
  });

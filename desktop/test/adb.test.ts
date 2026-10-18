@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AdbConnection, AdbError, maskSerial, parseAdbDevices, parseReverseList, type AdbEvent, type ProcessResult, type ProcessRunner, type TimerClock } from '../src/adb.js';
+import { AdbConnection, AdbError, defaultAdbPath, maskSerial, parseAdbDevices, parseReverseList, type AdbEvent, type ProcessResult, type ProcessRunner, type TimerClock } from '../src/adb.js';
 
 // All serials below are recognizably synthetic.
 const SERIAL = 'SYNTH0001ABCD';
@@ -55,7 +55,23 @@ const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve()
 const make = (runner = new FakeRunner(), clock = new FakeClock()) => ({ runner, clock, adb: new AdbConnection({ runner, clock, pollIntervalMs: 2000 }) });
 const code = async (promise: Promise<unknown>) => { try { await promise; } catch (e) { return (e as AdbError).code; } return 'NO_ERROR'; };
 
+describe('defaultAdbPath', () => {
+  it('keeps plain adb on Linux and finds platform-tools under LOCALAPPDATA on Windows', () => {
+    const has = (...paths: string[]) => (path: string) => paths.includes(path);
+    expect(defaultAdbPath({ LOCALAPPDATA: 'L' }, () => true, 'linux')).toBe('adb');
+    const local = require('node:path').join('L', 'Android', 'platform-tools', 'adb.exe');
+    expect(defaultAdbPath({ LOCALAPPDATA: 'L', PATH: '' }, has(local), 'win32')).toBe(local);
+    expect(defaultAdbPath({ LOCALAPPDATA: 'L', PATH: 'P' }, has(require('node:path').join('P', 'adb.exe'), local), 'win32')).toBe('adb');
+    expect(defaultAdbPath({ PATH: '' }, () => false, 'win32')).toBe('adb');
+  });
+});
 describe('parseAdbDevices', () => {
+  it('treats a local serial without a usb: path as USB only on Windows', () => {
+    const out = ['List of devices attached', `${SERIAL}\tdevice product:synth model:Synthetic_Phone device:synth transport_id:1`,
+      'emulator-5554\tdevice product:sdk', '192.0.2.10:5555\tdevice product:x'].join('\n');
+    expect(parseAdbDevices(out, 'win32').map(d => d.transport)).toEqual(['usb', 'other', 'wireless']);
+    expect(parseAdbDevices(out, 'linux').map(d => d.transport)).toEqual(['other', 'other', 'wireless']);
+  });
   it('parses usb, wireless, emulator, unauthorized and ignores hostile lines', () => {
     const out = [
       '* daemon not running; starting now at tcp:5037', '* daemon started successfully', 'List of devices attached',
@@ -264,7 +280,8 @@ describe('connection watcher', () => {
     await adb.start(SERIAL); expect(clock.timers.size).toBe(1);
     await adb.stop(); expect(clock.timers.size).toBe(0);
   });
-  it('a listed device that stops reporting a USB port never gets a mapping', async () => {
+  // Windows adb never reports a usb: path, so this Linux signal does not exist there.
+  it.skipIf(process.platform === 'win32')('a listed device that stops reporting a USB port never gets a mapping', async () => {
     const { runner, clock, adb } = make(); const ev = events();
     await adb.start(SERIAL, ev.on);
     runner.devices = listing(`${SERIAL}\tdevice product:x`); runner.reverseList = '';

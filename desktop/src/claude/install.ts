@@ -1,6 +1,6 @@
 import { accessSync, constants, existsSync, lstatSync, unlinkSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
-import { ensurePrivateDirectory, readOwnedFile, readPrivateJson, atomicWrite, withLock } from '../private-files.js';
+import { ensurePrivateDirectory, ownedByCurrentUser, readOwnedFile, readPrivateJson, atomicWrite, withLock } from '../private-files.js';
 
 export interface ClaudeCompatibility {
   claudeVersion:string;shellPath:string;shellVerified:boolean;cancellationVerified:boolean;
@@ -36,7 +36,7 @@ export function inspectClaudeCapture(configDir:string):ClaudeCaptureReadiness {
     if(!equal(settings.statusLine,record.installedStatusLine))return {state:'ownership_conflict'};
     try {
       const wrapper=lstatSync(record.wrapperPath);
-      if(!wrapper.isFile()||wrapper.isSymbolicLink()||wrapper.uid!==process.getuid?.())return {state:'unavailable'};
+      if(!wrapper.isFile()||wrapper.isSymbolicLink()||!ownedByCurrentUser(wrapper))return {state:'unavailable'};
       accessSync(record.wrapperPath,constants.R_OK);accessSync(record.nodePath,constants.X_OK);
     }catch{return {state:'unavailable'};}
     return {state:'ready'};
@@ -71,7 +71,7 @@ export function diagnoseClaudeOverrides(paths:readonly string[]):string[] {
 export async function installClaudeStatusLine(options:InstallOptions):Promise<{changed:boolean;diagnostics:string[]}> {
   for(const path of [options.settingsPath,options.wrapperPath,options.configDir,options.nodePath])if(!isAbsolute(path)||path.includes('\0'))throw Error('ABSOLUTE_PATH_REQUIRED');
   accessSync(options.nodePath,constants.X_OK);
-  try{const wrapper=lstatSync(options.wrapperPath);if(!wrapper.isFile()||wrapper.isSymbolicLink()||wrapper.uid!==process.getuid?.())throw Error();accessSync(options.wrapperPath,constants.R_OK);}catch{throw Error('WRAPPER_UNAVAILABLE');}
+  try{const wrapper=lstatSync(options.wrapperPath);if(!wrapper.isFile()||wrapper.isSymbolicLink()||!ownedByCurrentUser(wrapper))throw Error();accessSync(options.wrapperPath,constants.R_OK);}catch{throw Error('WRAPPER_UNAVAILABLE');}
   ensurePrivateDirectory(options.configDir);
   return withLock(join(options.configDir,'claude-installer.lock'),()=>withLock(`${options.settingsPath}.phone-monitor.lock`,()=>{
     const bytes=existsSync(options.settingsPath)?readOwnedFile(options.settingsPath,1024*1024):null;

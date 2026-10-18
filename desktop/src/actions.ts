@@ -1,5 +1,6 @@
 import { exec, spawn } from 'node:child_process';
 import { execRunner, type HostRunner } from './collectors/host.js';
+import { executeWindowsAction } from './win/actions.js';
 
 export const SUPPORTED_ACTIONS = [
   'open_claude',
@@ -70,6 +71,7 @@ export async function systemAction(action: string, run: HostRunner = execRunner)
 }
 
 export function executeAction(action: string): Promise<{ success: boolean; message?: string }> {
+  if (process.platform === 'win32') return executeWindowsAction(action);
   return new Promise((resolve) => {
     switch (action) {
       case 'open_claude':

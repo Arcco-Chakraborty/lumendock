@@ -141,7 +141,8 @@ describe("frontend verification", () => {
     frontend(root, { css: '@import url("//cdn.invalid/a.css");' });
     expect(message(() => inspectFrontend(join(root, "dashboard/dist")))).toMatch(/protocol-relative/);
   });
-  it("rejects source maps and symbolic links", () => {
+  // Creating a symlink needs admin or Developer Mode on Windows.
+  it.skipIf(process.platform === "win32")("rejects source maps and symbolic links", () => {
     const root = temp();
     frontend(root);
     put(root, "dashboard/dist/assets/a.js.map", "{}");

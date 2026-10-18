@@ -43,8 +43,8 @@ describe('setup-only atomic pairing', () => {
     const replacement = pairing.exchange(code,1).token;
     expect(store.matchesBearer(`Bearer ${old}`)).toBe(false);
     expect(new TokenStore(store.directory).read()).toBe(replacement);
-    expect(statSync(store.directory).mode & 0o777).toBe(0o700);
-    expect(statSync(join(store.directory,'phone-token')).mode & 0o777).toBe(0o600);
+    if (process.platform !== 'win32') expect(statSync(store.directory).mode & 0o777).toBe(0o700);
+    if (process.platform !== 'win32') expect(statSync(join(store.directory,'phone-token')).mode & 0o777).toBe(0o600);
     expect(readFileSync(join(store.directory,'phone-token'),'utf8').trim()).toBe(replacement);
   });
   it('preserves the old token if replacement persistence fails', () => {

@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process';
-import { HostStateSchema, type HostMedia, type HostState } from '@phone-monitor/protocol';
+import { HostStateSchema, type HostMedia, type HostState, type HostVitals } from '@phone-monitor/protocol';
 import type { HubStore } from '../store.js';
-import type { VitalsReader } from './vitals.js';
 
 /** Runs a fixed command without a shell and resolves its stdout; rejects on failure. */
 export type HostRunner = (command: string, args: string[]) => Promise<string>;
@@ -65,7 +64,9 @@ export async function readHostState(run: HostRunner): Promise<HostState> {
 export interface HostCollectorOptions {
   store: HubStore; run?: HostRunner; intervalMs?: number;
   /** Laptop vitals, sampled only while `active()` says the phone is watching. */
-  vitals?: {reader: VitalsReader; active: () => boolean};
+  vitals?: {reader: {read(): Promise<HostVitals>}; active: () => boolean};
+  /** Replaces the Linux tool reads (Windows uses its resident helper). */
+  readState?: () => Promise<HostState>;
 }
 /** Polls laptop media/audio/notification state for the Deck. */
 export class HostCollector {
@@ -77,7 +78,7 @@ export class HostCollector {
     if (this.busy) return;
     this.busy = true;
     try {
-      const state = await readHostState(this.run);
+      const state = await (this.options.readState ?? (() => readHostState(this.run)))();
       const vitals = this.options.vitals;
       if (vitals?.active()) state.vitals = await vitals.reader.read().catch(() => null);
       this.options.store.setHost(state);

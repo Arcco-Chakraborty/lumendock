@@ -50,7 +50,7 @@ describe('Claude report classification',()=>{
   const raw=readFileSync(join(dir,'claude-observations.json'),'utf8');
   expect(Object.keys(JSON.parse(raw).sessions)).toHaveLength(32);
   expect(raw).not.toContain('synthetic-');
-  expect(statSync(join(dir,'claude-observations.json')).mode&0o777).toBe(0o600);
+  if (process.platform !== 'win32') expect(statSync(join(dir,'claude-observations.json')).mode&0o777).toBe(0o600);
  });
  it('serializes only public whitelist data and preserves reload time',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'phone-monitor-private-'));

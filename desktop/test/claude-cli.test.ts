@@ -43,7 +43,7 @@ describe('claude-install / claude-uninstall commands',()=>{
   expect(o.read()).toBe(before);expect(o.err.join('\n')).not.toContain('secret-existing-command');
   expect(o.err.length).toBe(4);
  });
- it('accepts an existing command only with every explicit attestation and restores it on uninstall',async()=>{
+ it.skipIf(process.platform === 'win32')('accepts an existing command only with every explicit attestation and restores it on uninstall',async()=>{
   const original={statusLine:{type:'command',command:'echo hi',padding:1}};const o=setup(original);
   expect(await runClaudeInstallCommand(attest,o.deps)).toBe(0);expect(JSON.parse(o.read()).statusLine.command).toContain('exec ');
   expect(await runClaudeUninstallCommand([],o.deps)).toBe(0);expect(JSON.parse(o.read())).toEqual(original);
@@ -78,7 +78,7 @@ describe('claude-install / claude-uninstall commands',()=>{
   expect(await runClaudeInstallCommand(['--settings',nested],o.deps)).toBe(0);
   expect(JSON.parse(readFileSync(nested,'utf8')).statusLine.command).toContain('exec ');
  });
- it('dry run and install both refuse a symlinked settings file with a clear message',async()=>{
+ it.skipIf(process.platform === 'win32')('dry run and install both refuse a symlinked settings file with a clear message',async()=>{
   const o=setup(null);const real=join(o.dir,'real-settings.json');writeFileSync(real,JSON.stringify({unrelated:1}));
   symlinkSync(real,o.settingsPath);
   expect(await runClaudeInstallCommand(['--dry-run'],o.deps)).toBe(1);
