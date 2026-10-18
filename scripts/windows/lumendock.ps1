@@ -48,7 +48,16 @@ function Hide-Serial([string]$value) { if ($value.Length -le 4) { '****' } else 
 function Start-AdbServer([string]$adb) {
   $client = New-Object System.Net.Sockets.TcpClient
   try { $listening = $client.ConnectAsync('127.0.0.1', 5037).Wait(400) -and $client.Connected } catch { $listening = $false } finally { $client.Close() }
-  if (-not $listening) { Start-Process -FilePath $adb -ArgumentList 'start-server' -WindowStyle Hidden -Wait }
+  if (-not $listening) {
+    # Not Start-Process -Wait: in Windows PowerShell it also waits for the processes the command
+    # starts, i.e. the adb server itself, which never exits; that froze the tray on a fresh boot.
+    # ShellExecute passes no handles, and WaitForExit waits for the `adb start-server` client only.
+    $info = New-Object System.Diagnostics.ProcessStartInfo($adb, 'start-server')
+    $info.UseShellExecute = $true
+    $info.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+    $client = [System.Diagnostics.Process]::Start($info)
+    $null = $client.WaitForExit(20000)
+  }
 }
 
 # adb's stdout lines; its stderr (e.g. "no devices/emulators found") is dropped instead of becoming

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-10-16",
   "timezone": "Asia/Kolkata",
-  "phase": "released_v1.3.0",
+  "phase": "released_v1.3.1",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -24,7 +24,7 @@
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "None; v1.3.0 released (Windows + Ubuntu desktop bundles, fresh-boot adb fix)",
+  "activeTask": "None; v1.3.1 released (Windows tray fresh-boot hang fix)",
   "nextAction": "Optional: formal device-acceptance rows; observe lamp pulse on the strip and Claude polling expired-token fallback",
   "implementationTasks": {
     "D1": "complete",
@@ -235,5 +235,5 @@
     "uiDesign": "dashboard/evidence/astra-redesign/design.md",
     "uiBaselineSha": "a544fa1"
   },
-  "version": "1.3.0"
+  "version": "1.3.1"
 }

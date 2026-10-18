@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1 (2026-10-18)
+
+- Fixed: on Windows, opening LumenDock after a fresh boot started the hub but never linked the phone, so it could not connect or pair. The tray waited for the adb server it had just started, which never exits (Windows PowerShell's `Start-Process -Wait` also waits for the processes a command starts). It now waits only for `adb start-server` itself; the phone links within about 10 seconds of opening LumenDock.
+
 ## 1.3.0 (2026-10-18)
 
 ### Desktop apps for Windows and Ubuntu
