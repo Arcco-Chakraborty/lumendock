@@ -5,8 +5,8 @@ import { LIMITS, UsageSourceSchema, type UsageSource, type UsageWindow, type Err
 import type { HubStore } from '../store.js';
 import type { Observation } from './claude.js';
 
-// Protocol shape verified with this installed binary's generate-ts output.
-export const CODEX_COMPATIBLE_VERSION='codex-cli 0.162.0-alpha.17.2';
+// No binary-version gate: Codex auto-updates, and the protocol is checked per payload instead.
+// normalizeCodex rejects any shape it does not recognise (BAD_PAYLOAD), so a breaking change fails closed.
 const MESSAGE_BYTES=256*1024;
 type ObjectValue=Record<string,unknown>;
 const object=(v:unknown):ObjectValue=>v!==null&&typeof v==='object'&&!Array.isArray(v)?v as ObjectValue:{};
@@ -59,8 +59,7 @@ export class CodexCollector {
     try {
       const version=await (this.options.verifyVersion??(()=>new Promise<string>((resolve,reject)=>execFile(this.options.codexPath??'codex',['--version'],{timeout:10000,maxBuffer:4096},(error,out)=>error?reject(error):resolve(out.trim())))))();
       if(!this.running||generation!==this.generation)return;
-      if(version.trim()!==CODEX_COMPATIBLE_VERSION){this.verified=false;this.state('unsupported','UNSUPPORTED_SOURCE');return;}
-      this.verified=true;this.connect();
+      void version;this.verified=true;this.connect();
     } catch {if(this.running&&generation===this.generation){this.verified=false;this.state('error','SOURCE_UNAVAILABLE');this.scheduleRestart();}}
     finally{if(this.probing===generation)this.probing=null;}
   }

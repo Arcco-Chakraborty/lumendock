@@ -1,5 +1,4 @@
 import { AdbError, ensureAdbServer, maskSerial, parseAdbDevices, selectDevice, nodeRunner, type ProcessRunner } from './adb.js';
-import { CODEX_COMPATIBLE_VERSION } from './collectors/codex.js';
 
 // Read-only environment report. Shareable output never contains device serials
 // (masked unless showSerial), account identities, tokens or filesystem paths.
@@ -66,11 +65,9 @@ export async function runDoctor(input: DoctorInput): Promise<DoctorReport> {
   const claudeVersion = firstMatch(await probe(runner, 'claude', ['--version']), /(\d+\.\d+\.\d+)/);
   checks.push({ id: 'claude', label: 'Claude Code', status: claudeVersion ? 'ok' : 'warn', ...(claudeVersion ? { version: claudeVersion } : { detail: 'Not found; Claude usage will show as unavailable.' }) });
   const codexVersion = firstMatch(await probe(runner, input.codexPath ?? 'codex', ['--version']), /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/);
-  const codexCompatible = codexVersion !== null && CODEX_COMPATIBLE_VERSION.endsWith(codexVersion);
   checks.push({
     id: 'codex', label: 'Codex CLI', status: codexVersion ? 'ok' : 'warn',
-    ...(codexVersion ? { version: codexVersion } : { detail: 'Not found on PATH, in config.json codexPath, PHONE_MONITOR_CODEX or the VS Code extension; Codex usage will show as unavailable.' }),
-    ...(codexVersion && !codexCompatible ? { detail: 'Differs from the verified version; the collector may report the data source as unsupported.' } : {})
+    ...(codexVersion ? { version: codexVersion } : { detail: 'Not found on PATH, in config.json codexPath, PHONE_MONITOR_CODEX or the VS Code extension; Codex usage will show as unavailable.' })
   });
   checks.push({ id: 'hub-build', label: 'Desktop hub build', status: input.artifacts.hub ? 'ok' : 'warn', ...(input.artifacts.hub ? {} : { detail: 'Run npm ci && npm run build.' }) });
   checks.push({ id: 'apk-build', label: 'Android debug APK', status: input.artifacts.apk ? 'ok' : 'warn', ...(input.artifacts.apk ? {} : { detail: 'Not built yet (optional for laptop-only checks).' }) });

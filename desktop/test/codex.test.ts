@@ -43,11 +43,27 @@ describe('Codex normalization and read-only lifecycle',()=>{
   child.stdout.write('{"id":"3","result":{}}\n');
   await c.stop();expect(child.killed).toBe(true);
  });
- it('reports auth-required without issuing quota reads and rejects unsupported versions',async()=>{
+ it('reports auth-required without issuing quota reads',async()=>{
   const child=new FakeChild('auth');const store=new HubStore();const c=new CodexCollector({store,spawn:()=>child as any,verifyVersion:async()=> 'codex-cli 0.162.0-alpha.17.2'});
   await c.start();await vi.waitFor(()=>expect(store.snapshot(Date.now()).usage.codex.state).toBe('auth_required'));
   expect(child.requests.map(r=>r.method)).toEqual(['initialize','initialized','account/read']);await c.stop();
-  const c2=new CodexCollector({store,spawn:()=>{throw Error('must not spawn');},verifyVersion:async()=> 'unknown'});await c2.start();expect(store.snapshot(Date.now()).usage.codex.state).toBe('unsupported');await c2.stop();
+ });
+ it('does not gate on the binary version, so a Codex auto-update keeps working',async()=>{
+  for(const version of ['codex-cli 0.162.0-alpha.17.2','codex-cli 0.164.0-alpha.11.1','codex-cli 0.999.0']){
+   const child=new FakeChild();const store=new HubStore();const c=new CodexCollector({store,spawn:()=>child as any,verifyVersion:async()=>version,nowMs:()=>1000});
+   await c.start();await vi.waitFor(()=>expect(store.snapshot(1000).usage.codex.state).toBe('available'),{timeout:2000});await c.stop();
+  }
+ });
+ it('fails closed with a payload error when a newer Codex changes the rate-limit shape',async()=>{
+  const child=new FakeChild();const store=new HubStore();const c=new CodexCollector({store,spawn:()=>child as any,verifyVersion:async()=>'codex-cli 0.999.0',nowMs:()=>1000});
+  await c.start();await vi.waitFor(()=>expect(store.snapshot(1000).usage.codex.state).toBe('available'));
+  child.stdout.write(JSON.stringify({method:'account/rateLimits/updated',params:{rateLimits:{limitId:'codex',primary:{usedPercent:'12%',windowDurationMins:300,resetsAt:1900000000}}}})+'\n');
+  await vi.waitFor(()=>expect(store.snapshot(1000).usage.codex.errorCode).toBe('BAD_PAYLOAD'));await c.stop();
+ });
+ it('normalizes the 0.164 rate-limit payload, which adds credits and plan fields',()=>{
+  const bucket={limitId:'codex',limitName:null,normalModelSlug:null,primary:{usedPercent:12,windowDurationMins:300,resetsAt:1900000000},secondary:{usedPercent:40,windowDurationMins:10080,resetsAt:1900500000},credits:{hasCredits:true,unlimited:false,balance:'0'},individualLimit:null,spendControlReached:false,planType:'plus',rateLimitReachedType:null};
+  const p=normalizeCodex({ordinaryUsageAllowed:true,rateLimits:bucket,rateLimitsByLimitId:{codex:bucket},rateLimitResetCredits:{availableCount:0,credits:[]},accountId:'x'},{nowMs:1000,lastSuccessMs:1000});
+  expect(p.windows.map(w=>[w.bucketId,w.windowId,w.usedPercent,w.windowDurationMins])).toEqual([['codex','primary',12,300],['codex','secondary',40,10080]]);
  });
  it('times out handshakes and bounds malformed/oversized lines with sanitized state',async()=>{
   vi.useFakeTimers();const child=new FakeChild('timeout');const store=new HubStore();const c=new CodexCollector({store,spawn:()=>child as any,verifyVersion:async()=> 'codex-cli 0.162.0-alpha.17.2'});
