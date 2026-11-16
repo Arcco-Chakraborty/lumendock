@@ -1,5 +1,5 @@
-import { useRef, useState, useSyncExternalStore } from "react";
-import type { SetupState } from "@phone-monitor/protocol";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { PhoneHubStatus, SetupState } from "@phone-monitor/protocol";
 import type { DeviceAdapter } from "../device.js";
 import { DeviceError } from "../device.js";
 import type { DashboardStore } from "../store.js";
@@ -41,6 +41,16 @@ export function SettingsSheet({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
   const app = snapshot.app;
+  const [phoneHub, setPhoneHub] = useState<PhoneHubStatus | null>(null);
+  const [phoneHubSupported, setPhoneHubSupported] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!nativeAvailable || !adapter) return;
+    void adapter.request("app.phoneHubStatus").then(status => {
+      if (live) { setPhoneHub(status); setPhoneHubSupported(true); }
+    }).catch(() => { if (live) setPhoneHubSupported(false); });
+    return () => { live = false; };
+  }, [adapter, nativeAvailable]);
   // Brightness is latest-wins: the slider stays enabled while dragging, at most one write is in flight,
   // and only the newest value is sent next, so a drag is never reset by a pending reply.
   const [draft, setDraft] = useState<number | null>(null);
@@ -114,6 +124,17 @@ export function SettingsSheet({
           Open Wi-Fi settings
         </button>
       </div>
+      <section aria-label="Phone hub">
+        <h3>Phone hub</h3>
+        <p className="muted">Run Calendar and local device commands on this phone while LumenDock is open.</p>
+        {phoneHub && <p role="status">Calendar: {phoneHub.calendarBackend === "phone" ? "this phone" : "laptop"}. Local hub: {phoneHub.iot.running ? "running" : "stopped"}.</p>}
+        {phoneHubSupported === false && <p className="muted">Phone hub setup requires a newer LumenDock app.</p>}
+        <button disabled={!nativeAvailable || !adapter || busy || setupBusy || phoneHubSupported !== true}
+          onClick={() => void run(async () => {
+            const result = await adapter!.request("app.configurePhoneHub");
+            if (!result.opened) throw new Error("SETUP_BUSY");
+          })}>Set up phone hub</button>
+      </section>
       {app && (
         <>
           <div role="status">

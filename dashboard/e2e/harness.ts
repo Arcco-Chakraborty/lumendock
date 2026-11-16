@@ -1,5 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
-import { resolve } from "node:path";
+import { resolve, relative, dirname } from "node:path";
+import { mkdirSync } from "node:fs";
 
 export { expect };
 export const evidence = (name: string) =>
@@ -15,6 +16,19 @@ export const test = base.extend<{
 }>({
   watch: [
     async ({ page }, use) => {
+      // Opt in to a separate evidence tree when rerunning legacy suites.
+      const evidenceRoot = process.env.PHONE_MONITOR_EVIDENCE_DIR;
+      if (evidenceRoot) {
+        const screenshot = page.screenshot.bind(page);
+        page.screenshot = (options = {}) => {
+          if (options.path) {
+            const path = resolve(evidenceRoot, relative(resolve(import.meta.dirname, "..", "evidence"), resolve(options.path)));
+            mkdirSync(dirname(path), { recursive: true });
+            return screenshot({ ...options, path });
+          }
+          return screenshot(options);
+        };
+      }
       const watch = {
         errors: [] as string[],
         remote: [] as string[],

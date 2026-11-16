@@ -17,8 +17,8 @@ android {
         applicationId = "com.phonemonitor"
         minSdk = 29
         targetSdk = 36
-        versionCode = 120
-        versionName = "1.2.0"
+        versionCode = 132
+        versionName = "1.3.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     sourceSets {
@@ -55,6 +55,7 @@ tasks.configureEach { if (name.matches(Regex("merge.*Assets"))) dependsOn(verify
 dependencies {
     implementation(libs.webkit)
     implementation(libs.gson)
+    implementation(libs.google.auth)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.core)

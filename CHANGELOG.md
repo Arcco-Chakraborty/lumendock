@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2 (2026-10-18)
+
+- Fixed: on Ubuntu the LumenDock launcher from 1.3.0 and 1.3.1 did nothing. `phone-monitor.sh tray` looked for the tray script next to itself instead of in `scripts/`. The installer `scripts/linux/install-desktop.sh` is also executable again in a source checkout.
+- The phone now says where the pairing code comes from: the **Not paired** card and the pairing dialog tell you to click the LumenDock icon on the laptop and choose **Pair phone**. The Linux tray item now reads **Pair phone…**, the same as on Windows.
+- Android app 1.3.2 (first Android update since 1.2.0).
+
 ## 1.3.1 (2026-10-18)
 
 - Fixed: on Windows, opening LumenDock after a fresh boot started the hub but never linked the phone, so it could not connect or pair. The tray waited for the adb server it had just started, which never exits (Windows PowerShell's `Start-Process -Wait` also waits for the processes a command starts). It now waits only for `adb start-server` itself; the phone links within about 10 seconds of opening LumenDock.

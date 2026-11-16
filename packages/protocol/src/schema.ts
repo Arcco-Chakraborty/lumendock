@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CalendarErrorCodeSchema, CalendarRangeRequestSchema, CalendarSourcesRequestSchema, CalendarSelectRequestSchema, CalendarPageSchema, CalendarSourcesPageSchema, CalendarSelectReplySchema } from './calendar.js';
 
 export const LIMITS = Object.freeze({bridgeBytes:16*1024,hubBytes:256*1024,espBytes:64*1024,claudeWindows:2,codexWindows:62,notifications:100,notificationTtlMs:30*60*1000,claudeStaleMs:300000,codexStaleMs:120000,laptopStaleMs:6000,espStaleMs:9000});
 const bounded = (max: number) => z.string().refine(value => [...value].length <= max, 'String exceeds code-point budget');
@@ -17,6 +18,7 @@ export const ErrorCodeSchema = z.enum([
   'SOURCE_CAPACITY_EXCEEDED','SOURCE_UNAVAILABLE','SETUP_BUSY','BAD_GENERATION',
   'REQUEST_TIMEOUT','BRIDGE_UNAVAILABLE','SESSION_ENDED','QUEUE_FULL',
   'NOTIFICATION_MONITOR_UNAVAILABLE','UNSUPPORTED_SOURCE','HUB_UNAVAILABLE',
+  ...CalendarErrorCodeSchema.options,
 ]);
 const errorCode = ErrorCodeSchema.nullable();
 export function withByteBudget<T extends z.ZodType>(schema: T, bytes: number) {
@@ -93,6 +95,8 @@ export function LinkSnapshotSchema<T extends z.ZodType>(data: T): z.ZodType<Link
   return linkObject(data).refine(link => Reflect.get(link,'data') === null || link.ageMs !== null,'Cached payload requires age') as unknown as z.ZodType<LinkSnapshot<z.output<T>>>;
 }
 export const HubLinkSnapshotSchema = LinkSnapshotSchema(HubSnapshotSchema);
+export const CalendarLinkSnapshotSchema = LinkSnapshotSchema(CalendarPageSchema);
+export const CalendarSourcesLinkSnapshotSchema = LinkSnapshotSchema(CalendarSourcesPageSchema);
 export const EspHistoryLinkSnapshotSchema = LinkSnapshotSchema(EspHistorySchema);
 export const EspSnapshotSchema = withByteBudget(linkObject(EspStateSchema).extend({commands:z.strictObject({state:CommandResultSchema.nullable(),timer:CommandResultSchema.nullable()})}).refine(s => s.data === null || s.ageMs !== null,'Cached payload requires age').refine(s => (s.commands.state === null || s.commands.state.kind === 'state') && (s.commands.timer === null || s.commands.timer.kind === 'timer'),'Command kind mismatch'),LIMITS.espBytes);
 export const PairResultSchema = z.strictObject({paired:z.boolean()});
@@ -101,17 +105,37 @@ export const SetupResultSchema = z.strictObject({setupId:identifier,started:z.bo
 export const AppStatusSchema = z.strictObject({paired:z.boolean(),webViewSupported:z.boolean(),wifiMode:z.enum(['none','app_request','manual']),setup:z.strictObject({hub:SetupStateSchema,esp:SetupStateSchema}),screenOn:z.boolean(),brightness,nextCommandGeneration:generation}).refine(s => !(s.setup.hub.state === 'in_progress' && s.setup.esp.state === 'in_progress'),'Competing setup flows');
 export const ScreenSettingsResultSchema = z.strictObject({screenOn:z.boolean(),brightness});
 export const WifiSettingsResultSchema = z.strictObject({opened:z.boolean()});
+const localHubAddress = z.string().refine(value => {
+  const parts = value.split('.');
+  if (parts.length !== 4 || parts.some(part => !/^(0|[1-9][0-9]{0,2})$/.test(part) || Number(part) > 255)) return false;
+  const [a,b] = parts.map(Number);
+  return a === 10 || (a === 172 && b! >= 16 && b! <= 31) || (a === 192 && b === 168);
+}, 'Expected private IPv4 address');
+export const PhoneHubStatusSchema = z.strictObject({
+  calendarBackend:z.enum(['desktop','phone']),
+  calendarAuth:z.enum(['disconnected','ready','auth_required','unavailable']),
+  revision:generation,
+  iot:z.strictObject({running:z.boolean(),bindAddress:localHubAddress.nullable(),port:z.literal(8787),deviceCount:safeInt.max(8),selectedDeviceId:z.string().max(80).regex(/^[A-Za-z0-9_-]+$/).nullable()})
+    .refine(value => !value.running || value.bindAddress !== null, 'Running listener requires exact local address'),
+});
 export const ActionReplySchema = z.strictObject({success:z.boolean(),message:bounded(100).optional()});
 const emptyArgs = z.strictObject({});
 export const BridgeArgsSchemas = {
   'hub.snapshot':emptyArgs,'esp.state':emptyArgs,'esp.history':emptyArgs,
+  'hub.calendar':CalendarRangeRequestSchema,'hub.calendarSources':CalendarSourcesRequestSchema,'hub.calendarSelect':CalendarSelectRequestSchema,
   'esp.set':z.strictObject({patch:LightPatchSchema,generation}),
   'hub.action':z.strictObject({action:identifier}),
   'app.status':emptyArgs,'app.setupHub':emptyArgs,'app.connectEsp':emptyArgs,'app.openWifiSettings':emptyArgs,
+  'app.phoneHubStatus':emptyArgs,'app.configurePhoneHub':emptyArgs,
   'app.setScreenOn':z.strictObject({enabled:z.boolean()}),'app.setBrightness':z.strictObject({value:brightness}),
 } as const;
 export const BridgeOpSchema = z.enum(Object.keys(BridgeArgsSchemas) as [keyof typeof BridgeArgsSchemas,...(keyof typeof BridgeArgsSchemas)[]]);
 export const BridgeRequestSchema = withByteBudget(z.discriminatedUnion('op',[
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.phoneHubStatus'),args:BridgeArgsSchemas['app.phoneHubStatus']}),
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.configurePhoneHub'),args:BridgeArgsSchemas['app.configurePhoneHub']}),
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('hub.calendar'),args:BridgeArgsSchemas['hub.calendar']}),
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('hub.calendarSources'),args:BridgeArgsSchemas['hub.calendarSources']}),
+  z.strictObject({v:z.literal(1),id:identifier,op:z.literal('hub.calendarSelect'),args:BridgeArgsSchemas['hub.calendarSelect']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('hub.snapshot'),args:BridgeArgsSchemas['hub.snapshot']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('esp.state'),args:BridgeArgsSchemas['esp.state']}),
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('esp.history'),args:BridgeArgsSchemas['esp.history']}),
@@ -125,6 +149,8 @@ export const BridgeRequestSchema = withByteBudget(z.discriminatedUnion('op',[
   z.strictObject({v:z.literal(1),id:identifier,op:z.literal('app.setBrightness'),args:BridgeArgsSchemas['app.setBrightness']}),
 ]),LIMITS.bridgeBytes);
 export const BridgeReplyDataSchemas = {
+  'app.phoneHubStatus':PhoneHubStatusSchema,'app.configurePhoneHub':WifiSettingsResultSchema,
+  'hub.calendar':CalendarLinkSnapshotSchema,'hub.calendarSources':CalendarSourcesLinkSnapshotSchema,'hub.calendarSelect':CalendarSelectReplySchema,
   'hub.snapshot':HubLinkSnapshotSchema,'esp.state':EspSnapshotSchema,'esp.history':EspHistoryLinkSnapshotSchema,'esp.set':CommandResultSchema,
   'hub.action':ActionReplySchema,
   'app.status':AppStatusSchema,'app.setupHub':SetupResultSchema,'app.connectEsp':SetupResultSchema,'app.openWifiSettings':WifiSettingsResultSchema,'app.setScreenOn':ScreenSettingsResultSchema,'app.setBrightness':ScreenSettingsResultSchema,
@@ -137,7 +163,7 @@ export function BridgeReplySchemaFor<O extends keyof typeof BridgeReplyDataSchem
   ]);
 }
 export const BridgeReplySchema = z.discriminatedUnion('ok',[
-  z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(true),data:z.union([HubLinkSnapshotSchema,EspSnapshotSchema,EspHistoryLinkSnapshotSchema,CommandResultSchema,ActionReplySchema,AppStatusSchema,SetupResultSchema,WifiSettingsResultSchema,ScreenSettingsResultSchema])}),
+  z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(true),data:z.union([PhoneHubStatusSchema,CalendarLinkSnapshotSchema,CalendarSourcesLinkSnapshotSchema,CalendarSelectReplySchema,HubLinkSnapshotSchema,EspSnapshotSchema,EspHistoryLinkSnapshotSchema,CommandResultSchema,ActionReplySchema,AppStatusSchema,SetupResultSchema,WifiSettingsResultSchema,ScreenSettingsResultSchema])}),
   z.strictObject({v:z.literal(1),id:identifier,ok:z.literal(false),error:bridgeError}),
 ]);
 export const PairRequestSchema = z.strictObject({code:z.string().regex(/^\d{8}$/)});
@@ -161,6 +187,7 @@ export type PairResult = z.infer<typeof PairResultSchema>;
 export type SetupState = z.infer<typeof SetupStateSchema>;
 export type SetupResult = z.infer<typeof SetupResultSchema>;
 export type AppStatus = z.infer<typeof AppStatusSchema>;
+export type PhoneHubStatus = z.infer<typeof PhoneHubStatusSchema>;
 export type BridgeOp = z.infer<typeof BridgeOpSchema>;
 export type BridgeRequest = z.infer<typeof BridgeRequestSchema>;
 export type BridgeReply = z.infer<typeof BridgeReplySchema>;

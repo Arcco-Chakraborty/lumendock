@@ -17,3 +17,6 @@ local.properties
 .env.*
 !.env.example
 *.log
+
+# Local UI evidence may contain private device captures.
+dashboard/evidence/

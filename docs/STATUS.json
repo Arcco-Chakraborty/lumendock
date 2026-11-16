@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "updatedOn": "2026-10-16",
+  "updatedOn": "2026-11-16",
   "timezone": "Asia/Kolkata",
-  "phase": "released_v1.3.1",
+  "phase": "calendar_recovery_publication",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -12,20 +12,20 @@
   },
   "git": {
     "initialized": true,
-    "executionRoot": "~/.codex/worktrees/phone-monitor-build/Phone_monitor",
+    "executionRoot": "/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor",
     "branch": null,
-    "baselineSha": "6501f489651816ab77dc6d45f3e20f0e8af2f0cd",
+    "baselineSha": "e59d312b0a27c9a3e8b658c34993a22a3be5645b",
     "remoteUrl": "https://github.com/Arcco-Chakraborty/lumendock.git",
     "remoteVisibility": "public",
     "remoteBranch": "main",
     "lastPushedSha": "e85a5f19f9232196b0085b5771b7c50356bd7a5f"
   },
-  "softwareVerified": true,
+  "softwareVerified": false,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "None; v1.3.1 released (Windows tray fresh-boot hang fix)",
-  "nextAction": "Optional: formal device-acceptance rows; observe lamp pulse on the strip and Claude polling expired-token fallback",
+  "activeTask": "Calendar repair and latest source publication for Windows",
+  "nextAction": "Preserve incomplete offload WIP separately, isolate stable Calendar/Clock snapshot, verify/review and push; locate reusable Google Desktop OAuth client without reading credentials.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -56,7 +56,10 @@
     "planningReview": "docs/reviews/2026-10-14-planning-review.md",
     "resolution": "docs/reviews/2026-10-14-planning-resolution.md",
     "coordination": "docs/COORDINATION.md",
-    "currentRevision": "docs/REDESIGN.md"
+    "currentRevision": "docs/REDESIGN.md",
+    "clockRepairCompletion": "docs/reports/2026-10-24-desk-clock-repair.md",
+    "clockSpaceRepairCompletion": "docs/reports/2026-10-24-clock-space-repair.md",
+    "clockMenuRefinementCompletion": "docs/reports/2026-10-24-clock-menu-refinement.md"
   },
   "hardwarePolicy": "software_first; device acceptance deferred by user",
   "parallelOwnership": {
@@ -235,5 +238,427 @@
     "uiDesign": "dashboard/evidence/astra-redesign/design.md",
     "uiBaselineSha": "a544fa1"
   },
-  "version": "1.3.1"
+  "version": "1.3.1",
+  "calendarFeature": {
+    "requestedOn": "2026-10-21",
+    "request": "Google Calendar agenda section; all events with labels; mockup requested",
+    "phase": "calendar_connected_awaiting_selection_and_device_acceptance",
+    "planUserApproved": true,
+    "implementationStarted": true,
+    "executionRoot": "/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor",
+    "baselineSha": "8e8ddccd73dcc05ed673f1aabbf9a3048cca5d71",
+    "baselineDirty": true,
+    "design": "docs/superpowers/specs/2026-10-21-calendar-agenda-design.md",
+    "review": "docs/reviews/2026-10-21-calendar-design-review.md",
+    "mockup": "/home/arcco-chakraborty/.codex/visualizations/2026/10/21/01a15eee-5192-7441-96d4-edee078b6f76/lumendock-agenda.html",
+    "designReview": {
+      "model": "gpt-6-astra",
+      "reasoningEffort": "high",
+      "verdict": "suitable_for_user_review",
+      "initialFindings": 3,
+      "unresolvedFindings": 0
+    },
+    "softwareVerified": true,
+    "deviceAccepted": false,
+    "accountConnected": true,
+    "mockupChecks": "Chrome preview: Today/week, calendar filtering, details, dock collapse/restore and both layouts passed; no horizontal overflow at viewport widths 800, 740, 360 and 320; zero page errors. These are mockup checks, not product tests.",
+    "openPrerequisites": [
+      "Authenticated label-read validation using human-provided synthetic events",
+      "Physical Redmi 9A USB + ESP32 Wi-Fi acceptance with artifacts/lumendock-1.3.2.apk",
+      "Codex gpt-6-astra (high) final review if strict Codex model alias execution is required beyond the Antigravity whole-feature review"
+    ],
+    "nextAction": "Open Agenda -> Calendars on the phone, review the three readable calendars, then tap Apply calendars. Verify actual event sync and physical acceptance; no event import is claimed until selection is applied.",
+    "designApprovedOn": "2026-10-21",
+    "approvalEvidence": "User replied good works to the design/mockup and build question",
+    "plan": "docs/superpowers/plans/2026-10-21-calendar-agenda.md",
+    "planReview": {
+      "model": "gpt-6-astra",
+      "reasoningEffort": "high",
+      "verdict": "approved_for_execution",
+      "report": "docs/reviews/2026-10-21-calendar-plan-review.md",
+      "initialFindings": 4,
+      "unresolvedFindings": 0
+    },
+    "tasks": {
+      "C1": "complete_review_clean",
+      "C2": "complete_review_clean",
+      "C3": "complete_review_clean",
+      "C4": "complete_review_clean",
+      "C5": "complete_review_clean"
+    },
+    "baselineChecks": {
+      "protocol": 19,
+      "desktop": 254,
+      "dashboard": 127,
+      "typecheck": "passed"
+    },
+    "protocolChecks": {
+      "tests": 60,
+      "typecheck": "passed",
+      "build": "passed",
+      "existingHubSnapshot": "unchanged"
+    },
+    "protocolReport": "docs/reports/C1-calendar-protocol.md",
+    "protocolReview": {
+      "spec": "compliant",
+      "quality": "approved",
+      "report": "docs/reviews/C1-calendar-protocol-review.md"
+    },
+    "androidChecks": {
+      "suites": 18,
+      "tests": 147,
+      "calendarValidatorTests": 15,
+      "calendarClientTests": 14,
+      "lintErrors": 0
+    },
+    "androidReport": "docs/reports/C3-calendar-android.md",
+    "androidReview": {
+      "spec": "compliant",
+      "quality": "approved",
+      "report": "docs/reviews/C3-calendar-android-review.md"
+    },
+    "desktopChecks": {
+      "testFiles": 27,
+      "tests": 276,
+      "calendarTests": 22,
+      "typecheck": "passed",
+      "build": "passed"
+    },
+    "desktopReport": "docs/reports/C2-calendar-desktop.md",
+    "desktopReview": {
+      "spec": "compliant",
+      "quality": "approved",
+      "report": "docs/reviews/C2-calendar-desktop-review.md"
+    },
+    "setupGuide": "docs/CALENDAR.md",
+    "dashboardChecks": {
+      "testFiles": 10,
+      "tests": 145,
+      "calendarTests": 16,
+      "typecheck": "passed",
+      "build": "passed",
+      "bundleBytes": 415565,
+      "playwrightCalendar": 6,
+      "playwrightTotal": 60
+    },
+    "dashboardReport": "docs/reports/C4-calendar-dashboard.md",
+    "dashboardReview": {
+      "spec": "compliant",
+      "quality": "approved",
+      "report": "docs/reviews/C4-calendar-dashboard-review.md"
+    },
+    "integrationReport": "docs/reports/C5-calendar-integration.md",
+    "featureReview": {
+      "model": "gpt-6-astra",
+      "reasoningEffort": "high",
+      "codexAstraHighExecuted": true,
+      "spec": "needs_fixes",
+      "quality": "needs_fixes",
+      "unresolvedFindings": 15,
+      "report": "docs/reviews/2026-10-22-calendar-astra-feature-review.md"
+    },
+    "workspaceChecks": {
+      "typecheck": "passed",
+      "unitTests": 502,
+      "testFiles": 40,
+      "playwrightE2E": 61,
+      "androidJvmTests": 147,
+      "androidLintErrors": 0,
+      "releaseApk": "artifacts/lumendock-1.3.2.apk",
+      "phoneInstall": "Success (versionCode=132, versionName=1.3.2)"
+    },
+    "deploymentAuthorizedOn": "2026-10-22",
+    "deploymentRequest": "User said other agents finished implementation and requested check/review/get it on phone",
+    "devicePreflight": {
+      "model": "M2006C3LI",
+      "androidApi": 29,
+      "authorizedUsbDeviceCount": 1,
+      "installedVersionName": "1.3.2",
+      "installedVersionCode": 132
+    },
+    "currentReviewModels": [
+      "gpt-6-astra high final/native",
+      "gpt-6.1-sol high desktop",
+      "gpt-6.1-sol high dashboard"
+    ],
+    "openReviewFindings": [],
+    "freshScopedReviews": {
+      "desktop": "docs/reviews/2026-10-22-C2-calendar-desktop-review.md",
+      "dashboard": "docs/reviews/2026-10-22-C4-calendar-dashboard-review.md"
+    },
+    "signingCompatibility": {
+      "installedAndBuildCertificatesMatch": true,
+      "certificateSha256": "595f8aa4be43bad2cbe532ac06a9e811d0b1f8eb81f4d8d68b76a11c67f63933"
+    },
+    "installedOnPhone": true,
+    "rereviewReports": {
+      "desktop": "docs/reviews/2026-10-22-C2-calendar-desktop-rereview.md",
+      "dashboard": "docs/reviews/2026-10-22-C4-calendar-dashboard-rereview.md",
+      "feature": "docs/reviews/2026-10-22-calendar-feature-rereview.md"
+    },
+    "calendarSelectionApplied": true,
+    "liveSyncDiagnostic": {
+      "date": "2026-10-23",
+      "operation": "calendar_list_and_metadata",
+      "httpStatus": 200,
+      "state": "setup_required",
+      "errorCode": null,
+      "sourceCount": 3,
+      "readableSourceCount": 3,
+      "allSourcePagesRead": true,
+      "eventReadsPerformed": false,
+      "newDownloadedClientConnected": true,
+      "previousServiceDisabledResolved": true
+    },
+    "selectedCalendarCount": 3,
+    "monitorNextEvent": {
+      "requestedOn": "2026-10-23",
+      "phase": "complete",
+      "userRequest": "Show only next event cleanly on Monitor with link to Agenda",
+      "design": "Compact row below usage meters and above alerts; one event title/time/label, tapping opens Agenda; independent current rolling window on Monitor",
+      "owner": "gpt-6.1-sol high",
+      "review": "approved; P2 resolved by fresh gpt-6-astra high rereview",
+      "softwareVerified": true,
+      "installedOnPhone": true,
+      "checks": {
+        "dashboardUnitTests": 172,
+        "typecheck": "passed",
+        "playwrightE2E": 74,
+        "androidJvmTests": 147,
+        "releaseApk": "artifacts/lumendock-1.3.2.apk (signed release, verified)",
+        "phoneInstall": "Success (in-place update via adb)",
+        "responsiveScreenshots": "dashboard/evidence/monitor-next"
+      },
+      "reviewReport": "docs/reviews/2026-10-23-monitor-next-event-review.md",
+      "openReviewFindings": []
+    },
+    "clockFeature": {
+      "requestedOn": "2026-10-23",
+      "phase": "complete",
+      "userRequest": "Clicking big clock in monitor window opens clock with full screen Mac wallpaper clock, timers, alarms, and cool time features",
+      "softwareVerified": true,
+      "installedOnPhone": true,
+      "checks": {
+        "dashboardUnitTests": 186,
+        "typecheck": "passed",
+        "playwrightE2E": 81,
+        "androidJvmTests": 147,
+        "releaseApk": "artifacts/lumendock-1.3.2.apk (signed release, verified)",
+        "phoneInstall": "Success (in-place update via adb)"
+      }
+    }
+  },
+  "planApprovalScope": "Existing baseline and calendar design approved; calendar technical plan approved for execution by required Astra-high review.",
+  "softwareVerificationScope": "Current bounded Clock menu/date refinement:209units,typecheck,129browser,independentSol-highscopedreview,signedassets/exactinstalledAPKverified;physicalandwhole-projectAstraapprovalnotclaimed.",
+  "clockRepair": {
+    "requestedOn": "2026-10-23",
+    "phase": "complete_software_verified_installed",
+    "userIntent": "Clean desk clock alternative to cluttered Monitor, focus timer, seamless fullscreen/control reveal, balanced information",
+    "brief": "docs/superpowers/specs/2026-10-23-desk-clock-repair-brief.md",
+    "owners": {
+      "ui": "gpt-6.1-sol high",
+      "logic": "gpt-6.1-sol high",
+      "finalReview": "gpt-6-astra high required"
+    },
+    "softwareVerified": true,
+    "installedOnPhone": true,
+    "deviceAccepted": false,
+    "baseline": "ignored .superpowers/clock-repair-2026-10-23/baseline",
+    "checks": {
+      "dashboardUnitTests": 207,
+      "focusedBrowserTests": 15,
+      "logicRegressions": 22,
+      "typecheck": "passed independently by coordinator",
+      "productionBuild": "passed",
+      "playwrightE2E": 89,
+      "initialPlaywrightRun": "88 passed / 1 Agenda paging failure; isolated 1/1 and final full89/89 pass",
+      "releaseLint": "passed",
+      "androidJvmTests": "UP-TO-DATE; cached XML 150 tests, zero failures/errors/skips",
+      "reviewedHashesMatched": 14,
+      "preservedPriorScreenshots": 163,
+      "packagedAssetsMatched": 5,
+      "signatureMatchesPreviousInstall": true,
+      "phoneInstall": "Success, in-place; MainActivity launched; pulled installed APK exactly matches candidate"
+    },
+    "reviewReport": "docs/reviews/2026-10-23-desk-clock-repair-review.md",
+    "logicReview": "Astra-high initial P2 resolved and rereviewed; actual final task review approved with no open P1/P2",
+    "completedOn": "2026-10-24",
+    "completionReport": "docs/reports/2026-10-24-desk-clock-repair.md",
+    "apkSha256": "23ff3b93597114fcc3474686e4adfaa4f07b233011b60de46f135093a81618be",
+    "limits": [
+      "Foreground/current-session alarms, snooze and timers; no native background or process-death recovery",
+      "Actual phone interaction and audible chime acceptance unobserved",
+      "One intermittent Agenda paging test failure retained; isolated and final full rerun pass without code changes"
+    ]
+  },
+  "flipClock": {
+    "requestedOn": "2026-10-24",
+    "phase": "complete_software_verified_installed",
+    "description": "User reference split-flap clock; circular timer restored",
+    "brief": "docs/superpowers/specs/2026-10-24-flip-clock-brief.md",
+    "baseline": ".superpowers/flip-clock-2026-10-24/baseline",
+    "softwareVerified": true,
+    "installedOnPhone": true,
+    "deviceAccepted": false,
+    "preservedPngCount": 224,
+    "owners": {
+      "ui": "gpt-6.1-sol high",
+      "review": "gpt-6-astra high",
+      "coordinator": "integration, checkpoints, signed phone update"
+    },
+    "apkSha256": "78867732dbfef502d47404a2835c87838dcbf74aedf209c80b31bfe0ff71ba64",
+    "completionReport": "docs/reports/2026-10-24-flip-clock.md",
+    "reviewReport": "docs/reviews/2026-10-24-flip-clock-review.md",
+    "checks": {
+      "workspaceUnitTests": 556,
+      "dashboardUnitTests": 209,
+      "reviewerProbesPassed": 11,
+      "clockRepairPlaywright": 17,
+      "typecheck": "passed",
+      "productionBuild": "passed",
+      "playwrightE2E": 93,
+      "releaseLint": "passed",
+      "androidJvmTests": "UP-TO-DATE (150 tests, 0 failures/errors)",
+      "releaseSignatureVerified": true,
+      "phoneInstall": "Success, in-place; pulled base.apk exactly matches candidate SHA256 (78867732dbfef502d47404a2835c87838dcbf74aedf209c80b31bfe0ff71ba64)",
+      "screenCoverage": "Horizontal flip clock expanded to 516.0x216.6 CSS px (1032x433 physical px, 60.2% screen height / 64.5% screen width); Timer dial expanded to 244 CSS px with 26cqw/18cqw digits, zero overflow"
+    }
+  },
+  "clockSpaceRepair": {
+    "phase": "complete_software_verified_installed",
+    "requestedOn": "2026-10-24",
+    "brief": "docs/superpowers/specs/2026-10-24-clock-space-brief.md",
+    "baseline": ".superpowers/clock-space-2026-10-24/baseline",
+    "softwareVerified": true,
+    "installedOnPhone": true,
+    "deviceAccepted": false,
+    "preservedPngs": 340,
+    "initialRepro": "2 failures before fix: low clock coverage and601px clipped setup",
+    "initialMatrix": "20/20 pass",
+    "finalTaskReviewer": "gpt-6.1-sol high independent read-only reviewer",
+    "wholeProjectAstraReview": "not claimed; separate gate",
+    "checks": {
+      "dashboardUnits": 209,
+      "typecheck": "passed",
+      "focusedBrowser": 39,
+      "fullBrowser": 113,
+      "independentViewportTextCombinations": 16,
+      "visualScreenshotsInspected": 10,
+      "productionReleaseBuild": "passed",
+      "releaseLint": "passed",
+      "androidUnitTests": "UP-TO-DATE; cached150 tests with0 failures/errors/skips",
+      "reviewedFilesMatched": 6,
+      "reviewedAssetsMatched": 5,
+      "preservedPngs": 340,
+      "signatureMatchesInstalled": true,
+      "phoneInstall": "Success;MainActivity launched;pulled installed APK exact SHA256 matches"
+    },
+    "completedOn": "2026-10-24",
+    "reviewReport": "docs/reviews/2026-10-24-clock-space-review.md",
+    "reviewVerdict": "approved; actual independent gpt-6.1-sol high; no actionable/open P1/P2",
+    "completionReport": "docs/reports/2026-10-24-clock-space-repair.md",
+    "apkSha256": "9af60c9f76d1e3acbb8470c8671524bb1061e6669c3efde861801f1a4d24ce9d",
+    "knownLimits": [
+      "Physical desk/chime acceptance unobserved",
+      "Foreground/current-session alarms and timers unchanged",
+      "Whole-project Astra-high review not claimed"
+    ]
+  },
+  "clockMenuRefinement": {
+    "requestedOn": "2026-10-24",
+    "phase": "complete_software_verified_installed",
+    "brief": "docs/superpowers/specs/2026-10-24-clock-menu-brief.md",
+    "baseline": ".superpowers/clock-menu-2026-10-24/baseline",
+    "softwareVerified": true,
+    "installedOnPhone": true,
+    "deviceAccepted": false,
+    "userScope": "Menu looks weird; move date/center clock; rest good",
+    "preservedPngs": 340,
+    "initialRepro": "740px clock union10.99px below center; test failed before implementation",
+    "intermediateChecks": "43/47 pass,4 portrait idle ring/menu overlap cases caught; compact palette fix pending verification",
+    "checks": {
+      "dashboardUnits": 209,
+      "typecheck": "passed",
+      "productionBuild": "passed",
+      "fullBrowser": 129,
+      "newMenuBrowser": 16,
+      "independentStates": 112,
+      "independentViewportTextLayoutCombinations": 16,
+      "preservedPngs": 340,
+      "frozenFilesMatch": 5,
+      "reviewedAssetsMatch": 5,
+      "releaseLint": "passed",
+      "androidUnits": "UP-TO-DATE; cached150 with0 failures/errors/skips",
+      "signatureMatchesPreviousInstall": true,
+      "phoneInstall": "Success;MainActivity launched;pulled installedAPK exactSHA matches"
+    },
+    "reviewFinding": "Saved-stacked landscape metadata wrapping/truncation independently found, fail-first321.296875px bottom confirmed, full-container metadata width fixed and rereviewed; no open P1/P2.",
+    "completedOn": "2026-10-24",
+    "completionReport": "docs/reports/2026-10-24-clock-menu-refinement.md",
+    "reviewReport": "docs/reviews/2026-10-24-clock-menu-review.md",
+    "reviewVerdict": "Approved after corrected P2; actual fresh independent gpt-6.1-sol high; no open actionable/P1/P2",
+    "apkSha256": "1531a1d3f15b57bda16dd0a69bf42874f172bdba91878ea8306cc7551ff46c82"
+  },
+  "usbInternetDiscussion": {
+    "requestedOn": "2026-10-26",
+    "phase": "architecture_intent_agreed_feasibility_open",
+    "planUserApproved": false,
+    "implementationStarted": false,
+    "userIntent": "USB internet from laptop to Redmi; move Calendar and other online services onto phone",
+    "upstream": "BITS Wi-Fi behind FortiGuard",
+    "laptopHotspotAllowed": false,
+    "internetSharingScope": "phone over USB only; no laptop-hosted hotspot",
+    "phoneIotHotspot": "Required local IoT network; phone acts as local command server; clients need no direct internet",
+    "candidate": "No-root USB reverse tethering for phone apps; not installed or device tested",
+    "constraints": [
+      "Current ESP32 firmware is AP-only and remains read-only",
+      "Simultaneous USB internet, hotspot and local command traffic on Redmi/MIUI require device validation",
+      "Existing approved baseline and physical/final-review gates remain unchanged"
+    ],
+    "nextAction": "Resolve provider/runtime feasibility and measure laptop process baseline; prepare reviewed offload design/plan before implementation",
+    "networkChangesPerformed": false,
+    "deviceAccepted": false,
+    "iotDirectInternetRequired": false,
+    "phoneRole": "Internet-connected application host plus local IoT command server",
+    "architectureIntentAgreed": true,
+    "primaryGoal": "Minimize laptop CPU, memory and resident helper processes by offloading work to the phone",
+    "preserveQuotaDisplays": [
+      "Claude subscription limits",
+      "Codex subscription limits"
+    ],
+    "quotaDirectPhoneFetching": "Unverified: current readers depend on laptop-owned authenticated provider integrations; independent mobile auth/runtime must be validated",
+    "resourceSavingsMeasured": false
+  },
+  "phoneHubOffload": {
+    "requestedOn": "2026-10-28",
+    "executionAuthorized": true,
+    "authorization": "User explicitly requests building now with phone absent; agreed architecture/resources goal in chat",
+    "planHumanRead": false,
+    "planReview": "pending_required_Astra_high",
+    "phase": "offload_preflight_review",
+    "baselineSha": "e59d312",
+    "executionRoot": "/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor",
+    "baseline": ".superpowers/offload-2026-10-28/baseline",
+    "design": "docs/superpowers/specs/2026-10-28-phone-hub-offload-design.md",
+    "plan": "docs/superpowers/plans/2026-10-28-phone-hub-offload.md",
+    "softwareVerified": false,
+    "deviceAccepted": false,
+    "nextAction": "Resume checked actual e59d312 newer than previous checkpoint; preserved dirty baseline670files. H1 desktop and H2 native read-only investigations complete. Design/plan written; actual fresh Astra-high preflight active. Baseline protocol60/dashboard209 tests pass; native task UP-TO-DATE cached150 tests. Desktop baseline running. User build authorization recorded; no product edits, installs, device actions or publication yet."
+  },
+  "calendarRecovery": {
+    "symptom": "setup_needed_disconnected",
+    "priorSetupReportedByUser": true,
+    "savedClientPresentUbuntu": false,
+    "savedTokensPresentUbuntu": false,
+    "reusableClientLocated": false,
+    "windowsStorageFix": "implemented_synthetic_verified_native_unrun",
+    "offloadPublication": "separate_wip_branch",
+    "baselineChecks": {
+      "typecheck": "passed",
+      "protocol": 63,
+      "desktop": 311,
+      "dashboard": 210
+    },
+    "liveAccountVerified": false
+  }
 }

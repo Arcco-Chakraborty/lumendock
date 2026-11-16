@@ -27,12 +27,15 @@ async function bootstrap() {
         import("@phone-monitor/protocol"),
         import("../../packages/protocol/fixtures/app-status.json"),
       ]);
-    const { hub, esp } = scenario(
+    const { hub, esp, calendar, calendarSources, calendarError } = scenario(
       new URLSearchParams(location.search).get("demo"),
     );
     adapter = createMockAdapter({
       "hub.snapshot": hub,
       "esp.state": esp,
+      "hub.calendar": calendar,
+      "hub.calendarSources": calendarSources,
+      calendarError,
       "esp.history": {
         state: "connected",
         ageMs: 0,

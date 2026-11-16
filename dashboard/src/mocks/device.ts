@@ -5,6 +5,7 @@ import {
   type BridgeOp,
   type CommandResult,
   type BridgeReplyData,
+  type ErrorCode,
 } from "@phone-monitor/protocol";
 import {
   createNativeAdapter,
@@ -13,21 +14,93 @@ import {
   type DeviceAdapter,
   type NativeBridge,
 } from "../device.js";
-export type MockFixtures = { [O in BridgeOp]?: BridgeReplyData<O> };
+export type MockFixtures = { [O in BridgeOp]?: BridgeReplyData<O> } & {
+  calendarError?: ErrorCode | null | undefined;
+};
 export function createMockAdapter(
   fixtures: MockFixtures,
   clock: Clock = systemClock,
 ): DeviceAdapter {
   const timers = new Set<ReturnType<typeof setTimeout>>();
+  let selectCounter = 1;
   const bridge: NativeBridge = {
     onmessage: null,
     postMessage(message) {
       const request = BridgeRequestSchema.parse(JSON.parse(message));
       const timer = clock.setTimeout(() => {
         timers.delete(timer);
+        if (
+          fixtures.calendarError &&
+          (request.op === "hub.calendar" ||
+            request.op === "hub.calendarSources" ||
+            request.op === "hub.calendarSelect")
+        ) {
+          bridge.onmessage?.({
+            data: JSON.stringify({
+              v: 1,
+              id: request.id,
+              ok: false,
+              error: { code: fixtures.calendarError, retryable: false },
+            }),
+          });
+          return;
+        }
         let data: unknown = fixtures[request.op];
         const esp = fixtures["esp.state"],
-          app = fixtures["app.status"];
+          app = fixtures["app.status"],
+          cal = fixtures["hub.calendar"],
+          calSources = fixtures["hub.calendarSources"];
+        if (request.op === "hub.calendar" && cal?.data) {
+          data = {
+            ...cal,
+            data: {
+              ...cal.data,
+              range: {
+                startDate: request.args.startDate,
+                days: request.args.days,
+                timeZone: request.args.timeZone,
+              },
+            },
+          };
+        }
+        if (
+          data === undefined &&
+          request.op === "hub.calendarSelect" &&
+          (cal || calSources)
+        ) {
+          const selectionRevision = `synthetic_selection_${++selectCounter}`;
+          const allowed = new Set(request.args.sourceIds);
+          if (cal?.data) {
+            cal.data.selectionRevision = selectionRevision;
+            if (cal.data.state === "setup_required") {
+              cal.data.state = "available";
+            }
+            cal.data.sources = cal.data.sources.map((source) => ({
+              ...source,
+              selected: allowed.has(source.sourceId),
+            }));
+            cal.data.items = cal.data.items.filter((item) =>
+              allowed.has(item.sourceId),
+            );
+            if (
+              cal.data.nextEvent &&
+              !allowed.has(cal.data.nextEvent.sourceId)
+            ) {
+              cal.data.nextEvent = null;
+            }
+          }
+          if (calSources?.data) {
+            calSources.data.selectionRevision = selectionRevision;
+            if (calSources.data.state === "setup_required") {
+              calSources.data.state = "available";
+            }
+            calSources.data.sources = calSources.data.sources.map((source) => ({
+              ...source,
+              selected: allowed.has(source.sourceId),
+            }));
+          }
+          data = { selectionRevision };
+        }
         if (data === undefined && request.op === "esp.set" && esp?.data) {
           const { patch, generation } = request.args;
           const kind = patch.timerMinutes === undefined ? "state" : "timer";

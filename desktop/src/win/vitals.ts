@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { cpus, freemem, totalmem, type CpuInfo } from 'node:os';
 import type { HostVitals } from '@phone-monitor/protocol';
 import { cleanCpuName, cleanGpuName, GPU_BACKOFF_MS, GPU_QUIET_SAMPLES } from '../collectors/vitals.js';
-import { sharedHostHelper } from './host-helper.js';
+import { sharedHostHelper, type WindowsHostHelper } from './host-helper.js';
 
 /**
  * Laptop vitals on Windows. CPU load per thread and memory come from Node's os module; the
@@ -44,7 +44,7 @@ export class WindowsVitalsReader {
   private gpuName: string | null = null;
   private gpuMemoryTotal: number | null = null;
   private hasNvidia = true;
-  constructor(private readonly io: WindowsVitalsIo = systemIo) {}
+  constructor(private readonly io: WindowsVitalsIo = systemIo, private readonly helper?: WindowsHostHelper) {}
 
   private cpu(clockMhz: number | null, tempC: number | null): HostVitals['cpu'] {
     const list = this.io.cpus();
@@ -117,7 +117,7 @@ export class WindowsVitalsReader {
   }
 
   async read(): Promise<HostVitals> {
-    const [helper, gpu] = await Promise.all([this.io.helperVitals().catch(() => null), this.nvidia().catch(() => null)]);
+    const [helper, gpu] = await Promise.all([(this.helper ? this.helper.request('vitals').then(reply=>{if (!reply.ok) throw Error('HELPER_FAILED'); return reply.data;}) : this.io.helperVitals()).catch(() => null), this.nvidia().catch(() => null)]);
     const h = helper !== null && typeof helper === 'object' ? helper as Record<string, unknown> : {};
     const igpu = finite(h.igpuPercent);
     return {

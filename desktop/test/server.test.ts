@@ -9,7 +9,14 @@ import { buildHub } from '../src/server.js';
 import { HubStore } from '../src/store.js';
 import { TokenStore } from '../src/config.js';
 import { PairingSession } from '../src/pairing.js';
-import { HubSnapshotSchema } from '@phone-monitor/protocol';
+import {
+  CalendarPageSchema,
+  CalendarSelectReplySchema,
+  CalendarSourcesPageSchema,
+  HubSnapshotSchema,
+} from '@phone-monitor/protocol';
+import { CalendarService } from '../src/calendar/service.js';
+import { CalendarConnectionStore } from '../src/calendar/connection.js';
 
 const fixtureHub = (): any => JSON.parse(readFileSync(new URL('../../packages/protocol/fixtures/hub-ready.json',import.meta.url),'utf8'));
 const dirs: string[] = [];
@@ -147,5 +154,96 @@ describe('read-time source retention', () => {
     expect(res.json().ok).toBe(true);
     expect(executeAction).toHaveBeenCalledTimes(1);
     expect(executeAction).toHaveBeenCalledWith('media_mute');
+  });
+
+  it('provides default disabled calendar replies when calendar service is absent and keeps snapshot byte-for-byte unchanged', async () => {
+    const {app,tokenStore,store} = makeTestHub(); tokenStore.write('a'.repeat(64));
+    const snapBefore = await app.inject({url:'/v1/snapshot',headers:auth});
+    const rangeReq = {startDate:'2026-03-08',days:7,timeZone:'America/New_York'};
+
+    for (const url of ['/v1/calendar/read','/v1/calendar/sources','/v1/calendar/select']) {
+      expect((await app.inject({method:'POST',url,headers,payload:{}})).statusCode).toBe(401);
+      expect((await app.inject({method:'POST',url:`${url}?x=1`,headers:auth,payload:{}})).statusCode).toBe(400);
+      expect((await app.inject({method:'POST',url,headers:{...auth,origin:'https://evil.example'},payload:{}})).statusCode).toBe(403);
+    }
+
+    const readRes = await app.inject({method:'POST',url:'/v1/calendar/read',headers:auth,payload:rangeReq});
+    expect(readRes.statusCode).toBe(200);
+    expect(CalendarPageSchema.parse(readRes.json()).state).toBe('disabled');
+    expect(store.isPhoneActive(0)).toBe(true);
+
+    const sourcesRes = await app.inject({method:'POST',url:'/v1/calendar/sources',headers:auth,payload:{}});
+    expect(sourcesRes.statusCode).toBe(200);
+    expect(CalendarSourcesPageSchema.parse(sourcesRes.json()).state).toBe('disabled');
+
+    const selectRes = await app.inject({method:'POST',url:'/v1/calendar/select',headers:auth,payload:{sourceIds:[],expectedRevision:'disconnected'}});
+    expect(selectRes.statusCode).toBe(409);
+    expect(selectRes.json()).toEqual({v:1,error:{code:'CALENDAR_AUTH_REQUIRED'}});
+
+    const snapAfter = await app.inject({url:'/v1/snapshot',headers:auth});
+    expect(snapAfter.body).toBe(snapBefore.body);
+  });
+
+  it('routes /v1/calendar/{read,sources,select} through CalendarService and validates payloads strictly', async () => {
+    const dir = mkdtempSync(join(tmpdir(),'phone-monitor-cal-hub-')); dirs.push(dir);
+    const tokenStore = new TokenStore(join(dir,'app')); tokenStore.write('a'.repeat(64));
+    const pairing = new PairingSession(tokenStore);
+    const now = fixtureHub().serverNowEpochMs;
+    const store = new HubStore({initialSnapshot:fixtureHub(),notificationAllowlist:['Synthetic app']});
+    const connStore = new CalendarConnectionStore(join(dir,'app'));
+    const gen = await connStore.beginConnect();
+    await connStore.finishConnect(gen,{clientId:'synthetic-id'},{accessToken:'synthetic-tok',refreshToken:'synthetic-ref',expiresAt:now+3600000});
+
+    const calendar = new CalendarService({
+      directory:join(dir,'app'),
+      nowMs:()=>now,
+      phoneActive:()=>store.isPhoneActive(0),
+      fetch:async input => {
+        const url = new URL(String(input));
+        if (url.pathname.endsWith('/users/me/calendarList')) {
+          return new Response(JSON.stringify({items:[{id:'work@example.com',summary:'Work',backgroundColor:'#22D3EE',accessRole:'owner'}]}),{status:200});
+        }
+        if (url.pathname.endsWith('/events')) {
+          return new Response(JSON.stringify({items:[{id:'ev1',status:'confirmed',summary:'Desk Sync',start:{dateTime:'2026-03-08T15:00:00Z',timeZone:'America/New_York'},end:{dateTime:'2026-03-08T16:00:00Z',timeZone:'America/New_York'}}]}),{status:200});
+        }
+        return new Response(JSON.stringify({id:'work@example.com',labelProperties:{eventLabels:[]}}),{status:200});
+      },
+    });
+    const app = buildHub({store,pairing,tokenStore,clock:{nowMs:()=>now,monotonicMs:()=>0},calendar});
+    apps.push(app);
+
+    // Invalid payloads rejected with 400 BAD_PAYLOAD
+    for (const bad of [{startDate:'2026-03-08',days:7,timeZone:'America/New_York',refresh:true,cursor:'abc'},{startDate:'bad',days:7,timeZone:'UTC'},{extra:1}]) {
+      const r = await app.inject({method:'POST',url:'/v1/calendar/read',headers:auth,payload:bad});
+      expect(r.statusCode).toBe(400); expect(r.json()).toEqual({v:1,error:{code:'BAD_PAYLOAD'}});
+    }
+
+    // Initial sources discovery in setup_required
+    await app.inject({method:'POST',url:'/v1/calendar/sources',headers:auth,payload:{}});
+    await calendar.flush();
+    const sourcesRes = await app.inject({method:'POST',url:'/v1/calendar/sources',headers:auth,payload:{}});
+    const sourcesPage = CalendarSourcesPageSchema.parse(sourcesRes.json());
+    expect(sourcesPage.state).toBe('setup_required');
+    expect(sourcesPage.sources).toHaveLength(1);
+
+    // Stale expectedRevision rejected with 409 CALENDAR_SELECTION_CHANGED
+    const staleSelect = await app.inject({method:'POST',url:'/v1/calendar/select',headers:auth,payload:{sourceIds:[],expectedRevision:'wrong_rev'}});
+    expect(staleSelect.statusCode).toBe(409);
+    expect(staleSelect.json()).toEqual({v:1,error:{code:'CALENDAR_SELECTION_CHANGED'}});
+
+    // Apply selection and read range
+    const selectRes = await app.inject({method:'POST',url:'/v1/calendar/select',headers:auth,payload:{sourceIds:[sourcesPage.sources[0]!.sourceId],expectedRevision:sourcesPage.selectionRevision}});
+    expect(selectRes.statusCode).toBe(200);
+    expect(CalendarSelectReplySchema.parse(selectRes.json()).selectionRevision).toBeTruthy();
+
+    const rangeReq = {startDate:'2026-03-08',days:7,timeZone:'America/New_York'};
+    await app.inject({method:'POST',url:'/v1/calendar/read',headers:auth,payload:rangeReq});
+    await calendar.flush();
+    const readRes = await app.inject({method:'POST',url:'/v1/calendar/read',headers:auth,payload:rangeReq});
+    const page = CalendarPageSchema.parse(readRes.json());
+    expect(page.state).toBe('available');
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0]!.title).toBe('Desk Sync');
+    calendar.stop();
   });
 });

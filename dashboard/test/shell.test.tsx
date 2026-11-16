@@ -75,3 +75,12 @@ it("shows a useful local clock and date without a laptop time sample", () => {
   expect(html).not.toContain('class="lighting-dock"');
   store.dispose();
 });
+
+it("offers a compact Next up entry on Monitor before Agenda is opened", () => {
+  const store = new DashboardStore(fakeClock());
+  const html = renderToStaticMarkup(<App store={store} nativeAvailable />);
+  expect(html).toContain('aria-label="Next up, open Agenda"');
+  expect(html.indexOf('class="usage-stack"')).toBeLessThan(html.indexOf('class="monitor-next"'));
+  expect(html.indexOf('class="monitor-next"')).toBeLessThan(html.indexOf('class="notification-strip"'));
+  store.dispose();
+});

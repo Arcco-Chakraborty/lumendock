@@ -2,13 +2,13 @@
     <string name="app_name">LumenDock</string>
     <string name="webview_guidance">Update Android System WebView to use LumenDock. This device must support secure web messages. Reopen the app after updating.</string>
     <string name="pairing_title">Pair with laptop</string>
-    <string name="pairing_instructions">Connect USB, start hub pairing on the laptop, then enter the 8-digit code it prints. The code expires after 2 minutes.</string>
+    <string name="pairing_instructions">Keep the phone connected by USB. On the laptop, click the LumenDock icon in the tray or top bar and choose Pair phone. Enter the 8-digit code it shows. The code expires after 2 minutes.</string>
     <string name="pairing_hint">8-digit code</string>
     <string name="pairing_submit">Pair</string>
     <string name="pairing_cancel">Cancel</string>
     <string name="pairing_progress">Pairing…</string>
     <string name="pairing_bad_code">That code was not accepted. Check the 8 digits on the laptop and try again.</string>
-    <string name="pairing_unreachable">Laptop not reachable over USB. Check the cable, USB debugging authorization, and that the hub is in pairing mode.</string>
+    <string name="pairing_unreachable">Laptop not reachable over USB. Check the cable and USB debugging, then choose Pair phone from the LumenDock icon on the laptop.</string>
     <string name="pairing_retry">Pairing did not complete. Try again.</string>
     <string name="wifi_title">Controller Wi-Fi</string>
     <string name="wifi_instructions">Enter the light controller\'s network name and password. Android asks once to approve this local network; it has no internet, and USB to the laptop keeps working.</string>

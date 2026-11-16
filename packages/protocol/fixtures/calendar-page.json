@@ -1,0 +1,81 @@
+{
+  "v": 1,
+  "state": "available",
+  "errorCode": null,
+  "serverNowEpochMs": 1772953200000,
+  "range": {
+    "startDate": "2026-03-08",
+    "days": 7,
+    "timeZone": "America/New_York"
+  },
+  "revision": "synthetic_range_1",
+  "selectionRevision": "synthetic_selection_1",
+  "lastSuccessAtEpochMs": 1772953200000,
+  "sourceCount": 1,
+  "failedSourceCount": 0,
+  "sources": [
+    {
+      "sourceId": "synthetic_work",
+      "name": "Synthetic Work",
+      "color": "#22D3EE",
+      "selected": true,
+      "capability": "read",
+      "state": "available",
+      "lastSuccessAtEpochMs": 1772953200000,
+      "errorCode": null
+    }
+  ],
+  "items": [
+    {
+      "id": "synthetic_dst_event",
+      "sourceId": "synthetic_work",
+      "title": "Synthetic DST planning",
+      "start": {
+        "kind": "time",
+        "epochMs": 1772951400000,
+        "timeZone": "America/New_York"
+      },
+      "end": {
+        "kind": "time",
+        "epochMs": 1772955000000,
+        "timeZone": "America/New_York"
+      },
+      "calendarName": "Synthetic Work",
+      "calendarColor": "#22D3EE",
+      "label": {
+        "name": "Synthetic focus",
+        "color": "#0088FF"
+      },
+      "eventType": "default",
+      "status": "confirmed",
+      "selfResponseStatus": "accepted",
+      "reminderMinutes": 10
+    }
+  ],
+  "nextEvent": {
+    "id": "synthetic_dst_event",
+    "sourceId": "synthetic_work",
+    "title": "Synthetic DST planning",
+    "start": {
+      "kind": "time",
+      "epochMs": 1772951400000,
+      "timeZone": "America/New_York"
+    },
+    "end": {
+      "kind": "time",
+      "epochMs": 1772955000000,
+      "timeZone": "America/New_York"
+    },
+    "calendarName": "Synthetic Work",
+    "calendarColor": "#22D3EE",
+    "label": {
+      "name": "Synthetic focus",
+      "color": "#0088FF"
+    },
+    "eventType": "default",
+    "status": "confirmed",
+    "selfResponseStatus": "accepted",
+    "reminderMinutes": 10
+  },
+  "nextCursor": "synthetic-page.2_abc-123"
+}

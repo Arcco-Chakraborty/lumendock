@@ -26,11 +26,14 @@ internal val BACKOFF_MS=longArrayOf(1000,2000,4000,8000,15000)
 /** A joining caller waits at most this long; below the ten-second bridge deadline. */
 internal const val JOIN_WAIT_MS=6000L
 
-/** The only two hub endpoints. Fixed loopback origin; there is no URL argument anywhere. */
+/** Fixed hub endpoints on loopback origin; there is no URL argument anywhere. */
 enum class HubPath(val url:String,val method:String) {
     SNAPSHOT("http://127.0.0.1:8765/v1/snapshot","GET"),
     PAIR("http://127.0.0.1:8765/v1/pair","POST"),
     ACTION("http://127.0.0.1:8765/v1/action","POST"),
+    CALENDAR_READ("http://127.0.0.1:8765/v1/calendar/read","POST"),
+    CALENDAR_SOURCES("http://127.0.0.1:8765/v1/calendar/sources","POST"),
+    CALENDAR_SELECT("http://127.0.0.1:8765/v1/calendar/select","POST"),
 }
 /** The bearer lives only here and in native storage. toString never renders it. */
 internal class HubRequest(val path:HubPath,val bearer:String?,val body:ByteArray?=null) {
@@ -123,9 +126,9 @@ class LinkSnapshot internal constructor(val state:String,val ageMs:Long?,val sta
  * renderer recreation keeps the exact payload and its age. One snapshot and one pairing request at most.
  */
 class LaptopClient internal constructor(
-    private val store:PairingStore,
-    private val transport:HubTransport,
-    private val clock:HubClock,
+    internal val store:PairingStore,
+    internal val transport:HubTransport,
+    internal val clock:HubClock,
     private val onPairedChanged:(Boolean)->Unit={},
 ):AutoCloseable {
     constructor(store:PairingStore,onPairedChanged:(Boolean)->Unit):this(store,LoopbackHubTransport(),SystemHubClock,onPairedChanged)
@@ -149,6 +152,20 @@ class LaptopClient internal constructor(
     private var failures=0
 
     val paired:Boolean get()=synchronized(lock){ loadToken(); token!=null }
+
+    internal fun currentBearer():String? = synchronized(lock){ loadToken(); token }
+    internal fun revokeBearer(rejected:String):Boolean {
+        val changed=synchronized(lock) {
+            loadToken()
+            if(token!=rejected) false else {
+                token=null; outcome="AUTH_REQUIRED"
+                try { store.clearToken() } catch(_:Exception) { /* in-memory credential is already gone */ }
+                true
+            }
+        }
+        if(changed) onPairedChanged(false)
+        return changed
+    }
 
     private fun loadToken() {
         if(tokenLoaded) return

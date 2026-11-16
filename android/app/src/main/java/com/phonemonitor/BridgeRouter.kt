@@ -13,7 +13,12 @@ data class BridgeReply(val id:String,val ok:Boolean,val data:JsonObject?=null,va
 }
 
 interface BridgeServices {
+    fun phoneHubStatus():JsonObject=jsonObject("calendarBackend" to "desktop","calendarAuth" to "disconnected","revision" to 1,"iot" to jsonObject("running" to false,"bindAddress" to null,"port" to 8787,"deviceCount" to 0,"selectedDeviceId" to null))
+    fun configurePhoneHub():JsonObject=jsonObject("opened" to false)
     fun hubSnapshot():JsonObject
+    fun hubCalendar(args:JsonObject):JsonObject = jsonObject("state" to "disconnected","ageMs" to null,"stale" to true,"data" to null,"errorCode" to "USB_UNAVAILABLE")
+    fun hubCalendarSources(args:JsonObject):JsonObject = jsonObject("state" to "disconnected","ageMs" to null,"stale" to true,"data" to null,"errorCode" to "USB_UNAVAILABLE")
+    fun hubCalendarSelect(args:JsonObject):JsonObject = throw BridgeFailure("USB_UNAVAILABLE")
     fun espState():JsonObject
     fun espHistory():JsonObject
     fun setLight(patch:JsonObject,generation:Long):JsonObject
@@ -23,6 +28,9 @@ interface BridgeServices {
 /** Explicit unavailable states until A2/A3 clients are installed. No simulated live data. */
 open class UnavailableBridgeServices : BridgeServices {
     override fun hubSnapshot()=unavailable("USB_UNAVAILABLE")
+    override fun hubCalendar(args:JsonObject)=unavailable("USB_UNAVAILABLE")
+    override fun hubCalendarSources(args:JsonObject)=unavailable("USB_UNAVAILABLE")
+    override fun hubCalendarSelect(args:JsonObject):JsonObject=throw BridgeFailure("USB_UNAVAILABLE")
     override fun espState()=unavailable("WIFI_UNAVAILABLE").also{it.add("commands",jsonObject("state" to null,"timer" to null))}
     override fun espHistory()=unavailable("WIFI_UNAVAILABLE")
     override fun setLight(patch:JsonObject,generation:Long):JsonObject=throw BridgeFailure("WIFI_UNAVAILABLE")
@@ -60,7 +68,12 @@ class BridgeRouter(private val services:BridgeServices,val lifecycle:SessionLife
             if(!lifecycle.isOpen || !lifecycle.acceptsRequests || lifecycle.epoch!=r.epoch) return BridgeReply.failure(r.id,"SESSION_ENDED")
             val session=lifecycle.session
             val data=when(r.op) {
+                "app.phoneHubStatus" -> services.phoneHubStatus()
+                "app.configurePhoneHub" -> services.configurePhoneHub()
                 "hub.snapshot" -> services.hubSnapshot()
+                "hub.calendar" -> services.hubCalendar(r.args)
+                "hub.calendarSources" -> services.hubCalendarSources(r.args)
+                "hub.calendarSelect" -> services.hubCalendarSelect(r.args)
                 "esp.state" -> services.espState()
                 "esp.history" -> services.espHistory()
                 "esp.set" -> { val g=r.args["generation"].asLong; session.reserveGeneration(g); services.setLight(r.args["patch"].asJsonObject,g) }
