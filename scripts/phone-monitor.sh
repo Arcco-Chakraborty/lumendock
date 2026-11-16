@@ -292,7 +292,7 @@ do_logs() {
 }
 
 do_tray() {
-  exec python3 "$SCRIPT_DIR/phone-monitor-tray.py" "$@"
+  exec python3 "$ROOT_DIR/scripts/phone-monitor-tray.py" "$@"
 }
 
 action="${1:-}"

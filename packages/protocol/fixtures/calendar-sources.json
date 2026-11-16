@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "state": "available",
+  "errorCode": null,
+  "serverNowEpochMs": 1772953200000,
+  "selectionRevision": "synthetic_selection_1",
+  "sources": [
+    {
+      "sourceId": "synthetic_work",
+      "name": "Synthetic Work",
+      "color": "#22D3EE",
+      "selected": true,
+      "capability": "read",
+      "state": "available",
+      "lastSuccessAtEpochMs": 1772953200000,
+      "errorCode": null
+    }
+  ],
+  "nextCursor": "synthetic-page.2_abc-123"
+}

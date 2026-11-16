@@ -94,7 +94,7 @@ class PhoneMonitorTray:
         self.menu.append(self.item_restart)
 
         # Pair item
-        self.item_pair = Gtk.MenuItem(label="Pair Phone…")
+        self.item_pair = Gtk.MenuItem(label="Pair phone…")
         self.item_pair.connect("activate", self._on_pair)
         self.menu.append(self.item_pair)
 

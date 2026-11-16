@@ -6,10 +6,15 @@ import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import {
   AppStatusSchema,
+  CalendarLinkSnapshotSchema,
+  CalendarSourcesLinkSnapshotSchema,
   EspHistoryLinkSnapshotSchema,
   EspSnapshotSchema,
   HubLinkSnapshotSchema,
   type AppStatus,
+  type CalendarPage,
+  type CalendarSourcesPage,
+  type ErrorCode,
   type EspHistory,
   type EspSnapshot,
   type HubSnapshot,
@@ -25,11 +30,15 @@ const fixture = (name: string): unknown =>
   );
 
 export type HubLink = LinkSnapshot<HubSnapshot>;
+export type CalendarLink = LinkSnapshot<CalendarPage>;
+export type CalendarSourcesLink = LinkSnapshot<CalendarSourcesPage>;
 export interface Fixtures {
   hub: HubLink;
   esp: EspSnapshot;
   history: LinkSnapshot<EspHistory>;
   app: AppStatus;
+  calendar: CalendarLink;
+  calendarSources: CalendarSourcesLink;
 }
 export interface BridgeOptions {
   /** USB/laptop path state. */
@@ -43,6 +52,9 @@ export interface BridgeOptions {
   /** Start with esp.set replies held until releaseHeld(). */
   holdSets?: boolean;
   actionResult?: { success: boolean; message?: string };
+  calendarPages?: Record<string, CalendarPage>;
+  calendarSourcesPages?: Record<string, CalendarSourcesPage>;
+  calendarError?: ErrorCode | null;
 }
 
 export function fixtures(options: BridgeOptions = {}): Fixtures {
@@ -62,9 +74,32 @@ export function fixtures(options: BridgeOptions = {}): Fixtures {
     errorCode: null,
   });
   const app = AppStatusSchema.parse(fixture("app-status.json"));
-  const result: Fixtures = { hub, esp, history, app };
+  const calendar = CalendarLinkSnapshotSchema.parse({
+    state: "connected",
+    ageMs: 0,
+    stale: false,
+    data: fixture("calendar-page.json"),
+    errorCode: null,
+  });
+  const calendarSources = CalendarSourcesLinkSnapshotSchema.parse({
+    state: "connected",
+    ageMs: 0,
+    stale: false,
+    data: fixture("calendar-sources.json"),
+    errorCode: null,
+  });
+  calendarSources.data!.nextCursor = null;
+  calendar.data!.nextCursor = null;
+  const result: Fixtures = { hub, esp, history, app, calendar, calendarSources };
   if (options.hub === "disconnected") {
     result.hub = {
+      state: "disconnected",
+      ageMs: null,
+      stale: true,
+      data: null,
+      errorCode: "USB_UNAVAILABLE",
+    };
+    result.calendar = {
       state: "disconnected",
       ageMs: null,
       stale: true,
@@ -88,6 +123,8 @@ export function fixtures(options: BridgeOptions = {}): Fixtures {
   EspSnapshotSchema.parse(result.esp);
   EspHistoryLinkSnapshotSchema.parse(result.history);
   AppStatusSchema.parse(result.app);
+  CalendarLinkSnapshotSchema.parse(result.calendar);
+  CalendarSourcesLinkSnapshotSchema.parse(result.calendarSources);
   return result;
 }
 
@@ -103,6 +140,9 @@ export interface BridgeConfig extends Fixtures {
   latencyMs: number;
   holdSets: boolean;
   actionResult: { success: boolean; message?: string };
+  calendarPages: Record<string, CalendarPage>;
+  calendarSourcesPages: Record<string, CalendarSourcesPage>;
+  calendarError: ErrorCode | null;
 }
 
 // Runs inside the page. It must stay self-contained (no closures over Node values).
@@ -114,7 +154,13 @@ function installBridge(config: BridgeConfig): void {
     esp: config.esp,
     history: config.history,
     app: config.app,
+    calendar: config.calendar,
+    calendarSources: config.calendarSources,
+    calendarPages: config.calendarPages,
+    calendarSourcesPages: config.calendarSourcesPages,
+    calendarError: config.calendarError,
   };
+  let selectSeq = 1;
   const log: BridgeLogEntry[] = [];
   let outstanding = 0,
     maxOutstanding = 0,
@@ -190,6 +236,111 @@ function installBridge(config: BridgeConfig): void {
         case "app.openWifiSettings":
           respond({ opened: true });
           break;
+        case "hub.calendar": {
+          if (model.calendarError) {
+            setTimeout(
+              () =>
+                send({
+                  v: 1,
+                  id: request.id,
+                  ok: false,
+                  error: { code: model.calendarError, retryable: false },
+                }),
+              config.latencyMs,
+            );
+            break;
+          }
+          const cal = clone(model.calendar);
+          const cursorArg =
+            typeof request.args.cursor === "string" ? request.args.cursor : null;
+          if (cursorArg && model.calendarPages[cursorArg]) {
+            cal.data = clone(model.calendarPages[cursorArg]!);
+          }
+          if (cal.data) {
+            cal.data.range = {
+              startDate: String(request.args.startDate ?? cal.data.range.startDate),
+              days: Number(request.args.days ?? cal.data.range.days),
+              timeZone: String(request.args.timeZone ?? cal.data.range.timeZone),
+            };
+          }
+          respond(cal);
+          break;
+        }
+        case "hub.calendarSources": {
+          if (model.calendarError) {
+            setTimeout(
+              () =>
+                send({
+                  v: 1,
+                  id: request.id,
+                  ok: false,
+                  error: { code: model.calendarError, retryable: false },
+                }),
+              config.latencyMs,
+            );
+            break;
+          }
+          const src = clone(model.calendarSources);
+          const cursorArg =
+            typeof request.args.cursor === "string" ? request.args.cursor : null;
+          if (cursorArg && model.calendarSourcesPages[cursorArg]) {
+            src.data = clone(model.calendarSourcesPages[cursorArg]!);
+          }
+          respond(src);
+          break;
+        }
+        case "hub.calendarSelect": {
+          if (model.calendarError) {
+            setTimeout(
+              () =>
+                send({
+                  v: 1,
+                  id: request.id,
+                  ok: false,
+                  error: { code: model.calendarError, retryable: false },
+                }),
+              config.latencyMs,
+            );
+            break;
+          }
+          const sourceIds = Array.isArray(request.args.sourceIds)
+            ? (request.args.sourceIds as string[])
+            : [];
+          const allowed = new Set(sourceIds);
+          const selectionRevision = `synthetic_selection_${++selectSeq}`;
+          if (model.calendar.data) {
+            model.calendar.data.selectionRevision = selectionRevision;
+            if (model.calendar.data.state === "setup_required") {
+              model.calendar.data.state = "available";
+            }
+            model.calendar.data.sources = model.calendar.data.sources.map((s) => ({
+              ...s,
+              selected: allowed.has(s.sourceId),
+            }));
+            model.calendar.data.items = model.calendar.data.items.filter((e) =>
+              allowed.has(e.sourceId),
+            );
+            if (
+              model.calendar.data.nextEvent &&
+              !allowed.has(model.calendar.data.nextEvent.sourceId)
+            ) {
+              model.calendar.data.nextEvent = null;
+            }
+          }
+          if (model.calendarSources.data) {
+            model.calendarSources.data.selectionRevision = selectionRevision;
+            if (model.calendarSources.data.state === "setup_required") {
+              model.calendarSources.data.state = "available";
+            }
+            model.calendarSources.data.sources =
+              model.calendarSources.data.sources.map((s) => ({
+                ...s,
+                selected: allowed.has(s.sourceId),
+              }));
+          }
+          respond({ selectionRevision });
+          break;
+        }
         case "esp.set": {
           outstanding += 1;
           maxOutstanding = Math.max(maxOutstanding, outstanding);
@@ -261,7 +412,17 @@ function installBridge(config: BridgeConfig): void {
       held.shift()?.();
     },
     heldCount: () => held.length,
-    set(key: "hub" | "esp" | "history" | "app", value: unknown) {
+    set(
+      key:
+        | "hub"
+        | "esp"
+        | "history"
+        | "app"
+        | "calendar"
+        | "calendarSources"
+        | "calendarError",
+      value: unknown,
+    ) {
       (model as Record<string, unknown>)[key] = value;
     },
   };
@@ -277,21 +438,41 @@ export async function installSyntheticNativeBridge(
     latencyMs: options.latencyMs ?? 5,
     holdSets: options.holdSets ?? false,
     actionResult: options.actionResult ?? {success: true},
+    calendarPages: options.calendarPages ?? {},
+    calendarSourcesPages: options.calendarSourcesPages ?? {},
+    calendarError: options.calendarError ?? null,
   });
   return data;
 }
 
-type Slot = "hub" | "esp" | "history" | "app";
+type Slot =
+  | "hub"
+  | "esp"
+  | "history"
+  | "app"
+  | "calendar"
+  | "calendarSources"
+  | "calendarError";
 /** Replace what the fake bridge will report from the next poll on (validated first). */
 export async function setBridgeSlot(
   page: Page,
   slot: Slot,
-  value: HubLink | EspSnapshot | LinkSnapshot<EspHistory> | AppStatus,
+  value:
+    | HubLink
+    | EspSnapshot
+    | LinkSnapshot<EspHistory>
+    | AppStatus
+    | CalendarLink
+    | CalendarSourcesLink
+    | ErrorCode
+    | null,
 ): Promise<void> {
   if (slot === "hub") HubLinkSnapshotSchema.parse(value);
   if (slot === "esp") EspSnapshotSchema.parse(value);
   if (slot === "history") EspHistoryLinkSnapshotSchema.parse(value);
   if (slot === "app") AppStatusSchema.parse(value);
+  if (slot === "calendar") CalendarLinkSnapshotSchema.parse(value);
+  if (slot === "calendarSources") CalendarSourcesLinkSnapshotSchema.parse(value);
   await page.evaluate(
     ([key, payload]) =>
       (

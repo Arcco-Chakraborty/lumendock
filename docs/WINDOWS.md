@@ -43,6 +43,17 @@ Logs and private settings live in `%USERPROFILE%\.config\phone-monitor`, the sam
 - **Claude:** run `npm run claude-usage -- on` for usage polling (see the main README for what it reads). The Claude Code status-line installer (`claude-install`) is Linux-only, so on Windows use polling.
 - **Notifications:** off by default. `npm run start --workspace @phone-monitor/desktop -- notifications allow "WhatsApp"`, or `notifications configure-selected` for Claude, Codex and WhatsApp. A label matches a Windows app whose identity contains it, ignoring case and spaces: `WhatsApp` matches the WhatsApp app, and `Claude` matches the Claude app. Only toasts that arrive after the hub starts are forwarded, and only for allowed apps. The hub reads `%LOCALAPPDATA%\Microsoft\Windows\Notifications\wpndatabase.db` read-only, and reads a toast's text only when its app is allowed.
 
+## Google Calendar
+
+After pulling an update, run `npm ci` and `npm run build` in the LumenDock folder before restarting the tray. Calendar requires its own read-only Google grant on this computer; phone pairing does not transfer the Ubuntu grant.
+
+```powershell
+npm run calendar -- status
+npm run calendar -- connect --client "C:\Users\YOUR_USER\Downloads\client_secret.json"
+```
+
+Use your existing Google Cloud **Desktop app** client download, finish consent in the browser, then review and apply calendars in the phone's **Agenda** tab. See [Calendar setup and recovery](CALENDAR.md). Private Calendar files live under `%USERPROFILE%\.config\phone-monitor\calendar`, or under `XDG_CONFIG_HOME` when set. Keep the downloaded client private; do not copy saved tokens between computers.
+
 ## What differs from Linux
 
 | Feature | Windows |

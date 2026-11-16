@@ -244,7 +244,7 @@ test.describe("production bundle (A13/A14)", () => {
     // Document order of the primary controls.
     await page.locator("body").click({ position: { x: 1, y: 1 } });
     const order: string[] = [];
-    for (let i = 0; i < 7; i += 1) {
+    for (let i = 0; i < 9; i += 1) {
       await page.keyboard.press("Tab");
       order.push(await focused());
     }
@@ -252,9 +252,11 @@ test.describe("production bundle (A13/A14)", () => {
       "Monitor",
       "Open settings",
       "Hide bar",
+      "Open clock, timers, and alarms",
       "Room history",
       "All Claude windows",
       "All Codex windows",
+      "Next up, open Agenda",
       "Details (1)",
     ]);
     // Settings: Enter opens, focus moves inside, Tab stays inside, Escape restores focus.

@@ -25,7 +25,11 @@ export interface NativeBridge {
 type Args<O extends BridgeOp> = Extract<BridgeRequest, { op: O }>["args"];
 type EmptyOp = Exclude<
   BridgeOp,
-  "esp.set" | "app.setScreenOn" | "app.setBrightness"
+  | "esp.set"
+  | "app.setScreenOn"
+  | "app.setBrightness"
+  | "hub.calendar"
+  | "hub.calendarSelect"
 >;
 type RequestArgs<O extends BridgeOp> = O extends EmptyOp
   ? [args?: Args<O>]

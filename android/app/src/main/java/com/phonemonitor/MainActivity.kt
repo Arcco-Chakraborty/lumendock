@@ -43,6 +43,7 @@ class MainActivity : Activity() {
     private var activityStarted=false
     /** Activity-owned: its cache/age baseline outlives every renderer; native process death re-fetches. */
     private lateinit var laptop:LaptopClient
+    private lateinit var calendar:CalendarClient
     private lateinit var pairingFlow:HubPairingFlow
     /** Pairing I/O only; the thread exits when idle, and onDestroy shuts the pool down. */
     private val pairingWorker=ThreadPoolExecutor(0,1,1,TimeUnit.SECONDS,LinkedBlockingQueue(1))
@@ -66,11 +67,13 @@ class MainActivity : Activity() {
         val ui=main
         laptop=LaptopClient(PrivatePairingStore(this)) { paired -> owner.get()?.let { if(it::nativeSession.isInitialized) it.nativeSession.paired=paired } }
         val client=laptop
+        calendar=CalendarClient(client)
+        val agenda=calendar
         esp=EspClient.create()
         val controller=esp
         nativeSession=NativeSession(
             // A genuine background/end releases hub requests, controller I/O, queued commands and the Wi-Fi request.
-            onBackground={ client.pause(); controller.pause(); owner.get()?.let{ if(it::wifi.isInitialized) it.wifi.pause() } },
+            onBackground={ client.pause(); agenda.pause(); controller.pause(); owner.get()?.let{ if(it::wifi.isInitialized) it.wifi.pause() } },
             onStartSetup={kind,id->ui.post { owner.get()?.showSetupGuidance(kind,id) }},
             onCancelSetup={kind,id->ui.post { owner.get()?.let { it.setupDialog?.dismiss(); if(kind=="esp") it.wifiFlow.onSetupEnded(id) } }},
             onScreenChanged={_,_->ui.post { owner.get()?.applyScreenSettings() }},
@@ -124,11 +127,15 @@ class MainActivity : Activity() {
         if(activityStarted) scope.enterForeground() else view.onPause()
         val owner=WeakReference(this)
         val client=laptop
+        val agenda=calendar
         val controller=esp
         val selection=wifi
-        // hub.snapshot (A2, unbound loopback) and esp.* (A3, selected Wi-Fi network) are independent clients.
+        // hub.snapshot/calendar (unbound loopback) and esp.* (selected Wi-Fi network) are independent clients.
         val services=object:UnavailableBridgeServices() {
             override fun hubSnapshot()=client.snapshot().toJson()
+            override fun hubCalendar(args:com.google.gson.JsonObject)=agenda.read(args).toJson()
+            override fun hubCalendarSources(args:com.google.gson.JsonObject)=agenda.sources(args).toJson()
+            override fun hubCalendarSelect(args:com.google.gson.JsonObject)=agenda.select(args)
             override fun espState()=controller.state().toJson()
             override fun espHistory()=controller.history().toJson()
             override fun setLight(patch:com.google.gson.JsonObject,generation:Long)=controller.set(LightPatch.fromJson(patch),generation).toJson()
@@ -312,7 +319,7 @@ class MainActivity : Activity() {
     }
     override fun onStart() {
         super.onStart(); activityStarted=true; userLeaving=false
-        laptop.resume(); esp.resume(); wifi.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
+        laptop.resume(); calendar.resume(); esp.resume(); wifi.resume(); lifecycle?.enterForeground(); dashboardView?.onResume(); applyScreenSettings()
     }
     override fun onResume() { super.onResume(); dashboardWindow.onResume() }
     override fun onPause() { dashboardWindow.onPause(); super.onPause() }
@@ -330,11 +337,11 @@ class MainActivity : Activity() {
         // Permission/system approval can stop an Activity; genuine Home/background still ends work.
         lifecycle?.onActivityStopped(userLeaving); dashboardView?.onPause(); applyScreenSettings()
         // Only a matching OS approval pause keeps the foreground session; anything else releases hub requests.
-        if(!nativeSession.foreground) { laptop.pause(); esp.pause(); wifi.pause() }
+        if(!nativeSession.foreground) { laptop.pause(); calendar.pause(); esp.pause(); wifi.pause() }
         super.onStop()
     }
     override fun onDestroy() {
-        setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close(); wifi.close(); esp.close()
+        setupDialog?.dismiss(); destroyDashboard(); nativeSession.close(); laptop.close(); calendar.close(); wifi.close(); esp.close()
         pairingWorker.shutdownNow(); dashboardWindow.close()
         main.removeCallbacksAndMessages(null); super.onDestroy()
     }

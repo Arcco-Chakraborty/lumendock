@@ -43,6 +43,7 @@ function project(root, { withApk } = {}) {
   put(root, "packages/protocol/dist/index.js", "export {};");
   put(root, "docs/SETUP.md", "# setup");
   put(root, "docs/TESTING.md", "# testing");
+  put(root, "docs/CALENDAR.md", "# Calendar setup");
   for (const name of ["workspace", "doctor", "connect", "install-hub", "uninstall-hub", "claude-install", "claude-uninstall"]) put(root, `scripts/${name}.mjs`, "");
   put(root, "scripts/lib/dist.mjs", "");
   for (const path of ["README.md", "LICENSE", "CHANGELOG.md", "docs/QUICKSTART.md", "docs/WINDOWS.md", "scripts/phone-monitor-tray.py",
@@ -206,10 +207,12 @@ describe("packageProject", () => {
     const paths = linux.files.map((file) => file.path);
     expect(paths).toContain("lumendock-desktop-1.2.3/desktop/dist/main.js");
     expect(paths).toContain("lumendock-desktop-1.2.3/INSTALL.txt");
+    expect(paths).toContain("lumendock-desktop-1.2.3/docs/CALENDAR.md");
     expect(paths).toContain("lumendock-desktop-1.2.3/scripts/linux/install-desktop.sh");
     expect(paths.some((path) => path.includes("scripts/windows"))).toBe(false);
     const winPaths = windows.files.map((file) => file.path);
     expect(winPaths).toContain("lumendock-desktop-1.2.3/Install.cmd");
+    expect(winPaths).toContain("lumendock-desktop-1.2.3/docs/CALENDAR.md");
     expect(winPaths.some((path) => path.endsWith(".sh"))).toBe(false);
     expect(paths.some((path) => path.endsWith(".d.ts"))).toBe(false);
     expect(paths.some((path) => path.includes("dashboard/dist"))).toBe(false);

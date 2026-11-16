@@ -1,14 +1,30 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { PairRequestSchema } from '@phone-monitor/protocol';
+import {
+  CalendarRangeRequestSchema,
+  CalendarSelectRequestSchema,
+  CalendarSourcesRequestSchema,
+  PairRequestSchema,
+  type CalendarPage,
+  type CalendarRangeRequest,
+  type CalendarSelectReply,
+  type CalendarSelectRequest,
+  type CalendarSourcesPage,
+  type CalendarSourcesRequest,
+} from '@phone-monitor/protocol';
 import { TokenStore } from './config.js';
 import { PairingSession } from './pairing.js';
 import { HubStore } from './store.js';
 import { executeAction } from './actions.js';
 
 export interface HubClock {nowMs():number; monotonicMs():number}
-export interface HubOptions {store:HubStore; pairing:PairingSession; tokenStore:TokenStore; clock:HubClock; afterAction?:()=>void}
+export interface CalendarRoutes {
+  read(request:CalendarRangeRequest):CalendarPage|Promise<CalendarPage>;
+  sources(request:CalendarSourcesRequest):CalendarSourcesPage|Promise<CalendarSourcesPage>;
+  select(request:CalendarSelectRequest):Promise<CalendarSelectReply>;
+}
+export interface HubOptions {store:HubStore; pairing:PairingSession; tokenStore:TokenStore; clock:HubClock; afterAction?:()=>void; calendar?:CalendarRoutes}
 const badPayload = {v:1,error:{code:'BAD_PAYLOAD'}};
-export function buildHub({store,pairing,tokenStore,clock,afterAction}: HubOptions): FastifyInstance {
+export function buildHub({store,pairing,tokenStore,clock,afterAction,calendar}: HubOptions): FastifyInstance {
   // No request logging: authorization, pairing, query strings and notification
   // payloads must never reach an access log.
   const app = Fastify({logger:false,bodyLimit:16*1024});
@@ -58,6 +74,53 @@ export function buildHub({store,pairing,tokenStore,clock,afterAction}: HubOption
     afterAction?.();
     store.markPhoneActivity(clock.monotonicMs());
     return {v:1,ok:true,data:result};
+  });
+  app.post('/v1/calendar/read',async (request,reply) => {
+    if (!tokenStore.matchesBearer(request.headers.authorization)) return reply.code(401).send({v:1,error:{code:'AUTH_REQUIRED'}});
+    const parsed = CalendarRangeRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send(badPayload);
+    store.markPhoneActivity(clock.monotonicMs());
+    if (!calendar) {
+      return {
+        v:1,state:'disabled',errorCode:null,serverNowEpochMs:clock.nowMs(),
+        range:{startDate:parsed.data.startDate,days:parsed.data.days,timeZone:parsed.data.timeZone},
+        revision:'disabled',selectionRevision:'disconnected',lastSuccessAtEpochMs:null,
+        sourceCount:0,failedSourceCount:0,sources:[],items:[],nextEvent:null,nextCursor:null,
+      } satisfies CalendarPage;
+    }
+    return calendar.read(parsed.data);
+  });
+  app.post('/v1/calendar/sources',async (request,reply) => {
+    if (!tokenStore.matchesBearer(request.headers.authorization)) return reply.code(401).send({v:1,error:{code:'AUTH_REQUIRED'}});
+    const parsed = CalendarSourcesRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send(badPayload);
+    store.markPhoneActivity(clock.monotonicMs());
+    if (!calendar) {
+      return {
+        v:1,state:'disabled',errorCode:null,serverNowEpochMs:clock.nowMs(),
+        selectionRevision:'disconnected',sources:[],nextCursor:null,
+      } satisfies CalendarSourcesPage;
+    }
+    return calendar.sources(parsed.data);
+  });
+  app.post('/v1/calendar/select',async (request,reply) => {
+    if (!tokenStore.matchesBearer(request.headers.authorization)) return reply.code(401).send({v:1,error:{code:'AUTH_REQUIRED'}});
+    const parsed = CalendarSelectRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send(badPayload);
+    store.markPhoneActivity(clock.monotonicMs());
+    if (!calendar) return reply.code(409).send({v:1,error:{code:'CALENDAR_AUTH_REQUIRED'}});
+    try {
+      return await calendar.select(parsed.data);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'CALENDAR_SELECTION_CHANGED' || code === 'CALENDAR_AUTH_REQUIRED' || code === 'CALENDAR_CAPACITY') {
+        return reply.code(409).send({v:1,error:{code}});
+      }
+      if (code === 'CALENDAR_UNAVAILABLE') {
+        return reply.code(503).send({v:1,error:{code}});
+      }
+      return reply.code(400).send(badPayload);
+    }
   });
   return app;
 }

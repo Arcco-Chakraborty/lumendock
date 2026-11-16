@@ -1,6 +1,6 @@
 {
   "name": "phone-monitor",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Turn a spare Android phone into a USB desk display for Claude/Codex limits, laptop notifications, media keys and an ESP32 lamp.",
   "license": "MIT",
   "private": true,
@@ -25,6 +25,7 @@
     "uninstall-hub": "node scripts/workspace.mjs uninstall-hub",
     "claude-install": "node scripts/workspace.mjs claude-install",
     "claude-usage": "npm run start --silent --workspace @phone-monitor/desktop -- claude-usage",
+    "calendar": "npm run start --silent --workspace @phone-monitor/desktop -- calendar",
     "package": "node scripts/workspace.mjs package",
     "service:start": "./scripts/phone-monitor.sh start",
     "service:stop": "./scripts/phone-monitor.sh stop",

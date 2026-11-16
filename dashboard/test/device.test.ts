@@ -50,6 +50,27 @@ describe("native transport", () => {
     expect(b.sent).toHaveLength(0);
     a.dispose();
   });
+  it("validates calendar arguments and operation-specific replies", async () => {
+    const b = fakeBridge(),
+      a = createNativeAdapter(b.bridge, fakeClock());
+    await expect(
+      a.request("hub.calendar", {
+        startDate: "2026-10-21",
+        days: 7,
+        timeZone: "UTC",
+        cursor: "synthetic_cursor",
+        refresh: true,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_PAYLOAD" });
+    expect(b.sent).toHaveLength(0);
+    const selectPending = a.request("hub.calendarSelect", {
+      sourceIds: ["synthetic_work"],
+      expectedRevision: "synthetic_rev",
+    });
+    b.reply(b.sent[0]!.id, status);
+    await expect(selectPending).rejects.toMatchObject({ code: "BAD_PAYLOAD" });
+    a.dispose();
+  });
   it("expires at ten seconds and a stale callback cannot resolve a later request", async () => {
     const b = fakeBridge(),
       a = createNativeAdapter(b.bridge, fakeClock());

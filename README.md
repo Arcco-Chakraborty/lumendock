@@ -32,6 +32,8 @@ Toggle keys carry a small status light: red while the mic or sound is muted, cya
 
 ![Laptop screen: CPU, GPU, memory and power](docs/images/laptop.png)
 
+**Agenda** shows your Google Calendar schedule and next timed event with source calendar badges and event labels, using a read-only Google Desktop OAuth connection on the laptop (`node desktop/dist/main.js calendar connect --client <path>`; see [docs/CALENDAR.md](docs/CALENDAR.md)).
+
 **Lamp signals.** The lamp pulses for a few seconds and then goes back to how it was:
 
 - cyan when Claude or Codex sends an alert,
@@ -40,7 +42,7 @@ Toggle keys carry a small status light: red while the mic or sound is muted, cya
 
 Each signal can be switched off, and quiet hours (11 PM to 8 AM) are on by default.
 
-**Control bar.** A bar at the bottom switches between Monitor, Deck and Laptop, shows the laptop and lamp connection, and opens settings. It hides after eight seconds like an auto-hiding taskbar; tap the bottom edge to bring it back.
+**Control bar.** A bar at the bottom switches between Monitor, Deck, Laptop and Agenda, shows the laptop and lamp connection, and opens settings. It hides after eight seconds like an auto-hiding taskbar; tap the bottom edge to bring it back.
 
 The layout adapts to landscape and portrait, honours the system text size and reduced motion, and keeps keys at least 44 px (the full-width bottom edge strip is the one thinner target).
 

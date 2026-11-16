@@ -7,7 +7,7 @@ import { assertSafeInputs, classify } from './rules.mjs';
 export const APK_BUDGET_BYTES = 20 * 1024 * 1024;
 export const MANIFEST_NAME = 'lumendock-manifest.json';
 export const SUMS_NAME = 'SHA256SUMS';
-const DOCS = ['README.md', 'LICENSE', 'CHANGELOG.md', 'docs/SETUP.md', 'docs/TESTING.md', 'docs/QUICKSTART.md', 'docs/WINDOWS.md'];
+const DOCS = ['README.md', 'LICENSE', 'CHANGELOG.md', 'docs/SETUP.md', 'docs/TESTING.md', 'docs/QUICKSTART.md', 'docs/WINDOWS.md', 'docs/CALENDAR.md'];
 const MANIFESTS = ['package.json', 'package-lock.json', '.nvmrc', 'desktop/package.json', 'packages/protocol/package.json', 'dashboard/package.json'];
 // Thin wrappers behind `npm run doctor|connect|install-hub|...` over the built desktop modules.
 const SCRIPTS = ['workspace', 'doctor', 'connect', 'install-hub', 'uninstall-hub', 'claude-install', 'claude-uninstall'].map(name => `scripts/${name}.mjs`).concat('scripts/lib/dist.mjs');

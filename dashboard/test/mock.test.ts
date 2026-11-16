@@ -1,5 +1,9 @@
 import { scenario } from "../src/mocks/scenarios.js";
-import { HubLinkSnapshotSchema } from "@phone-monitor/protocol";
+import {
+  CalendarLinkSnapshotSchema,
+  CalendarSourcesLinkSnapshotSchema,
+  HubLinkSnapshotSchema,
+} from "@phone-monitor/protocol";
 import { EspSnapshotSchema, AppStatusSchema } from "@phone-monitor/protocol";
 import espJson from "../../packages/protocol/fixtures/esp-link-ready.json";
 import statusJson from "../../packages/protocol/fixtures/app-status.json";
@@ -70,4 +74,61 @@ it("offers isolated loading stale over-limit capacity missing auth sensor and ho
       expect(hub.data?.usage.codex.errorCode).toBe("SOURCE_CAPACITY_EXCEEDED");
     if (mode === "sensor-failure") expect(esp.data?.sensorOk).toBe(false);
   }
+});
+it("supports calendar setup_required available partial auth_required capacity and old-hub unsupported scenarios", async () => {
+  for (const mode of [
+    null,
+    "setup_required",
+    "partial",
+    "auth_required",
+    "capacity",
+    "calendar-unsupported",
+  ]) {
+    const s = scenario(mode);
+    expect(() => CalendarLinkSnapshotSchema.parse(s.calendar)).not.toThrow();
+    expect(() =>
+      CalendarSourcesLinkSnapshotSchema.parse(s.calendarSources),
+    ).not.toThrow();
+  }
+  const setup = scenario("setup_required");
+  const adapter = createMockAdapter(
+    {
+      "hub.calendar": setup.calendar,
+      "hub.calendarSources": setup.calendarSources,
+    },
+    fakeClock(),
+  );
+  const sourcesReq = adapter.request("hub.calendarSources");
+  await vi.advanceTimersByTimeAsync(0);
+  expect((await sourcesReq).data?.state).toBe("setup_required");
+  const selectReq = adapter.request("hub.calendarSelect", {
+    sourceIds: ["synthetic_work"],
+    expectedRevision: "synthetic_selection_1",
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  expect((await selectReq).selectionRevision).toContain("synthetic_selection_");
+  const pageReq = adapter.request("hub.calendar", {
+    startDate: "2026-03-08",
+    days: 7,
+    timeZone: "America/New_York",
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  expect((await pageReq).data?.state).toBe("available");
+  adapter.dispose();
+
+  const oldHub = scenario("calendar-unsupported");
+  const oldAdapter = createMockAdapter(
+    { calendarError: oldHub.calendarError },
+    fakeClock(),
+  );
+  const unsupported = expect(
+    oldAdapter.request("hub.calendar", {
+      startDate: "2026-03-08",
+      days: 7,
+      timeZone: "UTC",
+    }),
+  ).rejects.toMatchObject({ code: "CALENDAR_UNSUPPORTED" });
+  await vi.advanceTimersByTimeAsync(0);
+  await unsupported;
+  oldAdapter.dispose();
 });

@@ -12,6 +12,8 @@ import { runNotificationsCommand } from './notifications-cli.js';
 import { resolveCodexPath } from './codex-path.js';
 import { ClaudeUsagePoller } from './collectors/claude-usage.js';
 import { runClaudeUsageCommand } from './claude-usage-cli.js';
+import { CalendarService } from './calendar/service.js';
+import { runCalendarCommand } from './calendar/cli.js';
 import type { HostState } from '@phone-monitor/protocol';
 import { readWindowsHostState, sharedHostHelper } from './win/host-helper.js';
 import { WindowsVitalsReader } from './win/vitals.js';
@@ -25,8 +27,10 @@ if (args[0] === 'notifications') {
   process.exitCode = await runNotificationsCommand(args,defaultConfigDirectory());
 } else if (args[0] === 'claude-usage') {
   process.exitCode = await runClaudeUsageCommand(args,defaultConfigDirectory());
+} else if (args[0] === 'calendar') {
+  process.exitCode = await runCalendarCommand(args,defaultConfigDirectory());
 } else if (args.some(arg=>arg !== '--pair') || args.length > 1) {
-  console.error('Usage: phone-monitor [--pair] | phone-monitor notifications allow|remove|list [APP_LABEL] | phone-monitor claude-usage on|off|status'); process.exitCode = 1;
+  console.error('Usage: phone-monitor [--pair] | phone-monitor notifications allow|remove|list [APP_LABEL] | phone-monitor claude-usage on|off|status | phone-monitor calendar connect --client FILE|disconnect|status|help'); process.exitCode = 1;
 } else {
   const tokenStore = new TokenStore();
   const pairing = new PairingSession(tokenStore);
@@ -47,14 +51,15 @@ if (args[0] === 'notifications') {
   };
   const host = new HostCollector({store,vitals:{reader:windows?new WindowsVitalsReader():new VitalsReader(),active:()=>store.isPhoneActive(clock.monotonicMs())},
     ...(windows?{readState:readThrottled}:{})});
+  const calendar = new CalendarService({directory:tokenStore.directory,nowMs:clock.nowMs,phoneActive:()=>store.isPhoneActive(clock.monotonicMs())});
   // Refresh media/mic/DND right after a Deck key so its lit state follows quickly.
-  const app = buildHub({store,pairing,tokenStore,clock,afterAction:()=>void host.poll()});
+  const app = buildHub({store,pairing,tokenStore,clock,afterAction:()=>void host.poll(),calendar});
   // Opt-in Claude usage polling also runs only while the phone is watching.
   const collectors = new HubCollectors({store,configDir:tokenStore.directory,nowMs:clock.nowMs,codex:{codexPath:resolveCodexPath({configDir:tokenStore.directory})},
     claudeUsage:{poller:new ClaudeUsagePoller(),active:()=>store.isPhoneActive(clock.monotonicMs())}});
   const notifications = windows ? new WindowsNotificationCollector({store,clock}) : new NotificationCollector({store,clock});
   const allowlistSync = new AllowlistSync({configDir:tokenStore.directory,apply:async labels=>{store.setNotificationAllowlist(labels);await notifications.start(labels);}});
-  const stop = () => { pairing.close(); allowlistSync.stop(); host.stop(); if (windows) sharedHostHelper().stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };
+  const stop = () => { pairing.close(); allowlistSync.stop(); host.stop(); calendar.stop(); if (windows) sharedHostHelper().stop(); void Promise.all([notifications.stop(),collectors.stop(),app.close()]); };
   process.once('SIGINT',stop); process.once('SIGTERM',stop);
   try {
     tokenStore.read();
@@ -66,7 +71,7 @@ if (args[0] === 'notifications') {
     console.log('LumenDock hub listening on 127.0.0.1:8765');
   } catch {
     console.error('Hub startup failed. Check private configuration and port 8765 availability.');
-    allowlistSync.stop(); host.stop(); if (windows) sharedHostHelper().stop();
+    allowlistSync.stop(); host.stop(); calendar.stop(); if (windows) sharedHostHelper().stop();
     await Promise.all([notifications.stop(),collectors.stop()]);
     await app.close(); process.exitCode = 1;
   }

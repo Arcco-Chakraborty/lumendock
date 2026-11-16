@@ -295,8 +295,13 @@ test("Laptop screen shows a sleeping GPU, heat colours and the disconnected stat
   await expect(page.getByRole("region", {name: "Power"})).toContainText("Battery full");
   await expect(page.locator(".vital-meta .is-warm")).toHaveText("SSD 78°C");
   await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", {name: "Agenda", exact: true})).toBeFocused();
+  await page.keyboard.press("ArrowRight");
   await expect(monitor).toBeFocused();
   await page.keyboard.press("End");
+  await expect(page.getByRole("tab", {name: "Agenda", exact: true})).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("tab", {name: "Laptop", exact: true})).toBeFocused();
   await page.getByRole("button", {name: "Hide bar"}).click();
   expect(await panelProblems(page)).toEqual([]);
   await page.screenshot({animations: "disabled", path: evidence("800x360-laptop-asleep-hot")});

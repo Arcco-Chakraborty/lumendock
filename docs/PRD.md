@@ -1,6 +1,42 @@
 # Phone Monitor — Product Requirements
 
+## Phone-hub offload revision (2026-10-28)
+
+User authorizes software-first construction without the phone attached, following the architecture discussed2026-10-26. Main goal is maximum practical reduction of laptop CPU/memory/resident helpers. Laptop supplies internet only to the phone over USB; phone owns Calendar/online processing and a local hotspot IoT command server whose clients need no direct internet. Preserve quota displays through existing laptop auth adapters until independent phone-side access is verified; never export those credentials. Keep legacy/full mode available, make offload opt-in, and record actual savings only after measurement. New phone Calendar authorization is independent/native and read-only; foreground-only lifecycle remains. Existing sibling firmware is read-only and needs a future separately approved station/protocol migration. Concrete requirements and acceptance are in [phone-hub design](superpowers/specs/2026-10-28-phone-hub-offload-design.md) and [implementation plan](superpowers/plans/2026-10-28-phone-hub-offload.md); required Astra-high preflight review precedes product code. Earlier contradictory ownership/topology exclusions below remain the legacy baseline, superseded only by this explicit opt-in revision.
+
 Date: 2026-10-14 (Asia/Kolkata). Approved product baseline, with the user-requested revision below dated 2026-10-15. Requirements describe intended behavior; verification is recorded separately in STATUS and DEVICE_ACCEPTANCE.
+
+## Calendar agenda revision (approved 2026-10-21)
+
+The user requested a Google Calendar section with **all events with labels**, then approved the concrete Next up and agenda mockup/read-only sync approach with “good works”. The approved feature description is [the calendar design](superpowers/specs/2026-10-21-calendar-agenda-design.md); [the implementation plan](superpowers/plans/2026-10-21-calendar-agenda.md) passed the required independent Astra-high review. Earlier UI-only revision limits below describe that earlier task; this new request authorizes the narrow desktop/protocol/Android/dashboard calendar integration.
+
+Add Agenda as a fourth tab, preserving Monitor, Deck, Laptop and the overlap dock. Show next timed/ongoing event plus date-grouped, paged events from all included accessible calendars, with source-calendar identity and available Google named labels/colors. Include recurring exceptions, all-day/multi-day events and every event type within an explicit browsable range. No silently truncated first-page feed. Privacy/access restrictions and bounded-capacity/partial/stale states are explicit. Calendar source inclusion is reviewed on the phone before event collection begins.
+
+The laptop connects to Google through a separate explicit Desktop OAuth grant with only calendar event/list/metadata read-only scopes; tokens remain privately on that laptop and never enter the WebView or phone storage. Agents must not inspect credentials or real account payloads during development. The phone receives normalized data through fixed authenticated USB operations while retaining the ESP32 Wi-Fi link. Existing snapshot wire shape and older APK behavior are preserved.
+
+This version is display-only: Google Tasks, Google writes and background alarms are excluded. Google remains the reminder-notification authority. The user has no OAuth client yet and requested setup steps; no live-calendar import can be claimed until they create a client, complete browser consent and review calendar inclusion. Named-label read fidelity requires authenticated synthetic-event acceptance; software tests and builds do not establish that or physical phone acceptance.
+
+## Monitor next-event addition (requested 2026-10-23)
+
+The user requested the next event, **only one**, integrated cleanly into Monitor with navigation to Agenda. Add a compact Next up row between usage meters and Recent alerts, retaining the existing instrument display, clock, room readings and dock. Show the event title, its local date/time and available label/calendar identity; activating the row opens Agenda at today. Use the same timed/ongoing next-event eligibility as Agenda.
+
+The Monitor preview follows a current rolling seven-day window independently of Agenda date browsing and refreshes while Monitor is visible. It must work before Agenda has been opened, suppress an expired next-event candidate, show honest setup/auth/offline/partial/stale/empty states, and state the bounded window when empty. Preserve existing read-only consent/selection, link isolation, snapshot and bridge contracts. This is a dashboard addition using the existing Calendar API and native bridge; no Google writes, background alarms or new permissions.
+
+## Desk clock repair (requested 2026-10-23)
+
+The user clarified that Clock is a clean desk display used when Monitor is too cluttered, with a focus timer and a balanced amount of information. Repair the existing clock's broken fullscreen/control hiding and UI/UX. Keep a glanceable steady clock/date, deliberate focus-timer controls, one relevant status line, revealable navigation, optional appearance settings and an obvious return to Monitor. Preserve saved alarms/preferences and finished Monitor/Agenda functionality. Repair timing, recurring alarm, snooze and audio defects with synthetic tests. Alarms remain local foreground features; no new permissions or unsupported background guarantee. Scoped execution brief: [desk-clock repair](superpowers/specs/2026-10-23-desk-clock-repair-brief.md).
+
+## Flip clock presentation (requested 2026-10-24)
+
+The user supplied a split-flap/page-folding clock reference and requested that presentation, plus restoration of the circular countdown timer. Use large charcoal hour/minute flip cards with a restrained hinge and value-change motion, compact date/AM-PM/optional seconds, and a true circular progress ring around the timer. Preserve the desk-clock repair's clean reveal controls, stable layout, focus behavior, saved preferences and all scheduling/audio fixes. Respect reduced motion and small-screen geometry. Scoped brief: [flip clock and circular timer](superpowers/specs/2026-10-24-flip-clock-brief.md).
+
+## Clock screen usage and clipping repair (requested 2026-10-24)
+
+The user rejected continued wasted space and clipped timer content after a further styling pass. Size flip cards and the circular timer from actual available space, remove hidden chrome rows and conflicting old responsive rules, and keep all setup/actions visible at supported phone sizes. Fit screen is horizontal in landscape and stacked in portrait; saved stacked remains stacked. Use unobtrusive landscape controls beside the large display, preserving stable geometry, keyboard/modal behavior and all existing clock capabilities. Check clipping ancestors and actual hit targets, not only viewport bounds. Scoped brief: [clock space repair](superpowers/specs/2026-10-24-clock-space-brief.md).
+
+## Clock menu and alignment refinement (requested 2026-10-24)
+
+The user accepts the improved display layout and asks for a more coherent menu, date relocation and centered clock. Group mode/Back/Appearance controls into one restrained palette with an accessible icon menu toggle. Place the date below the cards and center the actual card union on both viewport axes, keeping its position steady when controls/status appear. Preserve timer/form dimensions, all functions and accepted display sizes. Scope: [menu and centering brief](superpowers/specs/2026-10-24-clock-menu-brief.md).
 
 ## Current revision
 
@@ -43,6 +79,7 @@ The user confirmed the phone is a Redmi 9A and the requested usage is Claude Cod
 | P11 | Be installable and maintainable | APK, local launcher, opt-in user service, uninstall instructions, and reproducible build commands |
 | P12 | Be independently reviewed | Astra at high reviews the PRD/plan before execution and the complete project at release |
 | P13 | Maintain a live cross-agent handoff | Another AI can resume from HANDOFF/STATUS/PROGRESS/AGENTS without this chat; checkpoints update after each task/review/decision/yield |
+| P14 | Show Google Calendar agenda and labels | Read-only opt-in laptop sync; reviewed source inclusion; all accessible events within explicitly browsable/paged date ranges; named labels/source identity and honest partial/offline/setup states; older clients and independent phone links continue working |
 
 ### Excluded from the first release
 

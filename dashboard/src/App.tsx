@@ -16,13 +16,31 @@ import { NotificationStrip } from "./components/NotificationStrip.js";
 import { SettingsSheet } from "./components/SettingsSheet.js";
 import { DeckView } from "./components/DeckView.js";
 import { HISTORY_SAMPLES, LaptopView, type VitalsHistory } from "./components/LaptopView.js";
+import { AgendaView } from "./components/AgendaView.js";
+import { MonitorNextEvent } from "./components/MonitorNextEvent.js";
+import { clockAudio } from "./lib/clockAudio.js";
+import { ClockAlert } from "./components/ClockAlert.js";
+import { ClockView } from "./components/ClockView.js";
+import { CalendarStore } from "./calendar/store.js";
 import { LightIntentController } from "./lib/lightIntent.js";
 import { LampSignaller, SignalDetector, inQuietHours, loadSignalPrefs, saveSignalPrefs, type SignalPrefs } from "./lib/lampSignals.js";
+import { globalTimeStore, type TimeStore } from "./lib/timeStore.js";
+
+function formatClockTimer(totalSec: number): { main: string; hours?: string } {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  if (h > 0) return { hours: `${h}:`, main: `${pad(m)}:${pad(s)}` };
+  return { main: `${pad(m)}:${pad(s)}` };
+}
 
 export interface AppProps {
   store: DashboardStore;
   nativeAvailable: boolean;
   adapter?: DeviceAdapter;
+  calendarStore?: CalendarStore;
+  timeStore?: TimeStore;
   demo?: boolean;
   usageSlot?: ReactNode;
   climateSlot?: ReactNode;
@@ -57,12 +75,19 @@ function LinkStatus({
     </span>
   );
 }
-type View = "monitor" | "deck" | "laptop";
-const VIEWS: Array<[View, string]> = [["monitor", "Monitor"], ["deck", "Deck"], ["laptop", "Laptop"]];
+type View = "monitor" | "deck" | "laptop" | "agenda";
+const VIEWS: Array<[View, string]> = [
+  ["monitor", "Monitor"],
+  ["deck", "Deck"],
+  ["laptop", "Laptop"],
+  ["agenda", "Agenda"],
+];
 export function App({
   store,
   nativeAvailable,
   adapter,
+  calendarStore: externalCalendarStore,
+  timeStore: propsTimeStore,
   demo = false,
   usageSlot,
   climateSlot,
@@ -70,6 +95,17 @@ export function App({
   notificationSlot,
   settingsSlot,
 }: AppProps) {
+  const timeStore = propsTimeStore ?? globalTimeStore;
+  const timeState = useSyncExternalStore(
+    timeStore.subscribe,
+    () => timeStore.getState(),
+    () => timeStore.getState(),
+  );
+  const [clockOpen, setClockOpen] = useState(false);
+  const clockOpener = useRef<HTMLElement | null>(null);
+  const openClock = () => { clockAudio.unlock(); clockOpener.current = document.activeElement as HTMLElement; setClockOpen(true); };
+  const closeClock = () => { setClockOpen(false); requestAnimationFrame(() => clockOpener.current?.isConnected && clockOpener.current.focus()); };
+  const [clockInitialTab, setClockInitialTab] = useState<"wallpaper" | "timer" | "alarm" | "stopwatch">("wallpaper");
   const snapshot = useSyncExternalStore(
     store.subscribe,
     store.snapshot,
@@ -171,6 +207,48 @@ export function App({
     [adapter],
   );
   useEffect(() => () => controller?.dispose(), [controller]);
+  const ownedCalendarStore = useMemo(
+    () => (externalCalendarStore ? null : new CalendarStore(adapter ?? null)),
+    [adapter, externalCalendarStore],
+  );
+  const calendarStore = externalCalendarStore ?? ownedCalendarStore!;
+  // Monitor owns a rolling window. Agenda browsing must never change its range.
+  const monitorCalendarStore = useMemo(() => new CalendarStore(adapter ?? null), [adapter]);
+  const focusAgenda = useRef(false);
+  useEffect(() => {
+    let context: string | null = null;
+    const share = (source: CalendarStore, peer: CalendarStore) => source.subscribeContext((next) => {
+      if (context !== null && context !== next) peer.invalidate();
+      context = next;
+    });
+    const unsubscribeAgenda = share(calendarStore, monitorCalendarStore);
+    const unsubscribeMonitor = share(monitorCalendarStore, calendarStore);
+    return () => { unsubscribeAgenda(); unsubscribeMonitor(); };
+  }, [calendarStore, monitorCalendarStore]);
+  useEffect(() => () => monitorCalendarStore.dispose(), [monitorCalendarStore]);
+  useEffect(() => {
+    monitorCalendarStore.setActive(view === "monitor");
+    return () => monitorCalendarStore.setActive(false);
+  }, [monitorCalendarStore, view]);
+  useEffect(() => {
+    if (view === "agenda" && focusAgenda.current) {
+      document.getElementById("agenda-panel")?.focus();
+      focusAgenda.current = false;
+    }
+  }, [view]);
+  useEffect(() => () => ownedCalendarStore?.dispose(), [ownedCalendarStore]);
+  useEffect(() => {
+    calendarStore.setActive(view === "agenda");
+  }, [calendarStore, view]);
+  useEffect(() => {
+    const syncVisibility = () => {
+      calendarStore.setVisible(!document.hidden);
+      monitorCalendarStore.setVisible(!document.hidden);
+    };
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+    return () => document.removeEventListener("visibilitychange", syncVisibility);
+  }, [calendarStore, monitorCalendarStore]);
   // Lamp signals: new Claude/Codex/WhatsApp alerts and quota resets pulse the lamp.
   const [signalPrefs, setSignalPrefs] = useState<SignalPrefs>(loadSignalPrefs);
   const changeSignalPrefs = useCallback((next: SignalPrefs) => {
@@ -199,6 +277,11 @@ export function App({
     if (!kinds.length || (signalPrefs.quietHours && inQuietHours(new Date()))) return;
     void signaller?.fire(kinds[0]!);
   }, [hubData, signaller, signalPrefs]);
+  useEffect(() => {
+    if (timeState.timerStatus === "completed" || timeState.ringingAlarm) {
+      void signaller?.fire("quota", true);
+    }
+  }, [timeState.timerStatus, timeState.ringingAlarm, signaller]);
   useEffect(() => {
     if (snapshot.app?.webViewSupported !== false && snapshot.app)
       controller?.initialize(snapshot.app.nextCommandGeneration);
@@ -253,6 +336,19 @@ export function App({
         <div className="connections">
           <LinkStatus name="Laptop" link={snapshot.hub} unpaired={unpaired} />
           <LinkStatus name="Controller" link={snapshot.esp} />
+          {(timeState.timerStatus === "running" || timeState.timerStatus === "paused") && (
+            <button
+              type="button"
+              className="dock-timer-pill"
+              aria-label={`Timer ${timeState.timerStatus}: ${formatClockTimer(timeState.timerRemainingSec).hours ?? ""}${formatClockTimer(timeState.timerRemainingSec).main}, tap to open clock`}
+              onClick={() => {
+                setClockInitialTab("timer");
+                openClock();
+              }}
+            >
+              {formatClockTimer(timeState.timerRemainingSec).hours}{formatClockTimer(timeState.timerRemainingSec).main}{timeState.timerStatus === "paused" ? " · Paused" : ""}
+            </button>
+          )}
           {actionFeedback && dockOpen && (
             <span className="deck-feedback" role="status" aria-live="polite">
               <span className="deck-feedback-dot" aria-hidden="true" />
@@ -266,7 +362,12 @@ export function App({
             event.preventDefault();
             const index = VIEWS.findIndex(([id]) => id === view);
             const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-            const next = event.key === "Home" ? "monitor" : event.key === "End" ? "laptop" : VIEWS[(index + step + VIEWS.length) % VIEWS.length]![0];
+            const next =
+              event.key === "Home"
+                ? VIEWS[0]![0]
+                : event.key === "End"
+                  ? VIEWS[VIEWS.length - 1]![0]
+                  : VIEWS[(index + step + VIEWS.length) % VIEWS.length]![0];
             setView(next);
             dockRef.current?.querySelector<HTMLButtonElement>(`#${next}-tab`)?.focus();
             resetAutoDropTimer();
@@ -356,12 +457,30 @@ export function App({
         <>
           <div className="main-grid" id="monitor-panel" role="tabpanel" aria-labelledby="monitor-tab">
             <div className="clock-room">
-              <section className="local-clock" aria-label="Clock and date">
+              <button
+                type="button"
+                className="local-clock"
+                aria-label="Open clock, timers, and alarms"
+                onClick={() => {
+                  setClockInitialTab("wallpaper");
+                  openClock();
+                }}
+              >
                 <time className="clock" aria-label="Local time" dateTime={localNow.toISOString()}>
                   {clock}<span className="clock-ampm">{ampm}</span>
                 </time>
-                <p className="local-date">{date}</p>
-              </section>
+                <p className="local-date">
+                  {date}
+                  {(timeState.timerStatus === "running" || timeState.timerStatus === "paused") && (
+                    <span
+                      className="clock-timer-pill"
+                      aria-label={`Timer ${timeState.timerStatus}: ${formatClockTimer(timeState.timerRemainingSec).hours ?? ""}${formatClockTimer(timeState.timerRemainingSec).main}`}
+                    >
+                      {formatClockTimer(timeState.timerRemainingSec).hours}{formatClockTimer(timeState.timerRemainingSec).main}{timeState.timerStatus === "paused" ? " · Paused" : ""}
+                    </span>
+                  )}
+                </p>
+              </button>
               {climateSlot ?? <ClimateCard snapshot={snapshot.esp} onHistory={() => setSheet("history")} />}
             </div>
             <div className="usage-alerts">
@@ -373,6 +492,9 @@ export function App({
                       {snapshot.hub.errorCode === "AUTH_REQUIRED" && snapshot.app?.paired !== false
                         ? "The laptop no longer accepts this phone. Pair again."
                         : "This phone is not paired with the laptop yet."}
+                    </p>
+                    <p className="muted">
+                      To get a code, click the LumenDock icon on the laptop and choose Pair phone.
                     </p>
                     <button
                       disabled={pairBusy}
@@ -404,6 +526,16 @@ export function App({
                   </>
                 ))}
               </div>
+              <MonitorNextEvent
+                store={monitorCalendarStore}
+                laptopConnected={laptopConnected}
+                unpaired={unpaired}
+                onOpenAgenda={() => {
+                  calendarStore.setToday();
+                  focusAgenda.current = true;
+                  setView("agenda");
+                }}
+              />
               <section className="notification-strip" aria-label="Recent alerts">
                 <h2>Recent alerts</h2>
                 {notificationSlot ?? <NotificationStrip
@@ -425,6 +557,12 @@ export function App({
         </>
       ) : view === "laptop" ? (
         <LaptopView connected={laptopConnected} vitals={hubData?.host?.vitals} history={vitalsHistory} />
+      ) : view === "agenda" ? (
+        <AgendaView
+          store={calendarStore}
+          laptopConnected={laptopConnected}
+          unpaired={unpaired}
+        />
       ) : (
         <DeckView
           store={store}
@@ -526,6 +664,14 @@ export function App({
           </>
         )}
       </dialog>
+      {clockOpen && (
+        <ClockView
+          timeStore={timeStore}
+          initialTab={clockInitialTab}
+          onClose={closeClock}
+        />
+      )}
+      <ClockAlert timeStore={timeStore} />
     </main>
   );
 }

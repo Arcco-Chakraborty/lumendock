@@ -35,7 +35,7 @@ object StrictJson {
 /** Mirrors packages/protocol/src/schema.ts. No open-ended objects cross the bridge. */
 object ProtocolValidator {
     const val MAX_SAFE = 9007199254740991L
-    val errors = setOf("USB_UNAVAILABLE","AUTH_REQUIRED","PAIRING_EXPIRED","PAIRING_CLOSED","BAD_PAIRING_CODE","TOKEN_PERSIST_FAILED","WIFI_UNAVAILABLE","SENSOR_UNAVAILABLE","BAD_PAYLOAD","UNSUPPORTED_WEBVIEW","COMMAND_UNCONFIRMED","NOTIFICATION_MONITOR_DENIED","SOURCE_CAPACITY_EXCEEDED","SOURCE_UNAVAILABLE","SETUP_BUSY","BAD_GENERATION","REQUEST_TIMEOUT","BRIDGE_UNAVAILABLE","SESSION_ENDED","QUEUE_FULL","NOTIFICATION_MONITOR_UNAVAILABLE","UNSUPPORTED_SOURCE","HUB_UNAVAILABLE")
+    val errors = setOf("USB_UNAVAILABLE","AUTH_REQUIRED","PAIRING_EXPIRED","PAIRING_CLOSED","BAD_PAIRING_CODE","TOKEN_PERSIST_FAILED","WIFI_UNAVAILABLE","SENSOR_UNAVAILABLE","BAD_PAYLOAD","UNSUPPORTED_WEBVIEW","COMMAND_UNCONFIRMED","NOTIFICATION_MONITOR_DENIED","SOURCE_CAPACITY_EXCEEDED","SOURCE_UNAVAILABLE","SETUP_BUSY","BAD_GENERATION","REQUEST_TIMEOUT","BRIDGE_UNAVAILABLE","SESSION_ENDED","QUEUE_FULL","NOTIFICATION_MONITOR_UNAVAILABLE","UNSUPPORTED_SOURCE","HUB_UNAVAILABLE") + CalendarValidator.errors
     private fun obj(e:JsonElement?, keys:String, optional:String="", check:(JsonObject)->Boolean={true}):Boolean {
         if(e?.isJsonObject != true) return false
         val o=e.asJsonObject; val required=keys.split(' ').filter(String::isNotEmpty).toSet(); val allowed=required+optional.split(' ').filter(String::isNotEmpty)
@@ -56,6 +56,9 @@ object ProtocolValidator {
         int(it["v"],1,1) && str(it["id"],80,true) && str(it["op"],80) && args(it["op"].asString,it["args"])
     }
     fun args(op:String, a:JsonElement?):Boolean = when(op) {
+        "hub.calendar" -> CalendarValidator.rangeRequest(a)
+        "hub.calendarSources" -> CalendarValidator.sourcesRequest(a)
+        "hub.calendarSelect" -> CalendarValidator.selectRequest(a)
         "hub.snapshot","esp.state","esp.history","app.status","app.setupHub","app.connectEsp","app.openWifiSettings" -> obj(a,"")
         "app.setScreenOn" -> obj(a,"enabled"){bool(it["enabled"])}
         "app.setBrightness" -> obj(a,"value"){brightness(it["value"])}
@@ -125,6 +128,9 @@ object ProtocolValidator {
     /** Strict HubSnapshot check for a raw hub payload, before it is cached or wrapped in a LinkSnapshot. */
     fun hubSnapshot(e:JsonElement):Boolean = try { hub(e) } catch (_:RuntimeException) { false }
     fun response(op:String,e:JsonObject):Boolean = try { when(op) {
+        "hub.calendar" -> link(e,CalendarValidator::page)
+        "hub.calendarSources" -> link(e,CalendarValidator::sourcesPage)
+        "hub.calendarSelect" -> CalendarValidator.selectReply(e)
         "hub.snapshot" -> link(e,::hub)
         "esp.state" -> link(e,::esp,true) && budget(e,65536)
         "esp.history" -> link(e,::history)
