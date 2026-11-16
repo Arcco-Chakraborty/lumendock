@@ -739,3 +739,10 @@ Resume checked actual e59d312 newer than previous checkpoint; preserved dirty ba
 - Fresh actual independent Astra-high scoped review APPROVED, no open actionable scoped findings: `docs/reviews/2026-11-16-calendar-publication-review.md`; independent Calendar33/33 and CalendarUI/packaging83/83 tests pass. Prior broad review history and final-project/device gates are not silently closed.
 - Local metadata/filename search and connected Drive filename-only search did not locate original client. No saved client/tokens currently in Ubuntu app calendar folder; this does not contradict user's previous setup. Windows/old-Ubuntu mountpoints are empty. User explicitly defers client recovery/Google sign-in and asks to finish remaining work. Google live connection remains unverified; no credential contents/account payloads/private logs read.
 - Next: authorized source push to main and WIP preservation branch; verify exact remote refs, checkpoint, await deferred existing-client browser consent and phone Calendar selection. No firmware/OS grant/device/live account changes.
+
+
+## 2026-11-16 — GitHub source publication completed
+
+- Atomic push succeeded: verified stable source3c8d5a2 fast-forwarded `origin/main` frome59d312; new `origin/codex/phone-hub-offload-wip` points to0483b767cef87459dbd2e51c3920353fa212273b. `git ls-remote` readback matched both exact refs. No force push, release/tag publication, GitHub project, firmware/device/OS changes.
+- Source commit passed final staged whitespace check; neither publication branch adds dashboard evidence files or attribution trailers. Native offload remains explicitly incomplete on WIP branch; main retains working laptop-owned Calendar. Main software checks and scoped review described above remain valid; this follow-up changes only checkpoint documentation.
+- User explicitly deferred Google client recovery/sign-in. No live-account restoration claimed. Next action belongs to the deferred account step; Windows can pull main and rebuild per docs/WINDOWS.md. Physical/final-project review gates remain separate.

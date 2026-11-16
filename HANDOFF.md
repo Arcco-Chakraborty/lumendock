@@ -12,9 +12,9 @@ Fresh actual Astra-high scoped publication review approved after exclusion of224
 
 Calendar symptom is Setup needed/disconnected. User recalls earlier setup; metadata-only local and Drive filename search did not locate a reusable client, and current Ubuntu saved client/tokens are absent. Windows/old-Ubuntu mounts are empty. No credential contents, private logs or real Google data read. User will recover/download their existing Google Cloud Desktop client later, then complete read-only browser consent separately on each computer and apply Calendar selection on the phone. No new Cloud project is needed.
 
-Next: push the verified stable snapshot to `origin/main` and the preserved WIP branch, verify remote refs, then await the user's deferred client/sign-in step. No phone install, firmware change, OS permission grant or live account action performed.
+Published stable source commit `3c8d5a2` to `origin/main` and preserved WIP `0483b767cef87459dbd2e51c3920353fa212273b` on `origin/codex/phone-hub-offload-wip`; both exact remote refs verified. A documentation-only checkpoint follows the source commit. Next: await the user's deferred existing-client recovery/browser sign-in step; Windows can pull main and follow `docs/WINDOWS.md`. No phone install, firmware change, OS permission grant or live account action performed.
 
-## Active offload work (2026-10-28)
+## Archived offload checkpoint (2026-10-28; WIP now separate)
 
 User explicitly authorizes software construction now without phone. Priority: reduce laptop CPU/RAM/helpers; USB internet only to phone, native Calendar and local IoT command hub. Quota authentication remains laptop-owned pending verified alternative. No firmware or live device changes. Canonical dirty isolated root `/home/arcco-chakraborty/.codex/worktrees/phone-monitor-build/Phone_monitor`, detached `e59d312`; baseline `.superpowers/offload-2026-10-28/baseline` preserves670 files. Earlier Clock/Calendar work stays intact.
 

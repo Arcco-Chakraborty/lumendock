@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "updatedOn": "2026-11-16",
   "timezone": "Asia/Kolkata",
-  "phase": "calendar_software_verified_publication",
+  "phase": "calendar_software_published_auth_deferred",
   "productImplementationStarted": true,
   "planUserApproved": true,
   "planningReview": "approved_for_user_review",
@@ -18,14 +18,15 @@
     "remoteUrl": "https://github.com/Arcco-Chakraborty/lumendock.git",
     "remoteVisibility": "public",
     "remoteBranch": "main",
-    "lastPushedSha": "e59d312b0a27c9a3e8b658c34993a22a3be5645b"
+    "lastPushedSha": "3c8d5a2f89648054356e7cca6c3396a6cbc3c8d2",
+    "lastPushedSourceSha": "3c8d5a2f89648054356e7cca6c3396a6cbc3c8d2"
   },
   "softwareVerified": true,
   "deviceAccepted": false,
   "finalProjectReviewed": false,
   "openPlanningFindings": [],
-  "activeTask": "Publish verified Calendar/Clock source; Google sign-in deferred by user",
-  "nextAction": "Push and verify main plus preserved offload WIP; user will later recover original Desktop OAuth client and complete browser consent/calendar selection.",
+  "activeTask": "Google Calendar sign-in deferred by user; source publication complete",
+  "nextAction": "User later recovers/downloads existing Google Cloud Desktop client, completes browser consent separately on each computer, and applies Calendar selection; Windows setup uses published main.",
   "implementationTasks": {
     "D1": "complete",
     "D2": "complete",
@@ -694,6 +695,14 @@
         "Missing OFFLOAD guide"
       ]
     },
-    "excludedNewLocalEvidenceFiles": 224
+    "excludedNewLocalEvidenceFiles": 224,
+    "publication": {
+      "stableBranch": "main",
+      "sourceCommit": "3c8d5a2f89648054356e7cca6c3396a6cbc3c8d2",
+      "wipBranch": "codex/phone-hub-offload-wip",
+      "wipCommit": "0483b767cef87459dbd2e51c3920353fa212273b",
+      "remoteRefsVerified": true,
+      "note": "Documentation-only checkpoint follows verified source commit."
+    }
   }
 }
