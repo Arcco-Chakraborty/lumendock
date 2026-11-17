@@ -145,6 +145,32 @@ describe('Windows notification capture', () => {
     await collector.stop();
     expect(store.snapshot(5_000).notifications.state).toBe('disabled');
   });
+  it('suppresses WhatsApp refreshes and still delivers changed text after rows disappear', async () => {
+    const { rows, db } = fakeDb();
+    const store = new HubStore();
+    let now = 5_000;
+    const collector = new WindowsNotificationCollector({ store, clock: { nowMs: () => now }, open: async () => db, intervalMs: 3_600_000 });
+    const app = 'Synthetic.WhatsApp!App';
+    const first = toast('Synthetic sender', 'first message');
+    await collector.start(['WhatsApp']);
+    try {
+      rows.push({ id: 8, app, xml: first });
+      await collector.poll();
+      const original = store.snapshot(now).notifications.items[0];
+      now += 30_000;
+      rows.push({ id: 9, app, xml: first });
+      await collector.poll();
+      expect(store.snapshot(now).notifications.items).toEqual([original]);
+
+      rows.pop();
+      await collector.poll();
+      rows.push({ id: 10, app, xml: toast('Synthetic sender', 'second message') });
+      await collector.poll();
+      expect(store.snapshot(now).notifications.items.map(item => item.body)).toEqual(['first message', 'second message']);
+    } finally {
+      await collector.stop();
+    }
+  });
   it('reports the capture unavailable when the database cannot be opened', async () => {
     const store = new HubStore();
     const collector = new WindowsNotificationCollector({ store, open: async () => { throw Error('locked'); }, intervalMs: 3_600_000 });

@@ -68,6 +68,9 @@ export function parseToast(xml: string): { title: string; body: string } {
   return { title: plainText(lines[0] ?? '', 100), body: plainText(lines.slice(1).join(' '), 280) };
 }
 
+const WHATSAPP_DEDUPE_MS = LIMITS.notificationTtlMs;
+const MAX_WHATSAPP_FINGERPRINTS = 2048;
+
 export interface WindowsNotificationCollectorOptions {
   store: HubStore; clock?: NotificationClock; open?: NotificationDbOpener; intervalMs?: number;
 }
@@ -79,6 +82,7 @@ export class WindowsNotificationCollector {
   private busy = false;
   private sequence = 0;
   private readonly seen = new Map<string, number>();
+  private readonly seenWhatsApp = new Map<string, number>();
   private current: NotificationCapability = { state: 'disabled', errorCode: null };
   private readonly clock: NotificationClock;
   private readonly open: NotificationDbOpener;
@@ -102,7 +106,7 @@ export class WindowsNotificationCollector {
 
   private halt(): void {
     if (this.timer) clearInterval(this.timer);
-    this.timer = null; this.lastId = null; this.seen.clear();
+    this.timer = null; this.lastId = null; this.seen.clear(); this.seenWhatsApp.clear();
     try { this.db?.close(); } catch { /* already closed */ }
     this.db = null;
   }
@@ -115,15 +119,15 @@ export class WindowsNotificationCollector {
     this.busy = true;
     try {
       this.db ??= await this.open();
-      const max = this.db.maxId();
-      // First look (or a recreated database): start after what is already there, never replay history.
-      if (this.lastId === null || max < this.lastId) { this.lastId = max; this.set('available'); return; }
+
+      // Seed once. Dismissing a toast can lower the maximum live ID without resetting the database.
+      if (this.lastId === null) { this.lastId = this.db.maxId(); this.set('available'); return; }
       for (const row of this.db.newer(this.lastId, 50)) {
         this.lastId = Math.max(this.lastId, row.id);
         const label = this.labels.find(candidate => labelMatchesApp(candidate, row.app));
         if (!label) continue;
         const xml = this.db.payload(row.id);
-        if (xml) this.deliver(notificationDisplayLabel(label), parseToast(xml));
+        if (xml) this.deliver(row.app, notificationDisplayLabel(label), parseToast(xml));
       }
       if (this.current.state !== 'available') this.set('available');
     } catch {
@@ -132,13 +136,24 @@ export class WindowsNotificationCollector {
       if (this.labels.length) this.set('unavailable');
     } finally { this.busy = false; }
   }
-  private deliver(label: string, { title, body }: { title: string; body: string }): void {
+  private deliver(app: string, label: string, { title, body }: { title: string; body: string }): void {
     if (!title && !body) return;
     const now = this.clock.nowMs();
-    for (const [key, at] of this.seen) if (now - at >= NOTIFICATION_DEDUPE_MS || now < at) this.seen.delete(key);
-    const key = createHash('sha256').update(`${label}\0${title}\0${body}`).digest('hex');
-    if (this.seen.has(key)) return;
-    this.seen.set(key, now);
+    const whatsApp = labelMatchesApp('WhatsApp', app);
+    const seen = whatsApp ? this.seenWhatsApp : this.seen;
+    const windowMs = whatsApp ? WHATSAPP_DEDUPE_MS : NOTIFICATION_DEDUPE_MS;
+    for (const [key, at] of seen) if (now - at >= windowMs || now < at) seen.delete(key);
+    const key = createHash('sha256').update(`${whatsApp ? app : label}\0${title}\0${body}`).digest('hex');
+    const duplicate = seen.has(key);
+    if (whatsApp) {
+      // A refresh extends suppression without extending the alert's lifetime on the phone.
+      seen.delete(key);
+      seen.set(key, now);
+      if (seen.size > MAX_WHATSAPP_FINGERPRINTS) seen.delete(seen.keys().next().value!);
+    } else if (!duplicate) {
+      seen.set(key, now);
+    }
+    if (duplicate) return;
     this.options.store.addNotification({ id: `n${now.toString(36)}-${++this.sequence}`, appId: label, title, body, receivedAtEpochMs: now, expiresAtEpochMs: now + LIMITS.notificationTtlMs });
   }
 }

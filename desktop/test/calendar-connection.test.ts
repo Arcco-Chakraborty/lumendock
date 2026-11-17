@@ -35,7 +35,7 @@ describe('app-owned calendar connection generations',()=>{
   const rev=a.read().selectionRevision;await a.applySelection(second,rev,['synthetic']);
   expect(a.read()).toMatchObject({applied:true,selectedIds:['synthetic']});
   await expect(a.applySelection(second,rev,[])).rejects.toThrow('CALENDAR_SELECTION_CHANGED');
-  expect(statSync(join(a.directory,'tokens.json')).mode&0o777).toBe(0o600);
+  if(process.platform!=='win32')expect(statSync(join(a.directory,'tokens.json')).mode&0o777).toBe(0o600);
  });
  it('requires a verified Windows ACL before storing a credential',async()=>{
   const calls:string[]=[];const dir=temp();
